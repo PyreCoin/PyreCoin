@@ -145,30 +145,63 @@ function buildSlot(entry, rank, now){
   return div;
 }
 
-export function renderLeaderboard(now){
-  const lb = document.getElementById('lb-container');
-  const preLaunch = isPlaceholder();
+// Live leaderboard entries fetched from leaderboard.json. The ingest
+// pipeline (scripts/ingest.mjs, run by GitHub Actions every 5 min)
+// writes accepted on-chain burns into that file. We fetch it on
+// module load and re-render once it resolves. Demo ENTRIES above is
+// kept only as a development reference; the live page never renders
+// it — visitors would treat it as real, which it isn't.
+let _liveEntries = null;
 
-  // Keep the cadence badge honest: nothing to re-rank pre-launch.
-  const badge = document.querySelector('#leaderboard .update-badge');
-  if (badge) badge.innerHTML = preLaunch
-    ? '<span class="update-dot"></span>Awaiting first burn'
-    : '<span class="update-dot"></span>Re-ranks every 30s';
+async function loadLiveEntries(){
+  try {
+    const res = await fetch('./leaderboard.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    _liveEntries = (data && Array.isArray(data.entries)) ? data.entries : [];
+  } catch (e) {
+    // Network/parse error — render the empty state instead of crashing
+    // or surfacing demo data. The page is still useful (footer, rules,
+    // disclaimer); just no leaderboard until the next reload.
+    _liveEntries = [];
+  }
+  // Refresh now that data has arrived. The first paint already showed
+  // an empty state; this swap is what makes new burns appear.
+  renderLeaderboard(new Date());
+}
 
-  // Pre-launch (placeholder mint) we render an empty state and never the
-  // demo ENTRIES below — demo data must be clearly marked, and the
-  // cleanest way to do that is to not display it at all.
-  if (preLaunch) {
-    lb.innerHTML = `
+// Kick off the fetch immediately on module import.
+loadLiveEntries();
+
+const EMPTY_STATE_HTML = `
       <div style="text-align:center;padding:64px 24px;border:0.5px dashed var(--border);background:rgba(0,0,0,0.32);">
         <div style="font-size:44px;line-height:1;margin-bottom:14px;opacity:0.45;filter:saturate(0.7);">🔥</div>
         <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--text);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;">Awaiting first burn</div>
         <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);max-width:440px;margin:0 auto;line-height:1.65;">The pyre is cold. Be the first to feed it — your URL takes the top slot until someone outburns you.</div>
       </div>`;
+
+export function renderLeaderboard(now){
+  const lb = document.getElementById('lb-container');
+  const preLaunch = isPlaceholder();
+
+  // Keep the cadence badge honest: nothing to re-rank pre-launch or
+  // before the live data has arrived.
+  const badge = document.querySelector('#leaderboard .update-badge');
+  if (badge) badge.innerHTML = preLaunch
+    ? '<span class="update-dot"></span>Awaiting first burn'
+    : '<span class="update-dot"></span>Re-ranks every 30s';
+
+  // Pre-launch always shows the empty state. Post-launch, the empty
+  // state is rendered while the JSON fetch is still pending, and also
+  // when the JSON has zero entries (e.g., immediately after the
+  // mainnet flip wipes leaderboard.json).
+  const source = preLaunch ? [] : (_liveEntries || []);
+  if (source.length === 0) {
+    lb.innerHTML = EMPTY_STATE_HTML;
     return;
   }
 
-  const ranked = ENTRIES
+  const ranked = source
     .map(e => ({entry:e, score:scoreEntry(e, now)}))
     .sort((a,b)=> b.score - a.score)
     .slice(0, 16);
