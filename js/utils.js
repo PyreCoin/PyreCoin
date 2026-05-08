@@ -21,6 +21,11 @@ export function relTime(iso, now){
 
 export function shortAddr(s){return s.slice(0,4)+'…'+s.slice(-4);}
 
+const _ESC = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+export function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => _ESC[c]);
+}
+
 export function shortTx(s){
   if(!s) return '';
   if(s.length <= 14) return s; // already short or demo placeholder

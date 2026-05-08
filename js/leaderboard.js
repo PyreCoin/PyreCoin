@@ -10,7 +10,7 @@
 //     Higher = faster churn. Lower = whales sticky for days.
 
 import { isPlaceholder } from './config.js';
-import { fmt, hoursSince, relTime, absTime, shortTx } from './utils.js';
+import { fmt, hoursSince, relTime, absTime, shortTx, escapeHtml } from './utils.js';
 
 const GRAVITY = 1.5;
 const DECAY_BASE_HOURS = 2;
@@ -111,20 +111,27 @@ function buildSlot(entry, rank, now){
   const last = latestBurn(entry);
   const burnCount = entry.burns.length;
   const burnsByRecency = [...entry.burns].sort((a,b)=> b.ts.localeCompare(a.ts));
+  // All user-controlled fields (entry.url, entry.msg, every b.*) come from
+  // on-chain memos that the moderation filter has structurally validated
+  // but does NOT HTML-escape. We MUST escape before feeding into innerHTML
+  // — the URL canonicalization preserves path/query/hash which can carry
+  // <script> bytes through any number of structural checks.
+  const url = escapeHtml(entry.url);
+  const msg = escapeHtml(entry.msg);
   const burnRows = burnsByRecency.map(b => `
         <li class="burn-item">
-          <span class="burn-amount">${fmt(b.amount)} $PYRE</span>
-          <span class="burn-time">${absTime(b.ts)}</span>
-          <a class="burn-tx-link" href="https://solscan.io/tx/${encodeURIComponent(b.tx)}" target="_blank" rel="noopener noreferrer">${shortTx(b.tx)} ↗</a>
+          <span class="burn-amount">${escapeHtml(fmt(b.amount))} $PYRE</span>
+          <span class="burn-time">${escapeHtml(absTime(b.ts))}</span>
+          <a class="burn-tx-link" href="https://solscan.io/tx/${encodeURIComponent(b.tx)}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortTx(b.tx))} ↗</a>
         </li>`).join('');
   div.innerHTML = `
     <div class="slot-rank">${rank}</div>
     <div class="slot-body">
-      <a class="slot-url" href="https://${entry.url}" target="_blank" rel="noopener noreferrer sponsored ugc">${entry.url}</a>
-      <span class="slot-msg">${entry.msg}</span>
+      <a class="slot-url" href="https://${url}" target="_blank" rel="noopener noreferrer sponsored ugc">${url}</a>
+      <span class="slot-msg">${msg}</span>
       <details class="slot-verify">
         <summary class="slot-verify-summary">
-          <span class="slot-tx-meta">heat ${fmt(score)} · ${fmt(total)} burned all-time · last fed ${relTime(last, now)}</span>
+          <span class="slot-tx-meta">heat ${escapeHtml(fmt(score))} · ${escapeHtml(fmt(total))} burned all-time · last fed ${escapeHtml(relTime(last, now))}</span>
           <span class="slot-verify-cta">verify ${burnCount} burn${burnCount === 1 ? '' : 's'} on solana</span>
         </summary>
         <ol class="burn-list">${burnRows}
@@ -132,8 +139,8 @@ function buildSlot(entry, rank, now){
       </details>
     </div>
     <div class="slot-burn">
-      <span class="slot-amount">${fmt(score)}</span>
-      <span class="slot-ticker">${fmt(total)} $PYRE burned</span>
+      <span class="slot-amount">${escapeHtml(fmt(score))}</span>
+      <span class="slot-ticker">${escapeHtml(fmt(total))} $PYRE burned</span>
     </div>`;
   return div;
 }

@@ -19,7 +19,7 @@ import {
 import {
   PYRE_MINT_STR, RPC_URL, BURN_OWNER_STR, MEMO_PROGRAM_ID_STR, isPlaceholder
 } from './config.js';
-import { $, shortAddr } from './utils.js';
+import { $, shortAddr, escapeHtml } from './utils.js';
 
 // ─── STATE ───────────────────────────────────────────────────────────
 const burnState = {
@@ -223,7 +223,7 @@ window.submitBurn = async function submitBurn() {
     if (m.toLowerCase().includes('user rejected')) {
       setStatus('Transaction rejected in wallet.', 'error');
     } else {
-      setStatus('Error: ' + m, 'error');
+      setStatus('Error: ' + escapeHtml(m), 'error');
     }
   } finally {
     $('burnSubmit').disabled = false;
