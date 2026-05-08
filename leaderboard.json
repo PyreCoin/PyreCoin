@@ -1,5 +1,5 @@
 {
-  "updated": "2026-05-08T14:00:00Z",
+  "updated": "2026-05-08T23:46:13.722Z",
   "updatedBy": "ingest-bot",
   "solscanVerified": true,
   "config": {
@@ -241,6 +241,18 @@
           "amount": 2100,
           "ts": "2026-05-08T12:00:00Z",
           "tx": "3mZk7...8nPq"
+        }
+      ]
+    },
+    {
+      "wallet": "AF6Yt5Q6SsKoiiRMURzzRSXmnrHjUofvFBwJE5gdJiHq",
+      "url": "emojoe.com",
+      "msg": "hilarious message here",
+      "burns": [
+        {
+          "amount": 1000,
+          "ts": "2026-05-08T20:36:02.000Z",
+          "tx": "3iWfUv3bUx64TsKvhcqdA2J5oJiM7JJ3XXHPGcfVGM6uFGzVZFNzqYxuhtSHYpyFQ9pHtiLFoV9WcKxU7W5Y56zP"
         }
       ]
     }
