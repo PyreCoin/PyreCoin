@@ -1,0 +1,19 @@
+{
+  "name": "pyrecoin",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "PYRE leaderboard ingest pipeline.",
+  "scripts": {
+    "ingest": "node scripts/ingest.mjs",
+    "ingest:dry": "DRY_RUN=1 node scripts/ingest.mjs",
+    "test": "node --test 'scripts/test/*.test.mjs'"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.95.0",
+    "obscenity": "^0.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

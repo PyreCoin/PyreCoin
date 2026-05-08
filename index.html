@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PYRE — Burn to Be Seen</title>
+<meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<canvas id="fireCanvas"></canvas>
+
+<div class="page">
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">PYRE</div>
+    <div class="nav-links">
+      <a href="#leaderboard">Leaderboard</a>
+      <a href="#how">How it works</a>
+      <a href="#etymology">Etymology</a>
+      <a href="#rules">Rules</a>
+      <a href="https://github.com/PyreCoin/PyreCoin" target="_blank">GitHub</a>
+      <button class="btn-primary" onclick="openBurnModal()">Burn $PYRE</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">Solana · Deflationary · Proof of Burn</div>
+    <div class="hero-title">PYRE</div>
+    <p class="hero-sub">
+      <em class="ling" style="font-style:normal;color:var(--text3);font-size:11px;letter-spacing:1.5px;">/ˈpaɪ.ər/ &nbsp;·&nbsp; <i>noun</i> &nbsp;·&nbsp; mid 17c., from Gk. πυρά</em><br><br>
+      Burn <strong>$PYRE</strong> tokens to claim your spot on the leaderboard.<br>
+      Every burn is deflationary. Every ad purchase removes supply.<br>
+      The more heat you generate, the more real estate you own.<br>
+      <span style="color:var(--text3);font-size:12px;">You were going to burn the money anyway. This way it has a memo.</span>
+    </p>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-val" id="s-price">—</div>
+      <div class="stat-lbl">Price</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="s-burned">—</div>
+      <div class="stat-lbl">Total Burned</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="s-holders">—</div>
+      <div class="stat-lbl">Burners</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="s-mcap">—</div>
+      <div class="stat-lbl">Market Cap</div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="full-divider"></div>
+  <section class="section" id="leaderboard">
+    <div class="section-header">
+      <div class="section-title">Live Burn Leaderboard</div>
+      <div class="section-line"></div>
+      <div class="section-meta">
+        Ranked by <strong style="color:var(--ember2);font-weight:500;">heat</strong> · burns decay
+        <span class="update-badge"><span class="update-dot"></span>Re-ranks every 30s</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:24px;padding:14px 18px;border:0.5px solid var(--border);border-left:2px solid var(--ember);background:rgba(0,0,0,0.4);font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);line-height:1.7;">
+      <strong style="color:var(--ember2);">heat</strong> is each burn divided by <code style="color:var(--ember);">(hours_since_burn + 2)<sup>1.5</sup></code>, summed per wallet — Hacker News / Reddit "hot" ranking, applied to fire. Old burns fade. Fresh burns climb. <strong style="color:var(--text);">Feed the pyre to stay on top.</strong>
+    </div>
+
+    <div class="leaderboard" id="lb-container">
+      <!-- populated by JS from leaderboard.json -->
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <div class="full-divider"></div>
+  <section class="section" id="how">
+    <div class="section-header">
+      <div class="section-title">How it works</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-num">01</div>
+        <div class="how-title">Buy $PYRE on pump.fun</div>
+        <div class="how-body">Grab some $PYRE tokens. The more you hold, the more you can burn. Scarcity rises with every burn — your tokens get more expensive to acquire and more powerful to spend.</div>
+      </div>
+      <div class="how-card">
+        <div class="how-num">02</div>
+        <div class="how-title">Send a burn transaction</div>
+        <div class="how-body">Send $PYRE to the Solana null address <code>1111...1111</code> with a memo containing your URL and message. Any Solana wallet works. The blockchain is the receipt.</div>
+      </div>
+      <div class="how-card">
+        <div class="how-num">03</div>
+        <div class="how-title">Heat ranks you, not raw burn</div>
+        <div class="how-body">Each burn is an upvote with a timestamp. Heat = <code>amount ÷ (hours_since + 2)<sup>1.5</sup></code>, summed across your burns. Reddit-style decay. Old whales fade. Fresh burns climb. <strong style="color:var(--ember2);">Quid pro quo, in flame.</strong></div>
+      </div>
+      <div class="how-card">
+        <div class="how-num">04</div>
+        <div class="how-title">Hold rank by feeding the fire</div>
+        <div class="how-body">A 100K burn at the top decays past a fresh 10K burn in roughly a day. To stay in the top slot you must keep burning — or accept being passed by someone who is. The pyre does not coast.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ETYMOLOGY / FIELD GUIDE -->
+  <div class="full-divider"></div>
+  <section class="section" id="etymology">
+    <div class="section-header">
+      <div class="section-title">A Field Guide to the Word "Pyre"</div>
+      <div class="section-line"></div>
+      <div class="section-meta">For the literate degen · est. ca. 7000 BCE</div>
+    </div>
+
+    <div class="etym-wrap">
+
+      <!-- DICTIONARY ENTRY -->
+      <article class="dict-card">
+        <div class="dict-headword">
+          <span class="dict-word">pyre</span>
+          <span class="dict-pos">noun</span>
+          <span class="dict-ipa">/<span>ˈpaɪ.ər</span>/</span>
+        </div>
+
+        <div class="dict-pron-row">
+          <span><strong>UK</strong> /paɪə/</span>
+          <span><strong>US</strong> /paɪr/</span>
+          <span><strong>rhymes with</strong> fire, dire, "your retirement plan"</span>
+        </div>
+
+        <div class="dict-defs">
+          <div class="dict-def"><div><i>n.</i> A heap of combustible material — typically wood — assembled for the ceremonial burning of a body.
+            <em class="usage">"They built a pyre of cedar and laid him upon it."</em></div></div>
+          <div class="dict-def"><div><i>n.</i> A sacred altar-fire; a hearth dedicated to a deity; any place where fire is deliberately and meaningfully kindled.
+            <em class="usage">"The pyre at the temple burned for a hundred and forty-seven years."</em></div></div>
+          <div class="dict-def"><div><i>n.</i> <em>(figurative)</em> Any structure — physical, financial, or otherwise — onto which one places things of value, knowing they will not return.
+            <em class="usage">"The 401(k), the marriage, the dogcoin bag — each its own modest pyre."</em></div></div>
+          <div class="dict-def"><div><i>n.</i> <em>(crypto, 2026−)</em> A leaderboard mechanic by which Solana memecoin holders convert tokens into permanent on-chain attention.
+            <em class="usage">"He threw forty thousand $PYRE on the pyre and ranked seventh by Tuesday."</em></div></div>
+        </div>
+
+        <div class="dict-derived">
+          <strong>derived forms</strong> · pyric <i>adj.</i> · pyromantic <i>adj.</i> · pyrelike <i>adv.</i> · <strong>see also</strong> · fire, hearth, conflagration, "your portfolio Q1 2026"
+        </div>
+      </article>
+
+      <!-- ETYMOLOGY CHAIN -->
+      <aside class="etym-card">
+        <div class="etym-title">Etymology, in descending order</div>
+        <div class="etym-chain">
+          <div class="etym-step">
+            <div class="etym-era">PIE root</div>
+            <div class="etym-form"><b>*péh₂wr̥</b> <span class="gloss">"fire" (the inanimate, substance kind — distinct from *h₁n̥gʷnis, fire-as-living-force, which gave us Latin <em>ignis</em>)</span></div>
+          </div>
+          <div class="etym-step">
+            <div class="etym-era">Anc. Greek</div>
+            <div class="etym-form"><b>πῦρ (pŷr)</b> <span class="gloss">"fire" — and its derivative <b>πυρά (purá)</b>, "funeral pyre, altar-fire, watch-fire, hearth"</span></div>
+          </div>
+          <div class="etym-step">
+            <div class="etym-era">Latin</div>
+            <div class="etym-form"><b>pyra</b> <span class="gloss">a learned borrowing of the Greek; "funeral pile"</span></div>
+          </div>
+          <div class="etym-step">
+            <div class="etym-era">Mid 17c.</div>
+            <div class="etym-form"><b>pyre</b> <span class="gloss">enters English; the doublet of <em>fire</em>, but reserved for the ceremonial and the inevitable</span></div>
+          </div>
+          <div class="etym-step">
+            <div class="etym-era">2026 CE</div>
+            <div class="etym-form"><b>$PYRE</b> <span class="gloss">SPL token, Solana mainnet; doublet of "we knew what we were doing and we did it anyway"</span></div>
+          </div>
+        </div>
+
+        <div class="cognates">
+          <div class="cognates-label">cognates across the family</div>
+          <div class="cognates-grid">
+            <div><b>OE fyr</b> → fire</div>
+            <div><b>Ger Feuer</b> → fire</div>
+            <div><b>Hittite paḫḫur</b> → fire</div>
+            <div><b>Czech pýř</b> → hot ashes</div>
+            <div><b>Arm hur</b> → fire, torch</div>
+            <div><b>Umbrian pir</b> → fire</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ENCYCLOPEDIA -->
+    <article class="encyc">
+      <div class="encyc-head">
+        <div class="encyc-title">PYRE</div>
+        <div class="encyc-sub">cremation · sacrifice · attention economy</div>
+      </div>
+      <div class="encyc-cols">
+        <p>The <strong>pyre</strong> (Anc. Gr. <span class="gk">πυρά</span>, romanized <em>purá</em>; from <span class="gk">πῦρ</span> <em>pûr</em>, "fire") is the oldest piece of human infrastructure that still performs its original function. Archaeological evidence of cremation pyres in the Levant dates to roughly <strong>7000 BCE</strong>, predating the wheel, the alphabet, and the limited liability company by several thousand years.</p>
+
+        <p>In <strong>Bronze Age Europe</strong>, pyre flame-height conferred social status; charcoal residues at the Salorno-Dos de la Forca site in the Adige Valley (1150–950 BCE) yielded over 64 kg of cremated remains across eight generations of one family — a <em>literal</em> intergenerational burn schedule.</p>
+
+        <p>In the <strong>Vedic tradition</strong>, the <em>Antyesti</em> rite — "the last sacrifice" — formalized the pyre as one of the sixteen <em>samskaras</em>, the body returned to its five elements via mango-wood and ghee. A traditional Hindu pyre burns 500–600 kg of wood across six hours; an estimated 50–60 million trees are pyred annually in India alone.</p>
+
+        <p>In <strong>Greek religion</strong>, <span class="gk">πυρά</span> referred equally to the funeral pyre and to the altar-fire on which portions of an animal sacrifice were burnt as an offering. The semantic distance between these uses was, to the Greek mind, zero. Something was given to the fire; the fire took it. The accounting ended there.</p>
+
+        <p>In <strong>Roman</strong> and <strong>Germanic</strong> custom, pyres were public, vertical, and theatrical — a final post by which a life was measured. Open-air cremation has since been outlawed in most of the West (UK, Cremation Act 1902), and the rite has migrated indoors, into furnaces, into spreadsheets, and — most recently — onto the Solana mainnet, where the pyre takes the form of a transfer to address <code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">11111…1111</code> with a memo attached.</p>
+
+        <p>Across every recorded culture that has lit one, the pyre has carried a single, stable meaning: <em>this thing is over, and I want everyone to see that it is over</em>. The combustible has always varied. The point has not.</p>
+      </div>
+
+      <div class="sidebar-fact">
+        <b>etymological footnote</b> — Proto-Indo-European apparently kept two distinct roots for "fire": <span class="ling" style="color:var(--ember2);">*péh₂wr̥</span> (inanimate, fire-as-substance — the kind you handle, store, transfer, and burn) and <span class="ling" style="color:var(--ember2);">*h₁n̥gʷnis</span> (animate, fire-as-living-force — the kind that arrives, consumes, and decides). English took the first. We are working with the substance.
+      </div>
+    </article>
+
+    <!-- MOCKING / 2026 COMMENTARY -->
+    <div class="mock-block">
+      <div class="mock-label">addendum · contemporary usage · 2026</div>
+      <div class="mock-text">
+        <p><span class="stamp">obs.</span> The persistent assumption that "burning money" is unusual, foolish, or exceptional behavior — held by a dwindling number of holdouts, mostly ETF guys and certain uncles — has been quietly retired. By the spring of 2026 the question is no longer <em>whether</em> you are burning money but <strong>onto which pyre</strong>, and <strong>with what aesthetic</strong>.</p>
+
+        <p>Your <strong>S&amp;P 500 fund</strong>, real return adjusted for the cost of staying alive in a coastal city, is a slow pyre with very tasteful carved-oak finishings. Your <strong>rent</strong> is a monthly pyre on which you place a third of your post-tax income and receive, in return, the right to keep your books somewhere. Your <strong>streaming subscriptions</strong> are seventeen tea-light pyres burning quietly in a side room you have not entered since 2023. Your <strong>"high-yield" savings account</strong> is a pyre someone built out of damp leaves and is charging you to look at.</p>
+
+        <p>$PYRE proposes only one modest reform: <strong>name the pyre.</strong> Make it explicit. Put it on the leaderboard. Get a clickable link out of it. The fire was always going to take it. At least this way the receipt is on-chain and someone, somewhere, has to scroll past your URL on the way to theirs.</p>
+
+        <p class="ling" style="text-align:center;font-size:13px;color:var(--text3);letter-spacing:1px;margin-top:18px;font-style:italic;">— πάντα ῥεῖ καὶ καίεται —<br><span style="font-size:11px;letter-spacing:0.5px;font-style:normal;">"all things flow, and burn"</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <div class="full-divider"></div>
+  <section class="section" id="rules">
+    <div class="section-header">
+      <div class="section-title">The Rules</div>
+      <div class="section-line"></div>
+      <div class="section-meta">Simple. Fair. Human-reviewed.</div>
+    </div>
+    <div class="rules-grid">
+      <div>
+        <div class="rules-col-title">✓ &nbsp;What flies</div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Any legal product, project, or community</strong> — crypto, SaaS, art, music, memes, whatever. If it's legal, it's burnable.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Burn as many times as you want.</strong> Each burn is its own upvote with its own timestamp. They sum into your <em>heat</em>, decaying like a Reddit "hot" feed: <code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">amount ÷ (hours_since + 2)<sup>1.5</sup></code>.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>One URL + one message per wallet.</strong> Subsequent burns from the same wallet add to your wallet's heat — they don't spawn a new slot.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Change your message anytime</strong> by burning more. Your latest memo overwrites your displayed message; old burns still count toward heat (until they decay).</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Fresh burns climb fast.</strong> A 10K burn from the last hour can outrank a 100K burn from yesterday. The pyre rewards recency — that's the quid pro quo.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Links open in a new tab.</strong> Your URL is live, clickable, and in front of every degen watching the leaderboard.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>The more you burn, the bigger your slot.</strong> Rank 1 gets a full hero card. Ranks 2–6 get medium cards. Ranks 7–16 get compact rows.</div></div>
+      </div>
+      <div>
+        <div class="rules-col-title">✗ &nbsp;What gets pulled</div>
+        <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Hate speech, slurs, or anything targeting people</strong> based on race, religion, gender, sexuality, or nationality. No dog whistles. No exceptions. Burn refunded? No — the burn is gone. That's on you.</div></div>
+        <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Illegal content of any kind</strong> — scams, fraud, counterfeit goods, anything prohibited by law. We cooperate fully with any lawful request.</div></div>
+        <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>NSFW or adult content.</strong> Keep it safe for all audiences. This is a public leaderboard.</div></div>
+        <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Impersonation of other projects, people, or brands</strong> without clear permission or obvious parody context.</div></div>
+        <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Burn stuffing / wash transactions.</strong> If we see circular wallet activity inflating burn amounts, the slot is removed and flagged publicly.</div></div>
+        <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Final say is human.</strong> The GitHub maintainers are the last word. We're chill — but we're not neutral. The culture of this leaderboard matters to us.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BURN CTA -->
+  <div class="full-divider"></div>
+  <div class="cta-block" id="burn">
+    <div class="cta-label">Ready to be seen?</div>
+    <div class="cta-title">Throw It On The Pyre</div>
+    <p class="cta-sub">
+      Burn $PYRE. Own the leaderboard. Get seen by every degen watching the price go up.<br>
+      No subscription. No renewal. No vesting. No cliff. No one to email.<br>
+      Just <em class="ling" style="color:var(--ember2);font-style:italic;">πυρά</em>.
+    </p>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="openBurnModal()">Burn $PYRE</button>
+      <button class="btn-ghost" onclick="window.open('https://pump.fun','_blank')">Buy $PYRE on pump.fun</button>
+      <button class="btn-ghost" onclick="window.open('https://github.com/PyreCoin/PyreCoin','_blank')">GitHub</button>
+    </div>
+    <div style="margin-top:24px;">
+      <div class="burn-addr">
+        <span class="burn-addr-label">Burn address</span>
+        <span class="burn-addr-val">11111111111111111111111111111111</span>
+      </div>
+    </div>
+    <p style="margin-top:14px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;">
+      Include your URL and message in the transaction memo field
+    </p>
+  </div>
+
+  <!-- BURN MODAL -->
+  <div class="burn-modal-backdrop" id="burnModal" onclick="if(event.target===this)closeBurnModal()">
+    <div class="burn-modal" role="dialog" aria-modal="true" aria-labelledby="burnTitle">
+      <button class="burn-modal-close" onclick="closeBurnModal()" aria-label="Close">×</button>
+      <div class="burn-modal-title" id="burnTitle">Throw it on the pyre</div>
+      <div class="burn-modal-sub">SPL transfer + memo · one transaction</div>
+
+      <div class="burn-wallet-row">
+        <span id="walletStatus">Wallet: <span style="color:var(--text2)">not connected</span></span>
+        <span id="walletBalance"></span>
+      </div>
+
+      <form onsubmit="event.preventDefault();submitBurn();">
+        <div class="burn-form-row">
+          <label for="burnUrl">Your URL</label>
+          <input id="burnUrl" type="text" maxlength="200" placeholder="yoursite.xyz" required autocomplete="off">
+          <div class="helper">https:// is added automatically · max 200 chars</div>
+        </div>
+        <div class="burn-form-row">
+          <label for="burnMsg">Your message</label>
+          <input id="burnMsg" type="text" maxlength="280" placeholder="Daily alpha calls. Real signals." required autocomplete="off">
+          <div class="helper"><span id="msgCount">0</span> / 280 chars · displayed publicly</div>
+        </div>
+        <div class="burn-form-row">
+          <label for="burnAmount">Amount of $PYRE to burn</label>
+          <input id="burnAmount" type="number" min="1" step="any" placeholder="10000" required>
+          <div class="helper">This amount is permanently destroyed. There is no refund.</div>
+        </div>
+        <div class="burn-status" id="burnStatus"></div>
+        <button type="submit" class="burn-modal-submit" id="burnSubmit">Connect wallet &amp; burn</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">PYRE</div>
+    <div class="footer-links">
+      <a href="https://github.com/PyreCoin/PyreCoin" target="_blank">GitHub</a>
+      <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a>
+      <a href="https://pump.fun" target="_blank">pump.fun</a>
+      <a href="#rules">Rules</a>
+    </div>
+    <div class="footer-note">$PYRE is a memecoin · digital collectible · not a security · not financial advice · burn responsibly</div>
+  </footer>
+
+</div><!-- /page -->
+
+<!-- FIRE SHADER -->
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>
+

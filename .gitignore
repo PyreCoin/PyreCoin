@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+files.zip
+*.bak
+PROMPT_TO_PICKUP_THE_TORCH.md
+project-policy
+LAUNCH.md

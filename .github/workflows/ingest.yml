@@ -1,0 +1,66 @@
+name: Ingest burns
+
+# Polls Solana for new $PYRE burns, runs the deterministic moderation
+# filter, and commits leaderboard.json / pending.json / moderation-log.jsonl
+# updates straight into main. The page is a GitHub Pages site that rebuilds
+# on every push, so users see new burns within ~6–10 minutes of the chain
+# event.
+#
+# Required configuration:
+#   - Secret: SOLANA_RPC_URL  (e.g. a Helius mainnet endpoint)
+#   - Variable: PYRE_MINT     (the SPL token mint address)
+
+on:
+  schedule:
+    # GitHub Actions enforces a 5-minute floor on cron frequency.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# Don't let two ingest runs interleave commits.
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run ingest
+        env:
+          SOLANA_RPC_URL: ${{ secrets.SOLANA_RPC_URL }}
+          PYRE_MINT: ${{ vars.PYRE_MINT }}
+          MAX_SIGNATURES: '500'
+        run: npm run ingest
+
+      - name: Commit changes
+        run: |
+          if [ -n "$(git status --porcelain leaderboard.json pending.json moderation-log.jsonl state.json)" ]; then
+            git config user.name 'pyre-ingest-bot'
+            git config user.email 'ingest@pyrecoin.local'
+            git add leaderboard.json pending.json moderation-log.jsonl state.json
+            git commit -m "ingest: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          else
+            echo "no changes to commit"
+          fi
