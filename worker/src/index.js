@@ -72,6 +72,48 @@ function corsHeaders(origin) {
   };
 }
 
+// ── INGEST CRON TRIGGER ──────────────────────────────────────────
+// GH Actions free-tier `schedule:` cron is best-effort: during high
+// load it routinely delays 1–3 hours per run, which makes the
+// burn-to-leaderboard latency unbearable for a memecoin. CF Worker
+// cron is reliable, so the source of truth for "trigger ingest" lives
+// here. Each tick POSTs to GitHub's workflow_dispatch endpoint, which
+// queues an Ingest run. The GH cron in ingest.yml stays as a backup.
+//
+// Requires GITHUB_PAT (fine-grained, repo-scoped, Actions RW):
+//   wrangler secret put GITHUB_PAT
+
+const INGEST_REPO = 'PyreCoin/PyreCoin';
+const INGEST_WORKFLOW = 'ingest.yml';
+
+async function dispatchIngest(env) {
+  if (!env.GITHUB_PAT) {
+    console.error('GITHUB_PAT not set; skipping ingest dispatch');
+    return;
+  }
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${INGEST_REPO}/actions/workflows/${INGEST_WORKFLOW}/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${env.GITHUB_PAT}`,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'User-Agent': 'pyre-cron-trigger',
+        },
+        body: JSON.stringify({ ref: 'main' }),
+      }
+    );
+    if (!r.ok) {
+      const body = await r.text().catch(() => '');
+      console.error(`ingest dispatch ${r.status}: ${body}`);
+    }
+  } catch (err) {
+    console.error(`ingest dispatch threw: ${err.message}`);
+  }
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
@@ -137,5 +179,11 @@ export default {
         ...corsHeaders(origin),
       },
     });
+  },
+
+  // CF Worker cron tick. Fires per the schedule in wrangler.toml.
+  // Each tick pokes GH workflow_dispatch to queue an ingest run.
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(dispatchIngest(env));
   },
 };

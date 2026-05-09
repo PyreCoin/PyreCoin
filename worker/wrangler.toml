@@ -19,3 +19,19 @@ routes = [
 #   wrangler secret put HELIUS_KEY
 # (don't add it here — secrets in wrangler.toml end up in plaintext
 # in the deployed worker bundle).
+#
+# GITHUB_PAT (also a secret) drives the cron-trigger handler below.
+# Set via:
+#   wrangler secret put GITHUB_PAT
+# Use a fine-grained PAT scoped to the PyreCoin repo with
+# Actions: Read & Write only. 90-day expiration is the GitHub max —
+# set a calendar reminder to rotate.
+
+# ── INGEST CRON ───────────────────────────────────────────────────
+# Fires the scheduled handler in src/index.js every 5 minutes; that
+# handler POSTs to GitHub workflow_dispatch to queue an ingest run.
+# Replaces the (unreliable) GH Actions schedule trigger as the
+# primary cadence source. The GH cron in ingest.yml is kept as a
+# best-effort backup.
+[triggers]
+crons = ["*/5 * * * *"]
