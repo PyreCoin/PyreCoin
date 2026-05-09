@@ -1008,6 +1008,61 @@ footer{
      ~245px and rule text wrapped to 5+ lines per item. */
   .rules-grid{grid-template-columns:1fr;gap:32px;}
 
+  /* Leaderboard simplification — too much info packed too tight in a
+     phone-narrow body column was causing word-per-line wrapping and an
+     ambiguous "0" big number (heat score decayed sub-1). Tighter
+     paddings, smaller everything, single-line msg with ellipsis, and
+     hide the verbose meta line. The big right-hand number now shows
+     total burned (set in leaderboard.js), so it's never just "0". */
+  .slot{padding:12px 14px;grid-template-columns:32px 1fr auto;gap:10px;}
+  .slot.rank1{padding:18px 16px;grid-template-columns:40px 1fr auto;}
+  .slot.rank2{padding:14px 14px;}
+  .slot.rank3{padding:12px 14px;}
+  .slot.rank4,.slot.rank5,.slot.rank6{padding:10px 12px;}
+  .slot.rank7,.slot.rank8,.slot.rank9,.slot.rank10,.slot.rank11,.slot.rank12,
+  .slot.rank13,.slot.rank14,.slot.rank15,.slot.rank16{
+    padding:8px 12px;grid-template-columns:28px 1fr auto;gap:8px;
+  }
+
+  .slot-rank{font-size:18px;}
+  .slot.rank1 .slot-rank{font-size:26px;}
+  .slot.rank2 .slot-rank{font-size:22px;}
+  .slot.rank3 .slot-rank{font-size:18px;}
+  .slot.rank4 .slot-rank,.slot.rank5 .slot-rank,.slot.rank6 .slot-rank{font-size:16px;}
+
+  .slot-url{font-size:12px;}
+  .slot.rank1 .slot-url{font-size:14px;margin-bottom:2px;}
+  .slot.rank2 .slot-url{font-size:13px;}
+
+  /* Single-line msg with ellipsis on every rank (overrides desktop
+     rank1's white-space:normal which wraps to 4 lines on phones). */
+  .slot-msg{
+    font-size:11px;
+    white-space:nowrap !important;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:block;
+  }
+  .slot.rank1 .slot-msg{font-size:11.5px;line-height:1.4;}
+
+  .slot-amount{font-size:15px;}
+  .slot.rank1 .slot-amount{font-size:20px;}
+  .slot.rank2 .slot-amount{font-size:17px;}
+  .slot.rank3 .slot-amount{font-size:15px;}
+
+  .slot-ticker{font-size:8px;letter-spacing:1px;}
+
+  /* Hide the verbose meta line on mobile — heat / last-fed wrap
+     badly in narrow space and aren't load-bearing at-a-glance. The
+     verify CTA stays so users can still expand to per-burn proof. */
+  .slot-tx-meta{display:none;}
+
+  .slot-verify summary{font-size:9px;gap:6px;}
+  .slot-verify-cta{padding:1px 6px;font-size:8px;letter-spacing:1px;}
+  .slot-verify{margin-top:4px;}
+
+  .burn-item{font-size:9px;gap:8px;}
+
   /* Burn modal: compact padding + smaller title so it fits inside
      mobile browser chrome on smaller phones (Firefox Android, iPhone SE). */
   .burn-modal-backdrop.open{padding:14px 12px;}

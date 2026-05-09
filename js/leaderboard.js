@@ -63,16 +63,16 @@ function buildSlot(entry, rank, now){
       <span class="slot-msg">${msg}</span>
       <details class="slot-verify">
         <summary class="slot-verify-summary">
-          <span class="slot-tx-meta">heat ${escapeHtml(fmt(score))} · ${escapeHtml(fmt(total))} burned all-time · last fed ${escapeHtml(relTime(last, now))}</span>
-          <span class="slot-verify-cta">verify ${burnCount} burn${burnCount === 1 ? '' : 's'} on solana</span>
+          <span class="slot-tx-meta">last fed ${escapeHtml(relTime(last, now))}</span>
+          <span class="slot-verify-cta">verify on solana</span>
         </summary>
         <ol class="burn-list">${burnRows}
       </ol>
       </details>
     </div>
     <div class="slot-burn">
-      <span class="slot-amount">${escapeHtml(fmt(score))}</span>
-      <span class="slot-ticker">${escapeHtml(fmt(total))} $PYRE burned</span>
+      <span class="slot-amount">${escapeHtml(fmt(total))}</span>
+      <span class="slot-ticker">$PYRE burned</span>
     </div>`;
   return div;
 }
