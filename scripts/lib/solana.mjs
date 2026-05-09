@@ -18,8 +18,13 @@ import {
   PublicKey,
 } from '@solana/web3.js';
 
-// Well-known program IDs.
-const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+// Well-known program IDs. Pump.fun mints SPL tokens under the
+// Token-2022 program (NOT the legacy Token program). Using the legacy
+// ID here would derive the wrong ATA for the burn-owner address AND
+// would filter out the actual Token-2022 transfer instructions in
+// extractBurn — silently dropping every burn. The Associated Token
+// Program ID is the same for both Token and Token-2022 derivations.
+const TOKEN_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
 const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
   'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'
 );

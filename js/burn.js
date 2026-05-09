@@ -13,7 +13,8 @@ import {
 } from 'https://esm.sh/@solana/web3.js@1.95.4';
 import {
   createTransferCheckedInstruction, getAssociatedTokenAddressSync,
-  createAssociatedTokenAccountInstruction, getAccount
+  createAssociatedTokenAccountInstruction, getAccount,
+  TOKEN_2022_PROGRAM_ID
 } from 'https://esm.sh/@solana/spl-token@0.4.8';
 
 import {
@@ -110,14 +111,21 @@ async function refreshWalletState() {
   }
 }
 
+// pump.fun mints SPL tokens under the Token-2022 program (NOT the
+// legacy Token program). This matters for THREE places: ATA address
+// derivation, getAccount() reading, and transfer/ATA-creation
+// instructions. If we use legacy defaults the ATA address is wrong
+// and balance reads as 0 even when the user holds the token.
+const TOKEN_PROGRAM = TOKEN_2022_PROGRAM_ID;
+
 async function refreshBalance() {
   if (!burnState.publicKey) return;
   if (isPlaceholder()) return;
   try {
     const conn = new Connection(RPC_URL, 'confirmed');
     const mint = new PublicKey(PYRE_MINT_STR);
-    const ata = getAssociatedTokenAddressSync(mint, burnState.publicKey);
-    const acct = await getAccount(conn, ata);
+    const ata = getAssociatedTokenAddressSync(mint, burnState.publicKey, false, TOKEN_PROGRAM);
+    const acct = await getAccount(conn, ata, undefined, TOKEN_PROGRAM);
     if (burnState.decimals === null) {
       const mintInfo = await conn.getParsedAccountInfo(mint);
       burnState.decimals = mintInfo.value.data.parsed.info.decimals;
@@ -180,20 +188,20 @@ window.submitBurn = async function submitBurn() {
       burnState.decimals = mintInfo.value.data.parsed.info.decimals;
     }
 
-    const senderAta = getAssociatedTokenAddressSync(mint, sender);
-    const burnAta = getAssociatedTokenAddressSync(mint, burnOwner, true);
+    const senderAta = getAssociatedTokenAddressSync(mint, sender, false, TOKEN_PROGRAM);
+    const burnAta = getAssociatedTokenAddressSync(mint, burnOwner, true, TOKEN_PROGRAM);
 
     // If the burn-owner ATA doesn't exist yet, the first user pays ~0.002
     // SOL rent to create it. After that everyone burns to the same ATA.
     const burnAtaInfo = await conn.getAccountInfo(burnAta);
     const tx = new Transaction();
     if (!burnAtaInfo) {
-      tx.add(createAssociatedTokenAccountInstruction(sender, burnAta, burnOwner, mint));
+      tx.add(createAssociatedTokenAccountInstruction(sender, burnAta, burnOwner, mint, TOKEN_PROGRAM));
     }
 
     const rawAmount = BigInt(Math.floor(amt * 10 ** burnState.decimals));
     tx.add(createTransferCheckedInstruction(
-      senderAta, mint, burnAta, sender, rawAmount, burnState.decimals
+      senderAta, mint, burnAta, sender, rawAmount, burnState.decimals, [], TOKEN_PROGRAM
     ));
 
     const memoText = 'url=' + url + ' | msg=' + msg;
