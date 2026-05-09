@@ -16,75 +16,8 @@ const GRAVITY = 1.5;
 const DECAY_BASE_HOURS = 2;
 export const NOW_REF = new Date('2026-05-08T14:00:00Z'); // anchor for demo data
 
-// Each entry: { wallet, url, msg, burns: [{amount, ts, tx}, ...] }
-// Demo entries below are NEVER shown pre-launch (renderLeaderboard returns
-// an empty state when isPlaceholder() is true). Once mainnet launches and
-// ingest replaces this list with real burns, the renderer flips to the
-// ranked-slot layout automatically.
-export const ENTRIES = [
-  // Old whales — big totals, but timestamps drag their score down
-  {wallet:"7xKmP...f3Rq", url:"moonfi.xyz", msg:"Daily alpha calls. Real signals. No noise. Join 12,000 degens getting early calls every morning.", burns:[
-    {amount:300000, ts:"2026-05-06T22:00:00Z", tx:"3nZ9x...8kLm"},
-    {amount:120000, ts:"2026-05-07T18:00:00Z", tx:"3nZ9x...9aBc"}
-  ]},
-  {wallet:"4mRtQ...j2Wn", url:"degencasino.io", msg:"100x or bust. On-chain casino, provably fair, built on Solana.", burns:[
-    {amount:311000, ts:"2026-05-08T09:00:00Z", tx:"8pLx2...4nKj"}
-  ]},
-  // Fresh medium burns — newer, can punch above their cumulative weight
-  {wallet:"5fNwK...g7Mt", url:"solshield.xyz", msg:"On-chain rug detector. Free for the first 1,000 wallets. We pay you when we miss one.", burns:[
-    {amount:88000, ts:"2026-05-08T13:30:00Z", tx:"2pNk9...mQ4r"}
-  ]},
-  {wallet:"9sNvR...k8Qp", url:"wagmi.club", msg:"Join the cult. 5,000 members. Weekly alpha. No paper hands allowed.", burns:[
-    {amount:120000, ts:"2026-05-07T06:00:00Z", tx:"2mXq7...9pRn"},
-    {amount:68500, ts:"2026-05-08T11:30:00Z", tx:"2mXq7...4dEp"}
-  ]},
-  // Cumulative grinder — many small, regular burns
-  {wallet:"6rQmN...t4Lp", url:"solanaapes.io", msg:"10K collection. Floor moving. Don't sleep.", burns:[
-    {amount:25000, ts:"2026-05-08T11:00:00Z", tx:"4kZm9...6nRq"},
-    {amount:22500, ts:"2026-05-08T08:00:00Z", tx:"4kZm9...7sFp"},
-    {amount:20000, ts:"2026-05-08T03:00:00Z", tx:"4kZm9...1tHn"}
-  ]},
-  {wallet:"2pLkM...r5Tn", url:"pump.fun/coin/xr9f4kzmq", msg:"New gem just dropped. Check the chart, not me.", burns:[
-    {amount:92000, ts:"2026-05-08T03:00:00Z", tx:"7nQx4...2mPk"}
-  ]},
-  {wallet:"3tNpR...m7Kq", url:"defiwatch.xyz", msg:"Real-time DeFi analytics for Solana degens. Sane defaults. Sane alerts.", burns:[
-    {amount:44200, ts:"2026-05-08T07:00:00Z", tx:"9pMx3...7kLn"}
-  ]},
-  {wallet:"8mKqL...n3Rp", url:"rugcheck.xyz", msg:"Check before you ape. Or after — at this point we don't judge.", burns:[
-    {amount:31100, ts:"2026-05-08T10:00:00Z", tx:"5nZk8...3mQp"}
-  ]},
-  {wallet:"5nRtP...q9Mk", url:"soltracker.io", msg:"Track every whale move on Solana. Includes alerts for the whales who track you.", burns:[
-    {amount:24800, ts:"2026-05-08T05:00:00Z", tx:"6mPn2...8kZq"}
-  ]},
-  {wallet:"1kMpQ...r6Nt", url:"burnboard.gg", msg:"The original burn leaderboard. Different chain, different vibe, same ash.", burns:[
-    {amount:19600, ts:"2026-05-08T08:00:00Z", tx:"3nKm7...5pRx"}
-  ]},
-  {wallet:"7pNrK...m2Qt", url:"solmeme.fun", msg:"Meme launchpad on Solana. Zero fees. Negative dignity.", burns:[
-    {amount:14300, ts:"2026-05-08T04:00:00Z", tx:"8kZn4...2mLp"}
-  ]},
-  {wallet:"4mQtN...p7Lr", url:"alphagroup.xyz", msg:"Private alpha. 100 seats left. Then 99. Then 100 again next week.", burns:[
-    {amount:10900, ts:"2026-05-08T09:00:00Z", tx:"2pMk9...7nZr"}
-  ]},
-  // Tiny but extremely fresh — the "you'll only be here for an hour" slot
-  {wallet:"9zMrW...d2Pk", url:"chainmail.gg", msg:"Inbox for your wallet. Project DMs you instead of you DMing them.", burns:[
-    {amount:6800, ts:"2026-05-08T13:50:00Z", tx:"5pTr3...mN2q"}
-  ]},
-  {wallet:"9nLpM...k4Rt", url:"degen.tools", msg:"Every tool a degen needs. Plus three you don't.", burns:[
-    {amount:8400, ts:"2026-05-08T06:00:00Z", tx:"7kNq3...4mPz"}
-  ]},
-  {wallet:"2rKmQ...t8Np", url:"pyreburn.xyz", msg:"🔥🔥🔥", burns:[
-    {amount:6100, ts:"2026-05-08T11:00:00Z", tx:"5mZp8...9nRk"}
-  ]},
-  {wallet:"6pNtR...m3Kq", url:"solsignals.io", msg:"Free signals. Paid signals. You decide which lose more money.", burns:[
-    {amount:4800, ts:"2026-05-08T07:00:00Z", tx:"4nMk6...3pZm"}
-  ]},
-  {wallet:"3mKqP...r9Nt", url:"mevblock.xyz", msg:"Stop getting sandwiched.", burns:[
-    {amount:3200, ts:"2026-05-08T03:00:00Z", tx:"9pZn2...6mKr"}
-  ]},
-  {wallet:"8tNpM...q5Kr", url:"solport.io", msg:"Portfolio tracker. Free forever. Existential dread, not included.", burns:[
-    {amount:2100, ts:"2026-05-08T12:00:00Z", tx:"3mZk7...8nPq"}
-  ]}
-];
+// Each live entry: { wallet, url, msg, burns: [{amount, ts, tx}, ...] }
+// — same shape the ingest pipeline writes to leaderboard.json.
 
 function scoreEntry(entry, now){
   let s = 0;
@@ -148,9 +81,7 @@ function buildSlot(entry, rank, now){
 // Live leaderboard entries fetched from leaderboard.json. The ingest
 // pipeline (scripts/ingest.mjs, run by GitHub Actions every 5 min)
 // writes accepted on-chain burns into that file. We fetch it on
-// module load and re-render once it resolves. Demo ENTRIES above is
-// kept only as a development reference; the live page never renders
-// it — visitors would treat it as real, which it isn't.
+// module load and re-render once it resolves.
 let _liveEntries = null;
 
 async function loadLiveEntries(){
