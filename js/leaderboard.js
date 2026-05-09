@@ -10,7 +10,7 @@
 //     Higher = faster churn. Lower = whales sticky for days.
 
 import { isPlaceholder } from './config.js';
-import { fmt, hoursSince, relTime, absTime, shortTx, escapeHtml } from './utils.js';
+import { fmt, hoursSince, relTime, escapeHtml } from './utils.js';
 
 const GRAVITY = 1.5;
 const DECAY_BASE_HOURS = 2;
@@ -38,37 +38,27 @@ function latestBurn(entry){
 function buildSlot(entry, rank, now){
   const div = document.createElement('div');
   div.className = 'slot rank'+rank;
-  const score = scoreEntry(entry, now);
   const total = totalBurned(entry);
   const last = latestBurn(entry);
-  const burnCount = entry.burns.length;
-  const burnsByRecency = [...entry.burns].sort((a,b)=> b.ts.localeCompare(a.ts));
-  // All user-controlled fields (entry.url, entry.msg, every b.*) come from
-  // on-chain memos that the moderation filter has structurally validated
-  // but does NOT HTML-escape. We MUST escape before feeding into innerHTML
-  // — the URL canonicalization preserves path/query/hash which can carry
-  // <script> bytes through any number of structural checks.
+  // All user-controlled fields (entry.url, entry.msg) come from on-chain
+  // memos that the moderation filter has structurally validated but does
+  // NOT HTML-escape. We MUST escape before feeding into innerHTML — URL
+  // canonicalization preserves path/query/hash which can carry <script>
+  // bytes through any number of structural checks. entry.wallet is base58,
+  // so safe to URL-encode without HTML-escape.
   const url = escapeHtml(entry.url);
   const msg = escapeHtml(entry.msg);
-  const burnRows = burnsByRecency.map(b => `
-        <li class="burn-item">
-          <span class="burn-amount">${escapeHtml(fmt(b.amount))} $PYRE</span>
-          <span class="burn-time">${escapeHtml(absTime(b.ts))}</span>
-          <a class="burn-tx-link" href="https://solscan.io/tx/${encodeURIComponent(b.tx)}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortTx(b.tx))} ↗</a>
-        </li>`).join('');
+  const wallet = encodeURIComponent(entry.wallet);
   div.innerHTML = `
     <div class="slot-rank">${rank}</div>
     <div class="slot-body">
       <a class="slot-url" href="https://${url}" target="_blank" rel="noopener noreferrer sponsored ugc">${url}</a>
       <span class="slot-msg">${msg}</span>
-      <details class="slot-verify">
-        <summary class="slot-verify-summary">
-          <span class="slot-tx-meta">last fed ${escapeHtml(relTime(last, now))}</span>
-          <span class="slot-verify-cta">verify on solana</span>
-        </summary>
-        <ol class="burn-list">${burnRows}
-      </ol>
-      </details>
+      <div class="slot-meta">
+        <span class="slot-time">last fed ${escapeHtml(relTime(last, now))}</span>
+        <span class="slot-meta-sep">·</span>
+        <a class="slot-solscan" href="https://solscan.io/account/${wallet}" target="_blank" rel="noopener noreferrer">verify on solscan ↗</a>
+      </div>
     </div>
     <div class="slot-burn">
       <span class="slot-amount">${escapeHtml(fmt(total))}</span>

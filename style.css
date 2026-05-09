@@ -291,47 +291,45 @@ nav{
   font-size:9px;letter-spacing:1.5px;
   color:var(--text3);display:block;margin-top:1px;
 }
-/* ── BURN VERIFY (expandable on-chain proof per slot) ── */
-.slot-verify{margin-top:6px;}
-.slot-verify summary{
-  cursor:pointer;list-style:none;outline:none;
-  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
-  font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);
+/* ── SLOT META (time + solscan link) ──
+   One inline row under msg: friendly relative time, separator dot,
+   outbound link to solscan.io/account/<wallet>. Replaces the old
+   <details>/burn-list expandable, which buried info behind a tap
+   AND duplicated slot-amount (per-burn rows showed the same value
+   that lives in the big right-hand number). Solscan's account page
+   shows the full burn history in its native UI — that's what the
+   "verify" affordance is actually for. */
+.slot-meta{
+  margin-top:6px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  color:var(--text3);
+  letter-spacing:1px;
 }
-.slot-verify summary::-webkit-details-marker{display:none;}
-.slot-tx-meta{color:var(--text3);}
-.slot-verify-cta{
+.slot-time{color:var(--text3);}
+.slot-meta-sep{color:var(--text3);opacity:0.5;}
+.slot-solscan{
   color:var(--ember2);
-  border:0.5px solid rgba(255,100,30,0.25);
-  padding:2px 6px;border-radius:2px;
-  letter-spacing:1.2px;text-transform:uppercase;
+  text-decoration:none;
+  border-bottom:0.5px dotted rgba(255,180,80,0.5);
   transition:color .2s,border-color .2s;
+  white-space:nowrap;
 }
-.slot-verify summary:hover .slot-verify-cta,
-.slot-verify[open] .slot-verify-cta{
-  color:var(--ember);border-color:rgba(255,100,30,0.5);
+.slot-solscan:hover{
+  color:var(--ember);
+  border-color:var(--ember);
 }
-.slot.rank7 .slot-tx-meta,.slot.rank8 .slot-tx-meta,.slot.rank9 .slot-tx-meta,
-.slot.rank10 .slot-tx-meta,.slot.rank11 .slot-tx-meta,.slot.rank12 .slot-tx-meta,
-.slot.rank13 .slot-tx-meta,.slot.rank14 .slot-tx-meta,.slot.rank15 .slot-tx-meta,
-.slot.rank16 .slot-tx-meta{display:none;}
-.burn-list{
-  list-style:none;padding:6px 0 2px;margin:6px 0 0;
-  border-top:0.5px dashed var(--border);
-}
-.burn-item{
-  display:grid;grid-template-columns:1fr auto auto;
-  gap:14px;padding:3px 0;
-  font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);
-}
-.burn-amount{color:var(--ember2);font-weight:500;}
-.burn-time{color:var(--text3);}
-.burn-tx-link{
-  color:var(--text3);text-decoration:none;
-  border-bottom:0.5px dotted var(--border2);
-  transition:color .2s,border-color .2s;
-}
-.burn-tx-link:hover{color:var(--ember);border-color:var(--ember);}
+/* Hide meta on tail ranks (7+) on desktop — the smaller slots are
+   for visibility-of-presence, not per-slot detail. The user can
+   still click the URL or scroll up for the verify path. */
+.slot.rank7 .slot-meta,.slot.rank8 .slot-meta,.slot.rank9 .slot-meta,
+.slot.rank10 .slot-meta,.slot.rank11 .slot-meta,.slot.rank12 .slot-meta,
+.slot.rank13 .slot-meta,.slot.rank14 .slot-meta,.slot.rank15 .slot-meta,
+.slot.rank16 .slot-meta{display:none;}
 
 /* ── HOW IT WORKS ── */
 .how-grid{
@@ -1052,16 +1050,10 @@ footer{
 
   .slot-ticker{font-size:8px;letter-spacing:1px;}
 
-  /* Hide the verbose meta line on mobile — heat / last-fed wrap
-     badly in narrow space and aren't load-bearing at-a-glance. The
-     verify CTA stays so users can still expand to per-burn proof. */
-  .slot-tx-meta{display:none;}
-
-  .slot-verify summary{font-size:9px;gap:6px;}
-  .slot-verify-cta{padding:1px 6px;font-size:8px;letter-spacing:1px;}
-  .slot-verify{margin-top:4px;}
-
-  .burn-item{font-size:9px;gap:8px;}
+  /* Meta line stays on mobile but tighter — single inline row of
+     "last fed Xh ago · verify on solscan ↗" fits comfortably without
+     wrapping. */
+  .slot-meta{font-size:9px;gap:6px;margin-top:4px;}
 
   /* Burn modal: compact padding + smaller title so it fits inside
      mobile browser chrome on smaller phones (Firefox Android, iPhone SE). */
