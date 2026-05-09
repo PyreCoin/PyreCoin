@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Force revalidation of this HTML on every visit. GitHub Pages
+     serves with Cache-Control: max-age=600, which strands returning
+     visitors on stale index.html (and therefore stale ?v= references
+     to JS/CSS) for up to 10 minutes after a deploy. The meta tag
+     keeps the cached body but forces the browser to check freshness
+     before serving — see project policy §7.1. -->
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta http-equiv="Pragma" content="no-cache">
 <title>PYRE — Burn to Be Seen</title>
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
