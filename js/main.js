@@ -29,12 +29,14 @@ updateStats();
 renderLeaderboard(NOW_REF);
 
 // Re-rank periodically so heat visibly decays while the page is open.
-// (No-op pre-launch: renderLeaderboard renders the empty state in
-// placeholder mode regardless of `now`.)
+// updateStats() also re-fetches leaderboard.json so totals + burner
+// count refresh as new burns ingest (no-op while placeholder, and a
+// no-op-equivalent while the JSON is 404 / empty — both yield zero).
 const PAGE_LOAD_T = Date.now();
 setInterval(() => {
   const simulated = new Date(NOW_REF.getTime() + (Date.now() - PAGE_LOAD_T));
   renderLeaderboard(simulated);
+  updateStats();
 }, 30000);
 
 // Lazy-load burn module — defers heavy Solana lib download.

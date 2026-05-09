@@ -1,21 +1,46 @@
-// STATS — derived from on-chain data; never fabricated. Pre-launch
-// (placeholder mint) Total Burned and Burners are objectively 0. Price
-// and Market Cap require a DEX feed and stay '—' until that is wired up.
+// STATS — derived strictly from on-chain ingest output. Never reads
+// the demo ENTRIES in leaderboard.js (those are dev-only reference data
+// that must never reach the live page — fabricated burn totals would be
+// CFTC Rule 180.1 / FTC §5 territory per project-policy §1).
+//
+// Pre-launch (placeholder mint): zeros.
+// Post-launch with no leaderboard.json yet (fresh after the mainnet flip,
+//   or fetch failed): zeros — same as the empty-state leaderboard renders.
+// Post-launch with real ingest data: compute from the live JSON only.
 
 import { isPlaceholder } from './config.js';
 import { $, fmt } from './utils.js';
-import { ENTRIES, totalBurned } from './leaderboard.js';
 
-export function updateStats(){
+function entryBurnSum(entry){
+  return (entry.burns || []).reduce((a, b) => a + (b.amount || 0), 0);
+}
+
+async function fetchLiveEntries(){
+  try {
+    const res = await fetch('./leaderboard.json', { cache: 'no-cache' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data && Array.isArray(data.entries)) ? data.entries : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+export async function updateStats(){
+  // Price + market cap require a DEX feed. Until that's wired up, both
+  // stay '—' regardless of mint state — never showing fabricated values.
+  $('s-price').textContent = '—';
+  $('s-mcap').textContent  = '—';
+
   if (isPlaceholder()) {
     $('s-burned').textContent  = '0';
     $('s-holders').textContent = '0';
-  } else {
-    const totalAll = ENTRIES.reduce((a, e) => a + totalBurned(e), 0);
-    const burners  = new Set(ENTRIES.map(e => e.wallet)).size;
-    $('s-burned').textContent  = fmt(totalAll);
-    $('s-holders').textContent = burners.toLocaleString();
+    return;
   }
-  $('s-price').textContent = '—';
-  $('s-mcap').textContent  = '—';
+
+  const entries = await fetchLiveEntries();
+  const total   = entries.reduce((a, e) => a + entryBurnSum(e), 0);
+  const burners = new Set(entries.map(e => e.wallet)).size;
+  $('s-burned').textContent  = fmt(total);
+  $('s-holders').textContent = burners.toLocaleString();
 }
