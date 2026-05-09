@@ -19,9 +19,8 @@
 //   Switch Phantom to Devnet (Settings → Developer settings → Testnet mode).
 //   Verify burns on https://solscan.io/?cluster=devnet
 //
-// The burn button refuses to submit while PYRE_MINT_STR is the
-// placeholder, so it's safe to ship with the placeholder until launch.
-export const PYRE_MINT_STR = 'PYREMINTADDRESSGOESHEREAFTERPUMPFUNLAUNCH00';
+// Mainnet mint, set at pump.fun launch on 2026-05-09.
+export const PYRE_MINT_STR = '64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump';
 // Browser-side RPC: deliberately the public Solana mainnet endpoint
 // (no API key embedded in source). The burn button only does ~5 RPC
 // calls per user click — public mainnet handles that fine — and using
