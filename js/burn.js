@@ -140,6 +140,26 @@ async function refreshBalance() {
   }
 }
 
+// Browser-side URL validation. The server-side moderation pipeline
+// (scripts/lib/filter.mjs) is the authoritative gate, but burning is
+// permanent — we should refuse to send anything obviously bogus
+// before it costs the user their tokens. Strips a leading protocol
+// (the leaderboard re-prepends https:// when rendering), rejects
+// protocol-confusable schemes, requires at least domain.tld shape.
+function normalizeBurnUrl(input) {
+  const raw = (input || '').trim();
+  if (!raw) return null;
+  if (/^(javascript|data|vbscript|file|about):/i.test(raw)) return null;
+  const stripped = raw.replace(/^https?:\/\//i, '');
+  if (!stripped || /\s/.test(stripped) || !/\./.test(stripped)) return null;
+  try {
+    const u = new URL('https://' + stripped);
+    if (!u.hostname || !u.hostname.includes('.')) return null;
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname)) return null; // no IP-literal URLs (per project-policy §3)
+    return stripped;
+  } catch { return null; }
+}
+
 // ─── BURN SUBMISSION ─────────────────────────────────────────────────
 window.submitBurn = async function submitBurn() {
   clearStatus();
@@ -148,12 +168,17 @@ window.submitBurn = async function submitBurn() {
     return;
   }
 
-  const url = $('burnUrl').value.trim();
+  const rawUrl = $('burnUrl').value;
+  const url = normalizeBurnUrl(rawUrl);
   const msg = $('burnMsg').value.trim();
   const amt = parseFloat($('burnAmount').value);
 
-  if (!url || !msg || !amt || amt <= 0) {
-    setStatus('Fill all three fields with a positive amount.', 'error');
+  if (!url) {
+    setStatus('That URL doesn\'t look right — try something like <code>yoursite.xyz</code>.', 'error');
+    return;
+  }
+  if (!msg || !amt || amt <= 0) {
+    setStatus('Fill the message and a positive amount.', 'error');
     return;
   }
 

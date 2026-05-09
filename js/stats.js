@@ -37,11 +37,23 @@ async function fetchLiveEntries(){
 async function fetchJupPrice(mint){
   try {
     const res = await fetch(JUP_PRICE_URL + encodeURIComponent(mint), { cache: 'no-store' });
-    if (!res.ok) return null;
+    if (!res.ok) return { price: null, change24h: null };
     const data = await res.json();
-    const p = data?.[mint]?.usdPrice;
-    return (typeof p === 'number' && isFinite(p) && p > 0) ? p : null;
-  } catch (_) { return null; }
+    const row = data?.[mint] || {};
+    const p = row.usdPrice;
+    const c = row.priceChange24h;
+    return {
+      price: (typeof p === 'number' && isFinite(p) && p > 0) ? p : null,
+      change24h: (typeof c === 'number' && isFinite(c)) ? c : null,
+    };
+  } catch (_) { return { price: null, change24h: null }; }
+}
+
+function fmtChange(c){
+  if (c == null) return { text: '', cls: '' };
+  const arrow = c >= 0 ? '▲' : '▼';
+  const cls = c >= 0 ? 'up' : 'down';
+  return { text: `${arrow} ${Math.abs(c).toFixed(1)}% 24h`, cls };
 }
 
 function fmtPrice(p){
@@ -62,19 +74,28 @@ function fmtMcap(m){
   return '$' + m.toFixed(2);
 }
 
+function setChange(el, c){
+  if (!el) return;
+  const { text, cls } = fmtChange(c);
+  el.textContent = text;
+  el.classList.remove('up', 'down');
+  if (cls) el.classList.add(cls);
+}
+
 export async function updateStats(){
   if (isPlaceholder()) {
     $('s-burned').textContent  = '0';
     $('s-holders').textContent = '0';
     $('s-price').textContent   = '—';
     $('s-mcap').textContent    = '—';
+    setChange($('s-price-change'), null);
     return;
   }
 
   // Two independent fetches in parallel — neither blocks the other.
   // Jupiter is the slower of the two (external network, ~200-500ms);
   // leaderboard.json is local (10-20ms).
-  const [entries, price] = await Promise.all([
+  const [entries, jup] = await Promise.all([
     fetchLiveEntries(),
     fetchJupPrice(PYRE_MINT_STR),
   ]);
@@ -84,9 +105,10 @@ export async function updateStats(){
 
   $('s-burned').textContent  = fmt(total);
   $('s-holders').textContent = burners.toLocaleString();
-  $('s-price').textContent   = fmtPrice(price);
+  $('s-price').textContent   = fmtPrice(jup.price);
+  setChange($('s-price-change'), jup.change24h);
   // Standard pump.fun-style mcap (price × full 1B supply) for parity
   // with what jup.ag and pump.fun show. The 'TOTAL BURNED' stat
   // separately surfaces the deflationary mechanic for anyone curious.
-  $('s-mcap').textContent    = price == null ? '—' : fmtMcap(price * TOTAL_SUPPLY);
+  $('s-mcap').textContent    = jup.price == null ? '—' : fmtMcap(jup.price * TOTAL_SUPPLY);
 }

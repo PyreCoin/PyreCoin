@@ -152,6 +152,16 @@ nav{
   font-size:9px;letter-spacing:2.5px;
   color:var(--text3);margin-top:3px;text-transform:uppercase;
 }
+/* 24h price change indicator. Reserved height prevents layout shift
+   when the value loads asynchronously from the empty state. */
+.stat-change{
+  font-family:'DM Mono',monospace;
+  font-size:9px;letter-spacing:1px;
+  margin-top:3px;height:12px;line-height:12px;
+  color:var(--text3);
+}
+.stat-change.up{color:#5dd99a;}
+.stat-change.down{color:#ff7a7a;}
 
 /* ── SECTION ── */
 .section{padding:60px 40px;max-width:1200px;margin:0 auto;width:100%;}
