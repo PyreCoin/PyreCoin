@@ -810,7 +810,68 @@ footer{
   border-top:0.5px dashed rgba(255,100,30,0.2);
   text-align:center;
 }
+/* ── MOBILE OPTIMIZATIONS ───────────────────────────────────────────
+   Below 560px the page was crushed inside a 40px section-padding shell;
+   the 4-col stats bar squeezed digits to ~88px each; the CTA buttons
+   fought for the same row; the section-meta tagline overflowed; the
+   footer wrapped awkwardly. These rules drop padding, restack the grid
+   stuff to 2x2 / single-col, and hide nice-to-have ornament so the
+   actual content gets to breathe.
+   ────────────────────────────────────────────────────────────────── */
 @media(max-width:560px){
+  /* Section + hero padding */
+  .section{padding:44px 18px;}
+  .hero{padding:56px 20px 40px;min-height:42vh;}
+  .hero-eyebrow{font-size:9px;letter-spacing:3px;margin-bottom:14px;}
+  .hero-sub{font-size:13px;line-height:1.7;margin-top:20px;}
+
+  /* Stats: 2x2 grid instead of 4 cramped columns */
+  .stats-bar{grid-template-columns:repeat(2,1fr);}
+  .stat{padding:14px 8px;}
+  .stat:nth-child(2n){border-right:none;}
+  .stat:nth-child(-n+2){border-bottom:0.5px solid var(--border2);}
+  .stat-val{font-size:22px;}
+  .stat-lbl{font-size:8.5px;letter-spacing:2px;}
+
+  /* Section header: stack vertically on mobile. The flex-row layout
+     squeezed the title (e.g. "A FIELD GUIDE TO THE WORD 'PYRE'") into
+     a 50px column, wrapping word-per-line, while the section-meta with
+     white-space:nowrap pushed off-screen. Stack title-over-line,
+     hide the meta tagline (nice-to-have, not load-bearing). */
+  .section-header{flex-direction:column;align-items:stretch;gap:10px;margin-bottom:24px;}
+  .section-line{flex:none;width:100%;}
+  .section-meta{display:none;}
+
+  /* CTA: stack buttons full-width, less block padding */
+  .cta-block{padding:48px 18px;}
+  .cta-title{font-size:42px;letter-spacing:1px;}
+  .cta-sub{font-size:12px;margin-bottom:28px;}
+  .btn-row{flex-direction:column;gap:10px;}
+  .btn-primary,.btn-ghost{width:100%;text-align:center;padding:14px 24px;}
+
+  /* Footer: stack vertically, wrap links */
+  footer{flex-direction:column;align-items:center;gap:16px;padding:40px 18px;text-align:center;}
+  .footer-links{flex-wrap:wrap;justify-content:center;gap:14px;}
+
+  /* Dictionary card: tighter padding so the entry isn't cramped */
+  .dict-card{padding:24px 22px 28px;}
+  .dict-card::after{font-size:8px;}
+  .dict-headword{gap:10px;padding-bottom:12px;margin-bottom:14px;}
+
+  /* Disclaimer (unchanged from previous rule, kept here) */
   .disclaimer{padding:28px 22px;margin:32px 0 16px;}
   .disclaimer h2{font-size:24px;}
+}
+
+@media(max-width:440px){
+  /* Sub-440 phones — squeeze a little more padding out, drop type sizes
+     so headings + dict glyphs stay on a single line. */
+  .section{padding:36px 14px;}
+  .hero{padding:44px 14px 32px;}
+  .hero-sub{font-size:12px;max-width:100%;}
+  .stat-val{font-size:19px;}
+  .stat-lbl{font-size:8px;letter-spacing:1.5px;}
+  .cta-block{padding:36px 14px;}
+  .cta-title{font-size:34px;}
+  .dict-card{padding:18px 16px 22px;}
 }
