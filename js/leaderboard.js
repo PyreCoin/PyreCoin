@@ -14,7 +14,6 @@ import { fmt, hoursSince, relTime, absTime, shortTx, escapeHtml } from './utils.
 
 const GRAVITY = 1.5;
 const DECAY_BASE_HOURS = 2;
-export const NOW_REF = new Date('2026-05-08T14:00:00Z'); // anchor for demo data
 
 // Each live entry: { wallet, url, msg, burns: [{amount, ts, tx}, ...] }
 // — same shape the ingest pipeline writes to leaderboard.json.

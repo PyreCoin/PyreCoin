@@ -134,9 +134,17 @@ async function refreshBalance() {
     burnState.balance = ui;
     $('walletBalance').textContent = ui.toLocaleString(undefined,{maximumFractionDigits:2}) + ' $PYRE';
   } catch (e) {
-    // No token account = 0 balance. Don't surface as error.
-    $('walletBalance').textContent = '0 $PYRE';
-    burnState.balance = 0;
+    // Distinguish 'no token account' (= balance is genuinely 0) from
+    // RPC/network failure (= balance unknown). The submitBurn check
+    // below relies on the distinction: amt > 0 burn against unknown
+    // balance MUST be refused, not silently accepted.
+    if (e?.name === 'TokenAccountNotFoundError') {
+      $('walletBalance').textContent = '0 $PYRE';
+      burnState.balance = 0;
+    } else {
+      $('walletBalance').textContent = 'balance unknown';
+      burnState.balance = null;
+    }
   }
 }
 
@@ -145,11 +153,14 @@ async function refreshBalance() {
 // permanent — we should refuse to send anything obviously bogus
 // before it costs the user their tokens. Strips a leading protocol
 // (the leaderboard re-prepends https:// when rendering), rejects
-// protocol-confusable schemes, requires at least domain.tld shape.
+// protocol-confusable schemes, requires at least domain.tld shape,
+// and bans the pipe character (the memo parser uses it as a
+// separator — a URL containing '|' would silently quarantine).
 function normalizeBurnUrl(input) {
   const raw = (input || '').trim();
   if (!raw) return null;
   if (/^(javascript|data|vbscript|file|about):/i.test(raw)) return null;
+  if (raw.includes('|')) return null;
   const stripped = raw.replace(/^https?:\/\//i, '');
   if (!stripped || /\s/.test(stripped) || !/\./.test(stripped)) return null;
   try {
@@ -174,11 +185,15 @@ window.submitBurn = async function submitBurn() {
   const amt = parseFloat($('burnAmount').value);
 
   if (!url) {
-    setStatus('That URL doesn\'t look right — try something like <code>yoursite.xyz</code>.', 'error');
+    setStatus('That URL doesn\'t look right — try something like <code>yoursite.xyz</code> (no spaces, no <code>|</code>).', 'error');
     return;
   }
   if (!msg || !amt || amt <= 0) {
     setStatus('Fill the message and a positive amount.', 'error');
+    return;
+  }
+  if (msg.includes('|')) {
+    setStatus('The <code>|</code> character is reserved (used as the memo separator). Pick another.', 'error');
     return;
   }
 
@@ -197,7 +212,10 @@ window.submitBurn = async function submitBurn() {
     burnState.publicKey = provider.publicKey;
     await refreshBalance();
 
-    if (burnState.balance !== null && amt > burnState.balance) {
+    if (burnState.balance === null) {
+      throw new Error('Couldn\'t verify your $PYRE balance (RPC failed). Try again in a moment.');
+    }
+    if (amt > burnState.balance) {
       throw new Error('You only have ' + burnState.balance.toLocaleString() + ' $PYRE — not enough for this burn.');
     }
 

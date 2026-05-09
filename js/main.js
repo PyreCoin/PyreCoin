@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260509-8';
+const V = '20260509-9';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick="openBurnModal()" / form onsubmit never call
@@ -41,21 +41,18 @@ window.submitBurn = function(){};
 // Top-level module loads with cache-busting. await is module-top-level,
 // supported in all browsers that support ES modules.
 await import(`./fire-shader.js?v=${V}`);
-const { renderLeaderboard, NOW_REF } = await import(`./leaderboard.js?v=${V}`);
+const { renderLeaderboard } = await import(`./leaderboard.js?v=${V}`);
 const { updateStats } = await import(`./stats.js?v=${V}`);
 
-// Initial render of stats + leaderboard.
+// Initial render of stats + leaderboard at wall-clock now.
 updateStats();
-renderLeaderboard(NOW_REF);
+renderLeaderboard(new Date());
 
 // Re-rank periodically so heat visibly decays while the page is open.
 // updateStats() also re-fetches leaderboard.json so totals + burner
-// count refresh as new burns ingest (no-op while placeholder, and a
-// no-op-equivalent while the JSON is 404 / empty — both yield zero).
-const PAGE_LOAD_T = Date.now();
+// count refresh as new burns ingest.
 setInterval(() => {
-  const simulated = new Date(NOW_REF.getTime() + (Date.now() - PAGE_LOAD_T));
-  renderLeaderboard(simulated);
+  renderLeaderboard(new Date());
   updateStats();
 }, 30000);
 

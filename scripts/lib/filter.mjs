@@ -94,6 +94,13 @@ export function filterMemo({ url, msg }) {
   if (u.length > URL_MAX) return { ok: false, reason: 'url_too_long' };
   if (m.length > MSG_MAX) return { ok: false, reason: 'msg_too_long' };
 
+  // The memo parser (scripts/lib/parse.mjs) splits on '|', so any
+  // pipe in the URL would silently break parsing and the burn would
+  // be quarantined with no leaderboard slot. Reject explicitly here
+  // so the moderation log captures a clear reason.
+  if (u.includes('|')) return { ok: false, reason: 'url_pipe' };
+  if (m.includes('|')) return { ok: false, reason: 'msg_pipe' };
+
   const urlCheck = checkUrl(u);
   if (!urlCheck.ok) return urlCheck;
 

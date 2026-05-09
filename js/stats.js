@@ -6,14 +6,15 @@
 //
 // Refresh cadence: main.js calls updateStats() on load and every 30s.
 
-import { isPlaceholder, PYRE_MINT_STR } from './config.js';
+import { isPlaceholder, PYRE_MINT_STR, RPC_URL } from './config.js';
 import { $, fmt } from './utils.js';
 
-// pump.fun mints all tokens with a fixed 1B supply at 6 decimals. We
-// hardcode this rather than fetching it from chain — it's a property
-// of the platform that doesn't change for the lifetime of the token.
-// If the token ever migrates off pump.fun infrastructure, revisit.
-const TOTAL_SUPPLY = 1_000_000_000;
+// Total supply is read from chain on first stats refresh and cached
+// for the session. Hardcoding it (e.g. to 1B because that's the
+// pump.fun default) means a fabricated mcap if the supply ever
+// changes — which project-policy §1 treats as a CFTC §6(c)(1) hazard
+// (any user-visible number must trace to an audited source).
+let _supplyCache = null;
 
 // Jupiter Price API V3 (lite-api / free tier). Browser-side fetch with
 // CORS allowed. Returns a usdPrice that's been outlier-filtered against
@@ -32,6 +33,29 @@ async function fetchLiveEntries(){
     const data = await res.json();
     return (data && Array.isArray(data.entries)) ? data.entries : [];
   } catch (_) { return []; }
+}
+
+async function fetchTokenSupply(mint){
+  if (_supplyCache !== null) return _supplyCache;
+  try {
+    const res = await fetch(RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0', id: 1,
+        method: 'getTokenSupply',
+        params: [mint],
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const ui = data?.result?.value?.uiAmount;
+    if (typeof ui === 'number' && isFinite(ui) && ui > 0) {
+      _supplyCache = ui;
+      return ui;
+    }
+    return null;
+  } catch (_) { return null; }
 }
 
 async function fetchJupPrice(mint){
@@ -85,30 +109,34 @@ function setChange(el, c){
 export async function updateStats(){
   if (isPlaceholder()) {
     $('s-burned').textContent  = '0';
-    $('s-holders').textContent = '0';
+    $('s-burners').textContent = '0';
     $('s-price').textContent   = '—';
     $('s-mcap').textContent    = '—';
     setChange($('s-price-change'), null);
     return;
   }
 
-  // Two independent fetches in parallel — neither blocks the other.
-  // Jupiter is the slower of the two (external network, ~200-500ms);
-  // leaderboard.json is local (10-20ms).
-  const [entries, jup] = await Promise.all([
+  // Three independent fetches in parallel. Token supply is cached after
+  // the first successful fetch (it doesn't change), so steady-state cost
+  // is leaderboard.json (local, ~10ms) + Jupiter (~200-500ms).
+  const [entries, jup, supply] = await Promise.all([
     fetchLiveEntries(),
     fetchJupPrice(PYRE_MINT_STR),
+    fetchTokenSupply(PYRE_MINT_STR),
   ]);
 
   const total   = entries.reduce((a, e) => a + entryBurnSum(e), 0);
   const burners = new Set(entries.map(e => e.wallet)).size;
 
   $('s-burned').textContent  = fmt(total);
-  $('s-holders').textContent = burners.toLocaleString();
+  $('s-burners').textContent = burners.toLocaleString();
   $('s-price').textContent   = fmtPrice(jup.price);
   setChange($('s-price-change'), jup.change24h);
-  // Standard pump.fun-style mcap (price × full 1B supply) for parity
-  // with what jup.ag and pump.fun show. The 'TOTAL BURNED' stat
-  // separately surfaces the deflationary mechanic for anyone curious.
-  $('s-mcap').textContent    = jup.price == null ? '—' : fmtMcap(jup.price * TOTAL_SUPPLY);
+  // Standard mcap (price × full supply) for parity with how jup.ag
+  // and pump.fun display it. Supply is fetched from chain (not
+  // hardcoded) so we never fabricate the mcap if pump.fun ever
+  // changes their supply default. If either price or supply lookup
+  // fails, the stat falls back to '—' rather than guessing.
+  const mcapNum = (jup.price != null && supply != null) ? jup.price * supply : null;
+  $('s-mcap').textContent    = mcapNum == null ? '—' : fmtMcap(mcapNum);
 }
