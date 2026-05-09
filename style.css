@@ -394,14 +394,6 @@ nav{
 }
 .btn-ghost:hover{border-color:var(--ember);color:var(--ember2);}
 
-.burn-addr{
-  margin-top:28px;display:inline-flex;align-items:center;gap:10px;
-  padding:10px 18px;border:0.5px solid var(--border);border-radius:2px;
-  background:rgba(0,0,0,0.4);
-}
-.burn-addr-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--text3);}
-.burn-addr-val{font-family:'DM Mono',monospace;font-size:12px;color:var(--ember2);}
-
 /* ── FOOTER ── */
 footer{
   border-top:0.5px solid var(--border);
