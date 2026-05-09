@@ -901,7 +901,7 @@ footer{
 /* ── COLOPHON ──
    Sits between the disclaimer and the footer. Credits + free-tier
    acknowledgments + reinforcement of no-team / no-roadmap framing
-   (which doubles as compliance reinforcement per project-policy §1). */
+   (which doubles as compliance reinforcement per project policy §1). */
 .colophon{
   padding:96px 36px;
   margin:0 auto;

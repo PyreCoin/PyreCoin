@@ -2,10 +2,10 @@ name = "pyre-rpc-proxy"
 main = "src/index.js"
 compatibility_date = "2026-05-09"
 
-# Disable the workers.dev subdomain. The default subdomain on this
-# account exposes the user's real name (***.workers.dev),
-# which violates the zero-PII stance for this project. Traffic only
-# enters via the custom domain below.
+# Disable the workers.dev subdomain. The default subdomain exposes
+# the account-holder's first name, which violates the zero-PII
+# stance for this project. Traffic only enters via the custom
+# domain below.
 workers_dev = false
 preview_urls = false
 

@@ -199,7 +199,7 @@ function normalizeBurnUrl(input) {
   try {
     const u = new URL('https://' + stripped);
     if (!u.hostname || !u.hostname.includes('.')) return null;
-    if (/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname)) return null; // no IP-literal URLs (per project-policy §3)
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname)) return null; // no IP-literal URLs (per moderation policy)
     return stripped;
   } catch { return null; }
 }
