@@ -6,7 +6,7 @@
 //
 // Refresh cadence: main.js calls updateStats() on load and every 30s.
 
-import { isPlaceholder, PYRE_MINT_STR, RPC_URL } from './config.js';
+import { isPlaceholder, INITIAL_SUPPLY, PYRE_MINT_STR, RPC_URL } from './config.js';
 import { $, fmt } from './utils.js';
 
 // Total supply is read fresh from chain on every refresh. Burns through
@@ -24,10 +24,6 @@ import { $, fmt } from './utils.js';
 // reliable oracle anchors (SOL price), so it's stable enough to render
 // directly without further smoothing.
 const JUP_PRICE_URL = 'https://lite-api.jup.ag/price/v3?ids=';
-
-function entryBurnSum(entry){
-  return (entry.burns || []).reduce((a, b) => a + (b.amount || 0), 0);
-}
 
 async function fetchLiveEntries(){
   try {
@@ -124,10 +120,15 @@ export async function updateStats(){
     fetchTokenSupply(PYRE_MINT_STR),
   ]);
 
-  const total   = entries.reduce((a, e) => a + entryBurnSum(e), 0);
+  // Tokens burned = initial supply − current on-chain supply. The chain is
+  // the source of truth: it doesn't lag the ingest cron, and surfaces every
+  // BurnChecked the moment it confirms. Falls back to '—' if the supply
+  // RPC failed — better than reporting a stale leaderboard sum that's
+  // missing the latest burns.
+  const burned  = (supply != null) ? Math.max(0, INITIAL_SUPPLY - supply) : null;
   const burners = new Set(entries.map(e => e.wallet)).size;
 
-  $('s-burned').textContent  = fmt(total);
+  $('s-burned').textContent  = burned == null ? '—' : fmt(burned);
   $('s-burners').textContent = burners.toLocaleString();
   $('s-price').textContent   = fmtPrice(jup.price);
   setChange($('s-price-change'), jup.change24h);

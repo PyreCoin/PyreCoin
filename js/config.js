@@ -46,4 +46,11 @@ export const RPC_URL       = _cfg.rpcUrl;
 // destination address is involved. Memo Program is unchanged.
 export const MEMO_PROGRAM_ID_STR = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
+// Pump.fun creates SPL tokens with a fixed 1B (uiAmount) initial supply.
+// We compute the "$PYRE Burned" stat as INITIAL_SUPPLY − getTokenSupply()
+// rather than summing leaderboard entries — supply is the chain's source
+// of truth, doesn't lag the ingest cron, and surfaces every BurnChecked
+// the moment it confirms.
+export const INITIAL_SUPPLY = 1_000_000_000;
+
 export const isPlaceholder = () => PYRE_MINT_STR.startsWith('PYREMINT');

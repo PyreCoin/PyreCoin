@@ -164,7 +164,7 @@ nav{
 .stat-change.down{color:#ff7a7a;}
 
 /* ── SECTION ── */
-.section{padding:60px 40px;max-width:1200px;margin:0 auto;width:100%;}
+.section{padding:96px 40px;max-width:1200px;margin:0 auto;width:100%;}
 .section-header{
   display:flex;align-items:baseline;gap:16px;margin-bottom:32px;
 }
@@ -395,7 +395,7 @@ nav{
 
 /* ── BURN CTA ── */
 .cta-block{
-  text-align:center;padding:70px 40px;
+  text-align:center;padding:96px 40px;
   border-top:0.5px solid var(--border);
   background:var(--glass);backdrop-filter:blur(20px);
 }
@@ -903,8 +903,8 @@ footer{
    acknowledgments + reinforcement of no-team / no-roadmap framing
    (which doubles as compliance reinforcement per project-policy §1). */
 .colophon{
-  padding:48px 36px 36px;
-  margin:24px auto 16px;
+  padding:96px 36px;
+  margin:0 auto;
   max-width:1200px;width:100%;
   font-family:'DM Sans',sans-serif;
   font-size:13.5px;line-height:1.75;color:var(--text2);
@@ -965,7 +965,7 @@ footer{
    ────────────────────────────────────────────────────────────────── */
 @media(max-width:560px){
   /* Section + hero padding */
-  .section{padding:44px 18px;}
+  .section{padding:64px 18px;}
   .hero{padding:56px 20px 40px;min-height:42vh;}
   .hero-eyebrow{font-size:9px;letter-spacing:3px;margin-bottom:14px;}
   .hero-sub{font-size:13px;line-height:1.7;margin-top:20px;}
@@ -988,7 +988,7 @@ footer{
   .section-meta{display:none;}
 
   /* CTA: stack buttons full-width, less block padding */
-  .cta-block{padding:48px 18px;}
+  .cta-block{padding:64px 18px;}
   .cta-title{font-size:42px;letter-spacing:1px;}
   .cta-sub{font-size:12px;margin-bottom:28px;}
   .btn-row{flex-direction:column;gap:10px;}
@@ -1021,19 +1021,19 @@ footer{
   .disclaimer h2{font-size:24px;}
 
   /* Colophon: tighter mobile padding + smaller meta tag */
-  .colophon{padding:32px 20px 28px;}
+  .colophon{padding:64px 20px;}
   .colophon-meta{display:block;margin-top:4px;}
 }
 
 @media(max-width:440px){
   /* Sub-440 phones — squeeze a little more padding out, drop type sizes
      so headings + dict glyphs stay on a single line. */
-  .section{padding:36px 14px;}
+  .section{padding:52px 14px;}
   .hero{padding:44px 14px 32px;}
   .hero-sub{font-size:12px;max-width:100%;}
   .stat-val{font-size:19px;}
   .stat-lbl{font-size:8px;letter-spacing:1.5px;}
-  .cta-block{padding:36px 14px;}
+  .cta-block{padding:52px 14px;}
   .cta-title{font-size:34px;}
   .dict-card{padding:18px 16px 38px;}
 }
