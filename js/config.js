@@ -21,14 +21,23 @@
 //
 // Mainnet mint, set at pump.fun launch on 2026-05-09.
 export const PYRE_MINT_STR = '64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump';
-// Browser-side RPC: deliberately the public Solana mainnet endpoint
-// (no API key embedded in source). The burn button only does ~5 RPC
-// calls per user click — public mainnet handles that fine — and using
-// a Helius key here would put it in public source with no
-// origin restriction (Helius Free has no per-key allowlists). High-
-// volume RPC traffic lives in the GitHub Actions ingest cron, where
-// the Helius key is in an encrypted secret. See memory: rpc-endpoint-strategy.
-export const RPC_URL = 'https://api.mainnet-beta.solana.com';
+// Browser-side RPC. Originally we used Solana Foundation's public
+// mainnet endpoint (api.mainnet-beta.solana.com) so no API key would
+// live in source. As of 2026-05 that endpoint started returning 403
+// to browser-origin getAccountInfo calls — confirmed live by the
+// burn-button balance fetch failing during the inaugural burn attempt.
+//
+// Switched to Helius Free (Key B — the spare key from the launch
+// playbook). Key A stays dedicated to the GitHub Actions ingest cron
+// (in an encrypted GH secret) so browser abuse can't drain the cron's
+// quota. Helius Free has no per-key origin restrictions, so this key
+// is harvestable from page source and could be abused by third parties;
+// the worst case is browser visitors get rate-limited until the next
+// quota window. Cron continues independently.
+//
+// If Solana Foundation reopens public mainnet to browser calls in the
+// future, we can revert. See memory: rpc-endpoint-strategy.
+export const RPC_URL = 'https://mainnet.helius-rpc.com/?api-key=329308ce-fbcc-4197-be64-451d18fadb39';
 export const BURN_OWNER_STR = '11111111111111111111111111111111'; // Solana null
 export const MEMO_PROGRAM_ID_STR = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 

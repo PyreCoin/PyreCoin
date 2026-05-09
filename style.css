@@ -334,6 +334,19 @@ nav{
 .how-card{
   background:var(--glass);backdrop-filter:blur(16px);
   padding:32px 28px;
+  /* Cards are anchors — strip default link styling and make the
+     entire card-area clickable. */
+  display:block;
+  text-decoration:none;
+  color:inherit;
+  transition:background .18s, transform .18s;
+}
+.how-card:hover{
+  background:rgba(255,100,30,0.05);
+  transform:translateY(-1px);
+}
+.how-card:active{
+  transform:translateY(0);
 }
 .how-num{
   font-family:'Bebas Neue',sans-serif;
