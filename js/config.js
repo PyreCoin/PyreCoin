@@ -22,6 +22,13 @@
 // The burn button refuses to submit while PYRE_MINT_STR is the
 // placeholder, so it's safe to ship with the placeholder until launch.
 export const PYRE_MINT_STR = 'PYREMINTADDRESSGOESHEREAFTERPUMPFUNLAUNCH00';
+// Browser-side RPC: deliberately the public Solana mainnet endpoint
+// (no API key embedded in source). The burn button only does ~5 RPC
+// calls per user click — public mainnet handles that fine — and using
+// a Helius key here would put it in public source with no
+// origin restriction (Helius Free has no per-key allowlists). High-
+// volume RPC traffic lives in the GitHub Actions ingest cron, where
+// the Helius key is in an encrypted secret. See memory: rpc-endpoint-strategy.
 export const RPC_URL = 'https://api.mainnet-beta.solana.com';
 export const BURN_OWNER_STR = '11111111111111111111111111111111'; // Solana null
 export const MEMO_PROGRAM_ID_STR = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
