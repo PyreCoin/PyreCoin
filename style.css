@@ -558,7 +558,7 @@ footer{
 .dict-card{
   background:rgba(255,248,225,0.96);
   color:#1a0500;
-  padding:36px 38px 32px;
+  padding:36px 38px 52px;
   border-radius:3px;
   border:0.5px solid rgba(255,180,80,0.35);
   box-shadow:
@@ -576,7 +576,7 @@ footer{
 }
 .dict-card::after{
   content:'ENTRY 01 · vol. MMXXVI';
-  position:absolute;bottom:14px;right:20px;
+  position:absolute;bottom:18px;right:20px;
   font-family:'DM Mono',monospace;
   font-size:9px;letter-spacing:1.5px;
   color:rgba(26,5,0,0.4);
@@ -857,9 +857,13 @@ footer{
   .footer-links{flex-wrap:wrap;justify-content:center;gap:14px;}
 
   /* Dictionary card: tighter padding so the entry isn't cramped */
-  .dict-card{padding:24px 22px 28px;}
-  .dict-card::after{font-size:8px;}
+  .dict-card{padding:24px 22px 44px;}
+  .dict-card::after{font-size:8px;bottom:14px;}
   .dict-headword{gap:10px;padding-bottom:12px;margin-bottom:14px;}
+
+  /* Rules: stack to one column. At 2-col under 560px each column is
+     ~245px and rule text wrapped to 5+ lines per item. */
+  .rules-grid{grid-template-columns:1fr;gap:32px;}
 
   /* Disclaimer (unchanged from previous rule, kept here) */
   .disclaimer{padding:28px 22px;margin:32px 0 16px;}
@@ -876,5 +880,5 @@ footer{
   .stat-lbl{font-size:8px;letter-spacing:1.5px;}
   .cta-block{padding:36px 14px;}
   .cta-title{font-size:34px;}
-  .dict-card{padding:18px 16px 22px;}
+  .dict-card{padding:18px 16px 38px;}
 }
