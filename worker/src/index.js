@@ -20,6 +20,48 @@ const ALLOWED_ORIGINS = new Set([
 
 const HELIUS_BASE = 'https://mainnet.helius-rpc.com/?api-key=';
 
+// ── PER-IP RATE LIMIT ─────────────────────────────────────────────
+// The Origin allowlist above is enforced by browsers (CORS), but
+// non-browser clients (curl, scripts) can spoof Origin headers
+// freely. This rate limit is the actual abuse cap: caps requests per
+// source IP so a harvested worker URL can't be used to drain Helius
+// quota at any meaningful rate.
+//
+// In-memory map per worker instance. Cloudflare runs many independent
+// instances across datacenters, so the effective ceiling is
+// (RATE_LIMIT_MAX × instance count) per IP — but no single connection
+// from one IP exceeds the per-instance cap, which is what matters.
+//
+// 60 req/min/IP gives a legitimate visitor headroom (~12 burn-modal
+// opens per minute, where each open does ~5 RPC calls) while making
+// scripted abuse impractical.
+
+const RATE_LIMIT_MAX = 60;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const ipBuckets = new Map();
+
+function clientIp(request) {
+  return request.headers.get('cf-connecting-ip') ||
+         (request.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+         'unknown';
+}
+
+function rateLimitOk(ip) {
+  const now = Date.now();
+  const cutoff = now - RATE_LIMIT_WINDOW_MS;
+  const bucket = (ipBuckets.get(ip) || []).filter(t => t > cutoff);
+  bucket.push(now);
+  ipBuckets.set(ip, bucket);
+  // Bounded GC: when the map gets large, drop entries with no recent
+  // activity. Cheap because most entries will be expired already.
+  if (ipBuckets.size > 2000) {
+    for (const [k, v] of ipBuckets) {
+      if (v.every(t => t < cutoff)) ipBuckets.delete(k);
+    }
+  }
+  return bucket.length <= RATE_LIMIT_MAX;
+}
+
 function corsHeaders(origin) {
   return {
     'Access-Control-Allow-Origin': origin,
@@ -57,6 +99,18 @@ export default {
       return new Response(JSON.stringify({ error: 'misconfigured: HELIUS_KEY not set' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const ip = clientIp(request);
+    if (!rateLimitOk(ip)) {
+      return new Response(JSON.stringify({ error: 'rate limited' }), {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': '60',
+          ...corsHeaders(origin),
+        },
       });
     }
 
