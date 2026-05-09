@@ -775,7 +775,10 @@ footer{
   border:0.5px dashed rgba(255,100,30,0.22);
   background:rgba(8,2,0,0.55);
   padding:36px 32px;
-  margin:48px 0 24px;
+  /* `auto` on the horizontal axis preserves the centring inherited from
+     .section's max-width:1200px; margin:0 auto. The earlier
+     `margin:48px 0 24px;` clobbered that, leaving the block left-anchored. */
+  margin:48px auto 24px;
   border-radius:4px;
 }
 .disclaimer h2{
