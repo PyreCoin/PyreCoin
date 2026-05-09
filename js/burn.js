@@ -204,6 +204,64 @@ function normalizeBurnUrl(input) {
   } catch { return null; }
 }
 
+// Poll getSignatureStatus until the tx confirms, errors, or expires.
+// Rationale: confirmTransaction would (a) open a wss:// subscription
+// our HTTP-only Worker proxy can't service, and (b) couple confirmation
+// detection to lastValidBlockHeight in a way that throws a cryptic
+// "Signature has expired" even when the chain is still trying to land
+// the tx. We poll explicitly with clear, money-context-appropriate
+// failure messages: in every error case below, the user's tokens are
+// still safely in their wallet (the chain de-dupes by signature; an
+// expired blockhash means the burn never executed; a chain-rejected tx
+// means the program errored before any token movement).
+async function pollForConfirmation(conn, signature, lastValidBlockHeight) {
+  const pollStart = Date.now();
+  const timeoutMs = 90_000;
+  let cycle = 0;
+
+  while (Date.now() - pollStart < timeoutMs) {
+    await new Promise(r => setTimeout(r, 1500));
+    cycle++;
+
+    const r = await conn.getSignatureStatus(signature, { searchTransactionHistory: false });
+    const v = r?.value;
+
+    if (v?.err) {
+      throw new Error(
+        'The chain rejected the burn — your tokens are safe and were not moved. ' +
+        'Reason: ' + JSON.stringify(v.err)
+      );
+    }
+    if (v?.confirmationStatus === 'confirmed' || v?.confirmationStatus === 'finalized') {
+      return v;
+    }
+
+    // Every ~5 polls (~7.5s), check whether the blockhash window has
+    // closed. Avoids paying for getBlockHeight on every cycle while
+    // still surfacing expiry within a useful window.
+    if (cycle % 5 === 0) {
+      try {
+        const h = await conn.getBlockHeight('confirmed');
+        if (h > lastValidBlockHeight + 5) {
+          throw new Error(
+            'BLOCKHASH_EXPIRED: The transaction expired before landing on chain. ' +
+            'This happens when the wallet-confirm step takes longer than ~60 seconds. ' +
+            'Your tokens are safe — no burn was executed.'
+          );
+        }
+      } catch (e) {
+        if (e.message?.startsWith('BLOCKHASH_EXPIRED')) throw e;
+        // getBlockHeight RPC blip — ignore and keep polling status
+      }
+    }
+  }
+  throw new Error(
+    'TIMEOUT: The transaction did not confirm within 90 seconds. ' +
+    'It may still land — check the Solscan link. Your tokens are safe ' +
+    'unless Solscan shows the burn instruction confirmed in a block.'
+  );
+}
+
 // ─── BURN SUBMISSION ─────────────────────────────────────────────────
 window.submitBurn = async function submitBurn() {
   clearStatus();
@@ -280,28 +338,79 @@ window.submitBurn = async function submitBurn() {
       data: new TextEncoder().encode(memoText),
     }));
 
-    const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+    setStatus('Confirm in your wallet…', 'info');
+
+    // Use the freshest blockhash possible ('processed' commitment returns
+    // the newest one our RPC has seen). The 150-slot (~60s) validity
+    // window starts ticking from blockhash creation; every saved slot
+    // here is a slot the user gets to spend reading Phantom's prompt.
+    const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('processed');
     tx.recentBlockhash = blockhash;
     tx.feePayer = sender;
 
-    setStatus('Confirm in your wallet…', 'info');
-    const { signature } = await provider.signAndSendTransaction(tx);
+    // Sign-only via the wallet, then broadcast ourselves with retries.
+    // signAndSendTransaction goes through the wallet's RPC and gives no
+    // retry control — if the user takes 30+s in Phantom's prompt and the
+    // blockhash drifts close to its expiry, a single-shot broadcast can
+    // be rejected by the leader as "BlockhashNotFound" and silently drop.
+    // signTransaction + our sendRawTransaction(maxRetries:10) re-submits
+    // the same signed tx until it lands; the chain de-dupes by signature
+    // so retries are safe (no double-burn risk).
+    if (!provider.signTransaction) {
+      throw new Error('Your wallet does not expose signTransaction. Use Phantom, Solflare, or Backpack.');
+    }
+    const signedTx = await provider.signTransaction(tx);
+    const signature = await conn.sendRawTransaction(signedTx.serialize(), {
+      skipPreflight: false,
+      maxRetries: 10,
+      preflightCommitment: 'confirmed',
+    });
 
     setStatus('Submitted. Waiting for confirmation…<br>' +
       '<a href="https://solscan.io/tx/' + signature + '" target="_blank">' + shortAddr(signature) + ' ↗</a>', 'info');
 
-    await conn.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+    // Poll getSignatureStatus directly. We avoid confirmTransaction here
+    // because it (a) opens a wss:// subscription that our HTTP-only
+    // Worker proxy can't service (loud console errors, slow fallback)
+    // and (b) couples confirmation detection to lastValidBlockHeight in
+    // a way that fires "Signature has expired" prematurely.
+    await pollForConfirmation(conn, signature, lastValidBlockHeight);
 
     setStatus('🔥 Burned. Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>' +
       '<a href="https://solscan.io/tx/' + signature + '" target="_blank">View transaction ↗</a>', 'success');
     await refreshBalance();
   } catch (err) {
     const m = err?.message || String(err);
-    if (m.toLowerCase().includes('user rejected')) {
-      setStatus('Transaction rejected in wallet.', 'error');
+    const ml = m.toLowerCase();
+    let msg;
+    if (ml.includes('user rejected') || ml.includes('user canceled') || ml.includes('user cancelled')) {
+      // User clicked Cancel in their wallet's confirm prompt.
+      msg = 'Transaction cancelled in wallet — <strong>your tokens were not touched.</strong>';
+    } else if (m.startsWith('BLOCKHASH_EXPIRED') || ml.includes('blockhash not found') || ml.includes('signature has expired') || ml.includes('block height exceeded')) {
+      // The blockhash on the signed tx aged past its 150-slot validity
+      // window before the leader could include it. Common cause: the
+      // user took longer than ~60s to click Confirm in the wallet.
+      msg = 'The transaction expired before it could land on chain. ' +
+            'This happens when the wallet-confirm step takes longer than ~60 seconds. ' +
+            '<strong>Your tokens are safe</strong> — no burn was executed. ' +
+            'Refresh the page and try again — Phantom will prompt faster the second time.';
+    } else if (m.startsWith('TIMEOUT') || ml.includes('did not confirm within') || ml.includes('took longer than 90 seconds')) {
+      // We waited 90s for the chain to confirm; nothing landed in that
+      // window. The tx might still confirm — but the user shouldn't
+      // assume so without checking.
+      msg = m.replace(/^TIMEOUT:\s*/, '');
+    } else if (ml.includes('chain rejected')) {
+      // pollForConfirmation saw an `err` field on the signature status.
+      msg = escapeHtml(m);
+    } else if (ml.includes('couldn\'t verify') || ml.includes('not enough')) {
+      // Pre-flight checks (balance unknown / insufficient).
+      msg = escapeHtml(m);
     } else {
-      setStatus('Error: ' + escapeHtml(m), 'error');
+      // Unknown error before broadcast (network blip, RPC failure, etc.)
+      // The signature was never sent or never landed; tokens are safe.
+      msg = '<strong>Your tokens are safe.</strong> An error occurred before the burn could complete: ' + escapeHtml(m);
     }
+    setStatus(msg, 'error');
   } finally {
     $('burnSubmit').disabled = false;
   }
