@@ -1,6 +1,6 @@
 # 🔥 PYRE — Burn to Be Seen
 
-**pyrecoin.com** | [@PYREcoin](https://x.com/PYREcoin) | [pump.fun](#)
+**pyrecoin.com** | [@PYREcoin](https://x.com/PYREcoin) | [pump.fun](https://pump.fun/coin/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump) | [Jupiter](https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump) | [DexScreener](https://dexscreener.com/solana/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump)
 
 > A Solana memecoin with a single mechanic: burn $PYRE to put your URL
 > on a public leaderboard ranked by **time-decayed heat**. Old burns
