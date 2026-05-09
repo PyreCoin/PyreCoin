@@ -313,11 +313,12 @@ nav{
 
 /* ── HOW IT WORKS ── */
 .how-grid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
   border:0.5px solid var(--border);background:var(--border);border-radius:4px;overflow:hidden;
 }
-@media(max-width:980px){.how-grid{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:560px){.how-grid{grid-template-columns:1fr;}}
+/* Three cards: skip the 2-col intermediate (would orphan the third card)
+   and stack to single column below ~720px. */
+@media(max-width:720px){.how-grid{grid-template-columns:1fr;}}
 .how-card{
   background:var(--glass);backdrop-filter:blur(16px);
   padding:32px 28px;
