@@ -158,6 +158,18 @@ nav{
 .section-header{
   display:flex;align-items:baseline;gap:16px;margin-bottom:32px;
 }
+/* Panel variant: used by the leaderboard section, which sits directly
+   below the hero where the fire canvas's bottom-mask is still partly
+   visible. Without a backdrop the dim section-title text becomes
+   unreadable against the fade. */
+.section-header-panel{
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:0.5px solid var(--border);
+  border-radius:3px;
+  padding:14px 18px;
+}
 .section-title{
   font-family:'Bebas Neue',sans-serif;
   font-size:13px;letter-spacing:5px;color:var(--text3);text-transform:uppercase;

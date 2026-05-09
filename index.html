@@ -7,7 +7,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260509-4">
 </head>
 <body>
 
@@ -64,17 +64,13 @@
   <!-- LEADERBOARD -->
   <div class="full-divider"></div>
   <section class="section" id="leaderboard">
-    <div class="section-header">
+    <div class="section-header section-header-panel">
       <div class="section-title">Live Burn Leaderboard</div>
       <div class="section-line"></div>
       <div class="section-meta">
         Ranked by <strong style="color:var(--ember2);font-weight:500;">heat</strong> · burns decay
         <span class="update-badge"><span class="update-dot"></span>Re-ranks every 30s</span>
       </div>
-    </div>
-
-    <div style="margin-bottom:24px;padding:14px 18px;border:0.5px solid var(--border);border-left:2px solid var(--ember);background:rgba(0,0,0,0.4);font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);line-height:1.7;">
-      <strong style="color:var(--ember2);">heat</strong> is each burn divided by <code style="color:var(--ember);">(hours_since_burn + 2)<sup>1.5</sup></code>, summed per wallet — Hacker News / Reddit "hot" ranking, applied to fire. Old burns fade. Fresh burns climb. <strong style="color:var(--text);">Feed the pyre to stay on top.</strong>
     </div>
 
     <div class="leaderboard" id="lb-container">
@@ -103,7 +99,7 @@
       <div class="how-card">
         <div class="how-num">03</div>
         <div class="how-title">Get seen</div>
-        <div class="how-body">The top 16 burners are displayed on this page. Burn more, burn fresher, rank higher. <a href="#leaderboard" style="color:var(--ember2);text-decoration:none;border-bottom:0.5px dotted var(--ember2);">How rank works ↓</a></div>
+        <div class="how-body">The top 16 burners are displayed on this page. Burn more, burn fresher, rank higher. <a href="#rules" style="color:var(--ember2);text-decoration:none;border-bottom:0.5px dotted var(--ember2);">How rank works ↓</a></div>
       </div>
     </div>
   </section>
@@ -394,7 +390,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260509-3"></script>
+<script type="module" src="js/main.js?v=20260509-4"></script>
 
 </body>
 </html>
