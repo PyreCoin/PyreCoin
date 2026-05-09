@@ -1,6 +1,6 @@
 # 🔥 PYRE — Burn to Be Seen
 
-**pyrecoin.com** | [@PYREcoin](https://x.com/PYREcoin) | [pump.fun](https://pump.fun/coin/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump) | [Jupiter](https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump) | [DexScreener](https://dexscreener.com/solana/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump)
+**[pyrecoin.com](https://pyrecoin.com)** | [@PYREcoin](https://x.com/PYREcoin) | [pump.fun](https://pump.fun/coin/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump) | [Jupiter](https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump) | [DexScreener](https://dexscreener.com/solana/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump)
 
 > A Solana memecoin with a single mechanic: burn $PYRE to put your URL
 > on a public leaderboard ranked by **time-decayed heat**. Old burns
@@ -11,7 +11,7 @@
 ## What is $PYRE?
 
 $PYRE is a Solana memecoin (a *digital collectible* under the SEC/CFTC
-joint guidance of March 17, 2026). The site at pyrecoin.com is a
+joint guidance of March 17, 2026). The site at [pyrecoin.com](https://pyrecoin.com) is a
 public, on-chain billboard: anyone can burn $PYRE with a memo
 containing a URL and a message, and the leaderboard renders the top 16
 slots ranked by heat.
@@ -39,7 +39,7 @@ bus ticket. The pyre does not coast.
 ## How to participate
 
 1. **Buy $PYRE** on pump.fun.
-2. **Burn through pyrecoin.com.** The site's burn modal builds a
+2. **Burn through [pyrecoin.com](https://pyrecoin.com).** The site's burn modal builds a
    Token-2022 `BurnChecked` instruction (which destroys the tokens at
    the protocol layer — supply actually decreases) plus a Memo Program
    instruction in the same transaction. Memo format:
