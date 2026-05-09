@@ -1,0 +1,21 @@
+name = "pyre-rpc-proxy"
+main = "src/index.js"
+compatibility_date = "2026-05-09"
+
+# Disable the workers.dev subdomain. The default subdomain on this
+# account exposes the user's real name (***.workers.dev),
+# which violates the zero-PII stance for this project. Traffic only
+# enters via the custom domain below.
+workers_dev = false
+preview_urls = false
+
+# Custom domain. Cloudflare provisions DNS + SSL automatically since
+# the same account manages the pyrecoin.com zone.
+routes = [
+  { pattern = "rpc.pyrecoin.com", custom_domain = true }
+]
+
+# HELIUS_KEY is an encrypted secret, set via:
+#   wrangler secret put HELIUS_KEY
+# (don't add it here — secrets in wrangler.toml end up in plaintext
+# in the deployed worker bundle).

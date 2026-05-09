@@ -21,23 +21,22 @@
 //
 // Mainnet mint, set at pump.fun launch on 2026-05-09.
 export const PYRE_MINT_STR = '64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump';
-// Browser-side RPC. Originally we used Solana Foundation's public
-// mainnet endpoint (api.mainnet-beta.solana.com) so no API key would
-// live in source. As of 2026-05 that endpoint started returning 403
-// to browser-origin getAccountInfo calls — confirmed live by the
-// burn-button balance fetch failing during the inaugural burn attempt.
+// Browser-side RPC.
 //
-// Switched to Helius Free (Key B — the spare key from the launch
-// playbook). Key A stays dedicated to the GitHub Actions ingest cron
-// (in an encrypted GH secret) so browser abuse can't drain the cron's
-// quota. Helius Free has no per-key origin restrictions, so this key
-// is harvestable from page source and could be abused by third parties;
-// the worst case is browser visitors get rate-limited until the next
-// quota window. Cron continues independently.
+// Routes through a Cloudflare Worker proxy (worker/src/index.js) at
+// rpc.pyrecoin.com. The worker holds Helius Free Key B in an
+// encrypted env binding and enforces an Origin allowlist
+// (pyrecoin.com only), so the key never appears in client source
+// and third parties scraping page source can't use the endpoint.
+// The cron's Helius key (Key A) stays in its own GH-Actions-secret
+// silo, isolated from any browser-side abuse. See memory:
+// rpc-endpoint-strategy.
 //
-// If Solana Foundation reopens public mainnet to browser calls in the
-// future, we can revert. See memory: rpc-endpoint-strategy.
-export const RPC_URL = 'https://mainnet.helius-rpc.com/?api-key=329308ce-fbcc-4197-be64-451d18fadb39';
+// History: originally api.mainnet-beta.solana.com (public, no key).
+// Solana Foundation began returning 403 to browser-origin calls in
+// 2026-05; we briefly tried embedding the Helius key directly in
+// source (lazy/insecure), then moved to this worker proxy instead.
+export const RPC_URL = 'https://rpc.pyrecoin.com';
 export const BURN_OWNER_STR = '11111111111111111111111111111111'; // Solana null
 export const MEMO_PROGRAM_ID_STR = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
