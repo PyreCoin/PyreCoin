@@ -115,13 +115,6 @@ export function renderLeaderboard(now){
   const lb = document.getElementById('lb-container');
   const preLaunch = isPlaceholder();
 
-  // Keep the cadence badge honest: nothing to re-rank pre-launch or
-  // before the live data has arrived.
-  const badge = document.querySelector('#leaderboard .update-badge');
-  if (badge) badge.innerHTML = preLaunch
-    ? '<span class="update-dot"></span>Awaiting first burn'
-    : '<span class="update-dot"></span>Re-ranks every 30s';
-
   // Pre-launch always shows the empty state. Post-launch, the empty
   // state is rendered while the JSON fetch is still pending, and also
   // when the JSON has zero entries (e.g., immediately after the
