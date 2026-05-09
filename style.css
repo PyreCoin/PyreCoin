@@ -497,13 +497,7 @@ footer{
 .burn-modal-title{
   font-family:'Bebas Neue',sans-serif;
   font-size:32px;letter-spacing:2px;color:#fff;
-  margin-bottom:6px;
-}
-.burn-modal-sub{
-  font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:2px;
-  color:var(--text3);text-transform:uppercase;
-  margin-bottom:24px;
+  margin-bottom:22px;
 }
 .burn-form-row{margin-bottom:16px;}
 .burn-form-row label{
@@ -983,8 +977,7 @@ footer{
      mobile browser chrome on smaller phones (Firefox Android, iPhone SE). */
   .burn-modal-backdrop.open{padding:14px 12px;}
   .burn-modal{padding:24px 22px 22px;}
-  .burn-modal-title{font-size:26px;letter-spacing:1.5px;}
-  .burn-modal-sub{margin-bottom:18px;}
+  .burn-modal-title{font-size:26px;letter-spacing:1.5px;margin-bottom:18px;}
   .burn-form-row{margin-bottom:12px;}
   .burn-wallet-row{margin-bottom:14px;padding-bottom:10px;}
 
