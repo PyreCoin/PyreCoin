@@ -12,9 +12,9 @@
 // runtime-config.json resolves, so all downstream callers
 // (stats.js, leaderboard.js, burn.js) see consistent values.
 //
-// Stable constants (the Solana null address, the Memo Program ID)
-// stay in this file — they're properties of Solana itself, not
-// project state, and don't change.
+// Stable constants (the Memo Program ID) stay in this file —
+// they're properties of Solana itself, not project state, and
+// don't change.
 
 async function fetchRuntimeConfig() {
   try {
@@ -42,7 +42,8 @@ const _cfg = await fetchRuntimeConfig();
 
 export const PYRE_MINT_STR = _cfg.pyreMintStr;
 export const RPC_URL       = _cfg.rpcUrl;
-export const BURN_OWNER_STR     = '11111111111111111111111111111111'; // Solana null
+// Burns are done via Token-2022 BurnChecked (see js/burn.js); no
+// destination address is involved. Memo Program is unchanged.
 export const MEMO_PROGRAM_ID_STR = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
 export const isPlaceholder = () => PYRE_MINT_STR.startsWith('PYREMINT');

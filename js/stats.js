@@ -9,12 +9,15 @@
 import { isPlaceholder, PYRE_MINT_STR, RPC_URL } from './config.js';
 import { $, fmt } from './utils.js';
 
-// Total supply is read from chain on first stats refresh and cached
-// for the session. Hardcoding it (e.g. to 1B because that's the
-// pump.fun default) means a fabricated mcap if the supply ever
-// changes — which project-policy §1 treats as a CFTC §6(c)(1) hazard
-// (any user-visible number must trace to an audited source).
-let _supplyCache = null;
+// Total supply is read fresh from chain on every refresh. Burns through
+// pyrecoin.com use Token-2022 BurnChecked, which permanently reduces
+// the on-chain supply, so the value moves over the lifetime of an open
+// page session. Caching it for the session (the previous behavior)
+// would freeze mcap and "circulating" against an outdated value as
+// soon as anyone — including the viewer — burned. getTokenSupply is
+// one cheap RPC call per 30s tick; a freshness leak here is more
+// expensive than the call. Pre-launch (placeholder mint) we never
+// reach the fetch.
 
 // Jupiter Price API V3 (lite-api / free tier). Browser-side fetch with
 // CORS allowed. Returns a usdPrice that's been outlier-filtered against
@@ -36,7 +39,6 @@ async function fetchLiveEntries(){
 }
 
 async function fetchTokenSupply(mint){
-  if (_supplyCache !== null) return _supplyCache;
   try {
     const res = await fetch(RPC_URL, {
       method: 'POST',
@@ -50,10 +52,7 @@ async function fetchTokenSupply(mint){
     if (!res.ok) return null;
     const data = await res.json();
     const ui = data?.result?.value?.uiAmount;
-    if (typeof ui === 'number' && isFinite(ui) && ui > 0) {
-      _supplyCache = ui;
-      return ui;
-    }
+    if (typeof ui === 'number' && isFinite(ui) && ui > 0) return ui;
     return null;
   } catch (_) { return null; }
 }

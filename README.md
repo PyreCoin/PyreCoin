@@ -39,11 +39,17 @@ bus ticket. The pyre does not coast.
 ## How to participate
 
 1. **Buy $PYRE** on pump.fun.
-2. **Send a burn transaction** to the Solana null address
-   `11111111111111111111111111111111` with a memo of the form:
+2. **Burn through pyrecoin.com.** The site's burn modal builds a
+   Token-2022 `BurnChecked` instruction (which destroys the tokens at
+   the protocol layer — supply actually decreases) plus a Memo Program
+   instruction in the same transaction. Memo format:
    ```
    url=yoursite.xyz | msg=your message
    ```
+   Advanced users can construct the same transaction directly via the
+   SPL CLI or any Solana SDK — the indexer watches the mint account
+   for `Burn`/`BurnChecked` instructions, so any such transaction
+   carrying a valid memo qualifies.
 3. **Wait** — the pipeline picks up new burns from the chain on a
    ~5–10 minute cadence and (if your memo passes the moderation
    filter) updates `leaderboard.json` automatically.
@@ -52,9 +58,13 @@ bus ticket. The pyre does not coast.
 ## Token
 
 - **Chain:** Solana
-- **Launched via:** pump.fun
-- **Contract:** TBA at launch
-- **Burn address:** `11111111111111111111111111111111`
+- **Launched via:** pump.fun (Token-2022)
+- **Mint:** `64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump`
+- **Burn mechanic:** Token-2022 `BurnChecked` instruction — the
+  protocol destroys the tokens and the mint's total supply decreases
+  by the burned amount. Aggregators (Jupiter, DexScreener, Birdeye,
+  Solscan) reflect the reduction directly; the deflationary claim is
+  verifiable from any indexer.
 
 ## Architecture
 

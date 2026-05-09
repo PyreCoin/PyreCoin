@@ -1,49 +1,46 @@
-// Solana RPC poller.
+// Solana RPC poller — native-burn detection.
 //
-// We watch the *associated token account* of the system-program null address
-// for the configured PYRE mint. SPL transfers TO that account are the burns
-// users perform from the website's instructions ("send $PYRE to 1111...1111").
+// We watch the *mint account itself* for new transactions. The Token-2022
+// `Burn` and `BurnChecked` instructions reference the mint as account
+// index 1, so getSignaturesForAddress(mint) returns every transaction
+// that burns our token. (It also returns every transferChecked, since
+// transfers reference the mint too — those get filtered out below.)
 //
-// For each new transaction touching that account, we extract:
-//   - the SPL Token transfer amount (raw → uiAmount via mint decimals)
-//   - the Memo Program payload (the "url=… | msg=…" string)
-//   - the signer (the burner's wallet)
-//   - blockTime + slot for the heat-decay timestamp
+// To avoid pulling the full body of every mint-touching tx — Jupiter
+// swaps, Raydium routes, ATA creations — we pre-filter the signature
+// list using the cheap `memo` field returned by getSignaturesForAddress.
+// Burns through pyrecoin.com always include a memo (`url=… | msg=…`).
+// Signatures with `memo === null` cannot match our shape and are
+// skipped without spending an RPC credit on the full transaction.
 //
-// Pagination works backward: getSignaturesForAddress returns newest first,
-// and we stop walking once we hit our last-seen checkpoint signature.
+// For each candidate signature we pull the full parsed transaction and
+// look for spl-token / spl-token-2022 instructions of type `burn` or
+// `burnChecked` whose `info.mint` matches our mint. Inner instructions
+// are scanned too (CPI burns count). The burn is attributed to
+// `info.authority` — the owner or delegate that authorized the burn.
+//
+// History (2026-05-09): the original poller watched a *transfer-to-null*
+// associated token account for the burn-owner address `11111…1111`.
+// That worked but it left the on-chain mint supply unchanged forever,
+// which made the deflationary claim unverifiable from any external
+// indexer. Switching to native Burn means the chain itself is the
+// source of truth for "tokens removed."
 
 import {
   Connection,
   PublicKey,
 } from '@solana/web3.js';
 
-// Well-known program IDs. Pump.fun mints SPL tokens under the
-// Token-2022 program (NOT the legacy Token program). Using the legacy
-// ID here would derive the wrong ATA for the burn-owner address AND
-// would filter out the actual Token-2022 transfer instructions in
-// extractBurn — silently dropping every burn. The Associated Token
-// Program ID is the same for both Token and Token-2022 derivations.
+// Pump.fun mints SPL tokens under the Token-2022 program (NOT the
+// legacy Token program). Token-2022 instructions still parse with
+// type strings 'burn' and 'burnChecked' — only the program ID
+// changes. Filtering by program ID below catches both the
+// `program: 'spl-token-2022'` parsing and the raw program-key match.
 const TOKEN_PROGRAM_ID = new PublicKey('TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb');
-const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
-  'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'
-);
 const MEMO_PROGRAM_IDS = new Set([
   'Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo',
   'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr',
 ]);
-const BURN_OWNER = new PublicKey('11111111111111111111111111111111');
-
-export function getBurnTokenAccount(mint) {
-  const mintKey = new PublicKey(mint);
-  // ATA = PDA derived from (owner, TOKEN_PROGRAM_ID, mint) under the
-  // Associated Token Program.
-  const [ata] = PublicKey.findProgramAddressSync(
-    [BURN_OWNER.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mintKey.toBuffer()],
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  );
-  return ata;
-}
 
 export function makeConnection(rpcUrl) {
   return new Connection(rpcUrl, 'confirmed');
@@ -57,25 +54,37 @@ export async function fetchMintDecimals(connection, mint) {
   return info.value.data.parsed.info.decimals;
 }
 
-// Walk signatures until we hit `untilSignature` (exclusive) or `maxSignatures`.
+// Walk signatures for `address`, newest-first, until we hit
+// `untilSignature` (exclusive) or process `maxSignatures` entries.
+// Returns the memo-bearing signatures (the only ones worth fetching
+// the full body of) and the newest signature seen — even if that
+// newest didn't have a memo, it's still our checkpoint, otherwise
+// the next cron run would reprocess all the memoless traffic we
+// just walked.
 async function fetchNewSignatures(connection, address, untilSignature, maxSignatures = 500) {
-  const result = [];
+  const memoed = [];
+  let newest = null;
+  let walked = 0;
   let before;
-  while (result.length < maxSignatures) {
+  while (walked < maxSignatures) {
     const batch = await connection.getSignaturesForAddress(address, {
-      limit: Math.min(1000, maxSignatures - result.length),
+      limit: Math.min(1000, maxSignatures - walked),
       before,
       until: untilSignature || undefined,
     });
     if (!batch.length) break;
+    if (newest === null) newest = batch[0].signature;
     for (const s of batch) {
-      if (untilSignature && s.signature === untilSignature) return result;
-      result.push(s);
+      walked++;
+      if (untilSignature && s.signature === untilSignature) {
+        return { sigs: memoed, newest };
+      }
+      if (s.memo !== null && s.memo !== undefined) memoed.push(s);
     }
     before = batch[batch.length - 1].signature;
     if (batch.length < 1000) break;
   }
-  return result;
+  return { sigs: memoed, newest };
 }
 
 // Pull transaction bodies in parallel with a small concurrency cap so we don't
@@ -99,27 +108,23 @@ async function fetchTransactions(connection, signatures, concurrency = 4) {
   return out;
 }
 
-// Extract amount + memo from a parsed transaction. Returns null if the
-// transaction doesn't match the expected burn shape.
-function extractBurn(tx, burnTokenAccount) {
+// Extract the burn-with-memo shape from a parsed transaction. Returns
+// null if the transaction doesn't contain a `burn` or `burnChecked`
+// instruction for `mint` PLUS at least one Memo Program payload.
+//
+// Sums burn amounts across top-level + inner instructions in case a
+// single tx contains multiple burns (rare, but well-formed). Signer
+// is taken from the burn instruction's `authority` field (the owner
+// or delegate that signed the burn) — this can differ from the tx
+// fee-payer if a delegate burned on the owner's behalf, and we want
+// to attribute the leaderboard slot to the actual burner.
+export function extractBurn(tx, mint) {
   if (!tx || !tx.meta || tx.meta.err) return null;
-  const accountKeys = tx.transaction.message.accountKeys.map(k =>
-    typeof k === 'string' ? k : k.pubkey.toString()
-  );
 
   let amount = 0;
   let memo = null;
   let signer = null;
 
-  // First account in the message that is `signer: true` is the burner.
-  for (const k of tx.transaction.message.accountKeys) {
-    if (typeof k === 'object' && k.signer) {
-      signer = k.pubkey.toString();
-      break;
-    }
-  }
-
-  // Top-level + inner instructions, parsed.
   const allInstructions = [
     ...(tx.transaction.message.instructions || []),
     ...(tx.meta.innerInstructions?.flatMap(ii => ii.instructions) || []),
@@ -127,23 +132,35 @@ function extractBurn(tx, burnTokenAccount) {
 
   for (const ix of allInstructions) {
     const pid = ix.programId?.toString?.() ?? ix.programId;
+
+    // Memo extraction (any of the Memo Program IDs).
     if (MEMO_PROGRAM_IDS.has(pid)) {
-      // Parsed memo can be a string or in the parsed `info` field
       if (typeof ix.parsed === 'string') memo = ix.parsed;
       else if (ix.parsed?.info) memo = ix.parsed.info;
       else if (ix.data) {
-        // base64/utf8 fallback
+        // base64/utf8 fallback for unparsed memo instructions.
         try { memo = Buffer.from(ix.data, 'base64').toString('utf8'); }
         catch { /* ignore */ }
       }
     }
+
+    // Burn extraction: only the Token-2022 program, only burn types,
+    // only our mint.
     if (pid === TOKEN_PROGRAM_ID.toString() && ix.parsed) {
       const t = ix.parsed.type;
       const info = ix.parsed.info || {};
-      if ((t === 'transfer' || t === 'transferChecked') &&
-          info.destination === burnTokenAccount.toString()) {
-        const ui = info.tokenAmount?.uiAmount ?? Number(info.amount);
-        if (Number.isFinite(ui)) amount += ui;
+      if ((t === 'burn' || t === 'burnChecked') && info.mint === mint) {
+        // burnChecked always returns a tokenAmount object with uiAmount.
+        // Plain burn (uncommon — our website uses burnChecked) may not,
+        // in which case we skip rather than misreport raw lamport-units
+        // as UI amount. Misattributing 1,000,000 raw → 1,000,000 PYRE
+        // at 6 decimals would inflate the leaderboard by 6 orders of
+        // magnitude.
+        const ui = info.tokenAmount?.uiAmount;
+        if (typeof ui === 'number' && Number.isFinite(ui) && ui > 0) {
+          amount += ui;
+          if (!signer) signer = info.authority || null;
+        }
       }
     }
   }
@@ -162,18 +179,20 @@ function extractBurn(tx, burnTokenAccount) {
 // Public API: fetch all new burns since `untilSignature`. Returns burns
 // ordered oldest-first and the newest signature seen (for checkpointing).
 export async function fetchNewBurns({ connection, mint, untilSignature, maxSignatures = 500 }) {
-  const burnTokenAccount = getBurnTokenAccount(mint);
-  const sigs = await fetchNewSignatures(connection, burnTokenAccount, untilSignature, maxSignatures);
-  if (!sigs.length) return { burns: [], newestSignature: untilSignature };
+  const mintKey = new PublicKey(mint);
+  const { sigs, newest } = await fetchNewSignatures(connection, mintKey, untilSignature, maxSignatures);
+  if (!sigs.length) {
+    return { burns: [], newestSignature: newest || untilSignature };
+  }
 
   const txs = await fetchTransactions(connection, sigs);
   const burns = [];
   for (let i = 0; i < txs.length; i++) {
-    const b = extractBurn(txs[i], burnTokenAccount);
+    const b = extractBurn(txs[i], mint);
     if (b) burns.push(b);
   }
 
   // sigs were newest-first; flip to oldest-first for ingestion
   burns.reverse();
-  return { burns, newestSignature: sigs[0].signature };
+  return { burns, newestSignature: newest };
 }

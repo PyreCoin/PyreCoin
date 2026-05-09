@@ -197,7 +197,7 @@
 
         <p>In <strong>Greek religion</strong>, <span class="gk">πυρά</span> referred equally to the funeral pyre and to the altar-fire on which portions of an animal sacrifice were burnt as an offering. The semantic distance between these uses was, to the Greek mind, zero. Something was given to the fire; the fire took it. The accounting ended there.</p>
 
-        <p>In <strong>Roman</strong> and <strong>Germanic</strong> custom, pyres were public, vertical, and theatrical — a final post by which a life was measured. Open-air cremation has since been outlawed in most of the West (UK, Cremation Act 1902), and the rite has migrated indoors, into furnaces, into spreadsheets, and — most recently — onto the Solana mainnet, where the pyre takes the form of a transfer to address <code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">11111…1111</code> with a memo attached.</p>
+        <p>In <strong>Roman</strong> and <strong>Germanic</strong> custom, pyres were public, vertical, and theatrical — a final post by which a life was measured. Open-air cremation has since been outlawed in most of the West (UK, Cremation Act 1902), and the rite has migrated indoors, into furnaces, into spreadsheets, and — most recently — onto the Solana mainnet, where the pyre takes the form of a Token-2022 <code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">BurnChecked</code> instruction with a memo attached, and the supply itself visibly contracts.</p>
 
         <p>Across every recorded culture that has lit one, the pyre has carried a single, stable meaning: <em>this thing is over, and I want everyone to see that it is over</em>. The combustible has always varied. The point has not.</p>
       </div>
@@ -308,7 +308,7 @@
     <ul>
       <li><strong>GitHub Pages</strong> — hosts this page. Free. HTTPS-enforced. Rebuilt on every push to <code>main</code>. The bandwidth cap is so high it would require something resembling fame to approach.</li>
       <li><strong>GitHub Actions</strong> — runs the ingest cron every five minutes; reads the chain, parses the memos, writes <code>leaderboard.json</code> back to the repo. Free <em>in perpetuity</em> on public repositories. We are aware this is unsustainable for them and unsustainable for us in opposite directions.</li>
-      <li><strong>Solana</strong> — provides the chain, the burn address, and the entire concept of an on-chain receipt. Network fee per burn: roughly two hundredths of a cent. The most expensive thing about this project is the prefix to that sentence.</li>
+      <li><strong>Solana</strong> — provides the chain, the protocol-level <code>BurnChecked</code> instruction that actually destroys the tokens, and the entire concept of an on-chain receipt. Network fee per burn: roughly two hundredths of a cent. The most expensive thing about this project is the prefix to that sentence.</li>
       <li><strong>Helius</strong> — provides the RPC that lets the cron see new burns. Free tier. Never paid. Never asked. If they're reading: thank you, sorry about the volume, please don't change anything.</li>
       <li><strong>Cloudflare</strong> — DNS for <code>pyrecoin.com</code>, email forwarding for <code>admin@pyrecoin.com</code>, and the Worker at <code>rpc.pyrecoin.com</code> that proxies the burn modal's Solana RPC calls (so our API key isn't sitting in this very HTML). All on the free tier. The Workers alone would have been a $5/mo line item before 2018; the email forwarding would have been a SaaS bill in 2014. We feel old saying that.</li>
       <li><strong>esm.sh</strong> — serves <code>@solana/web3.js</code> and <code>@solana/spl-token</code> as ES modules straight to the browser. No build step, no bundler, no signup, no rate limit we have ever come close to. Approximately the only npm CDN we trust unprompted.</li>
@@ -388,7 +388,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260509-11"></script>
+<script type="module" src="js/main.js?v=20260509-12"></script>
 
 </body>
 </html>

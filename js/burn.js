@@ -1,7 +1,15 @@
 // ─── BURN BUTTON ─────────────────────────────────────────────────────
-// Wallet integration via window.solana, builds an SPL transfer + Memo
-// Program instruction, signs through the user's wallet
+// Wallet integration via window.solana. Builds a Token-2022 BurnChecked
+// instruction + Memo Program instruction, signs through the user's wallet
 // (Phantom/Solflare/Backpack), and sends to mainnet.
+//
+// Why BurnChecked, not transfer-to-null: protocol-level burns actually
+// destroy tokens — the mint's total supply decreases by the burned
+// amount, every aggregator (Jupiter, DexScreener, Birdeye, Solscan)
+// reflects the reduction, and the deflationary claim becomes verifiable
+// from any indexer rather than only from our leaderboard. Transfer-to-
+// null would relocate the tokens to the system program's ATA but leave
+// supply unchanged.
 //
 // We import Solana libs directly from esm.sh as ES modules. This means
 // (a) no window globals to race against, (b) any function in this file
@@ -12,13 +20,12 @@ import {
   Connection, PublicKey, Transaction, TransactionInstruction
 } from 'https://esm.sh/@solana/web3.js@1.95.4';
 import {
-  createTransferCheckedInstruction, getAssociatedTokenAddressSync,
-  createAssociatedTokenAccountInstruction, getAccount,
+  createBurnCheckedInstruction, getAssociatedTokenAddressSync, getAccount,
   TOKEN_2022_PROGRAM_ID
 } from 'https://esm.sh/@solana/spl-token@0.4.8';
 
 import {
-  PYRE_MINT_STR, RPC_URL, BURN_OWNER_STR, MEMO_PROGRAM_ID_STR, isPlaceholder
+  PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, isPlaceholder
 } from './config.js';
 import { $, shortAddr, escapeHtml } from './utils.js';
 
@@ -249,7 +256,6 @@ window.submitBurn = async function submitBurn() {
 
     const conn = new Connection(RPC_URL, 'confirmed');
     const mint = new PublicKey(PYRE_MINT_STR);
-    const burnOwner = new PublicKey(BURN_OWNER_STR);
     const sender = burnState.publicKey;
 
     if (burnState.decimals === null) {
@@ -258,19 +264,13 @@ window.submitBurn = async function submitBurn() {
     }
 
     const senderAta = getAssociatedTokenAddressSync(mint, sender, false, TOKEN_PROGRAM);
-    const burnAta = getAssociatedTokenAddressSync(mint, burnOwner, true, TOKEN_PROGRAM);
 
-    // If the burn-owner ATA doesn't exist yet, the first user pays ~0.002
-    // SOL rent to create it. After that everyone burns to the same ATA.
-    const burnAtaInfo = await conn.getAccountInfo(burnAta);
-    const tx = new Transaction();
-    if (!burnAtaInfo) {
-      tx.add(createAssociatedTokenAccountInstruction(sender, burnAta, burnOwner, mint, TOKEN_PROGRAM));
-    }
-
+    // Native Token-2022 burn: destroys the tokens at the protocol layer.
+    // No destination ATA, no rent. Mint supply decreases by `rawAmount`.
     const rawAmount = BigInt(Math.floor(amt * 10 ** burnState.decimals));
-    tx.add(createTransferCheckedInstruction(
-      senderAta, mint, burnAta, sender, rawAmount, burnState.decimals, [], TOKEN_PROGRAM
+    const tx = new Transaction();
+    tx.add(createBurnCheckedInstruction(
+      senderAta, mint, sender, rawAmount, burnState.decimals, [], TOKEN_PROGRAM
     ));
 
     const memoText = 'url=' + url + ' | msg=' + msg;
