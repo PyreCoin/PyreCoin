@@ -23,8 +23,8 @@
       <a href="#how">How it works</a>
       <a href="#etymology">Etymology</a>
       <a href="#rules">Rules</a>
-      <a href="https://github.com/PyreCoin/PyreCoin" target="_blank">GitHub</a>
-      <button class="btn-primary" onclick="openBurnModal()">Burn $PYRE</button>
+      <a href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <button class="btn-primary" onclick="openBurnModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Burn $PYRE</button>
     </div>
   </nav>
 
@@ -276,9 +276,10 @@
       Just <em class="ling" style="color:var(--ember2);font-style:italic;">πυρά</em>.
     </p>
     <div class="btn-row">
-      <button class="btn-primary" onclick="openBurnModal()">Burn $PYRE</button>
-      <button class="btn-ghost" onclick="window.open('https://pump.fun','_blank')">Buy $PYRE on pump.fun</button>
-      <button class="btn-ghost" onclick="window.open('https://github.com/PyreCoin/PyreCoin','_blank')">GitHub</button>
+      <button class="btn-primary" onclick="openBurnModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Burn $PYRE</button>
+      <button class="btn-ghost" onclick="window.open('https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>$PYRE on X</button>
+      <button class="btn-ghost" onclick="window.open('https://pump.fun','_blank','noopener')">Buy $PYRE on pump.fun</button>
+      <button class="btn-ghost" onclick="window.open('https://github.com/PyreCoin/PyreCoin','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</button>
     </div>
   </div>
 
@@ -300,6 +301,44 @@
     </ul>
     <p class="disclaimer-tldr">
       TL;DR — the pyre burns. Sometimes the pyre is out. We are not the fire department.
+    </p>
+  </section>
+
+  <!-- COLOPHON -->
+  <section id="colophon" class="colophon">
+    <div class="colophon-head">
+      <span class="colophon-label">Colophon</span>
+      <span class="colophon-meta">— with thanks, since none of this would exist if it cost anything</span>
+    </div>
+
+    <p>
+      PYRE was assembled by <a href="https://x.com/AlphaCove" target="_blank" rel="noopener noreferrer"><strong>@AlphaCove</strong></a>.
+      The full extent of his infrastructural contribution is: <em>he bought a domain name</em>.
+      The rest of this page is duct-taped together out of free tiers and good will, as follows.
+    </p>
+
+    <ul>
+      <li><strong>GitHub Pages</strong> — hosts this page. Free. HTTPS-enforced. Rebuilt on every push to <code>main</code>. The bandwidth cap is so high it would require something resembling fame to approach.</li>
+      <li><strong>GitHub Actions</strong> — runs the ingest cron every five minutes; reads the chain, parses the memos, writes <code>leaderboard.json</code> back to the repo. Free <em>in perpetuity</em> on public repositories. We are aware this is unsustainable for them and unsustainable for us in opposite directions.</li>
+      <li><strong>Solana</strong> — provides the chain, the burn address, and the entire concept of an on-chain receipt. Network fee per burn: roughly two hundredths of a cent. The most expensive thing about this project is the prefix to that sentence.</li>
+      <li><strong>Helius</strong> — provides the RPC that lets the cron see new burns. Free tier. Never paid. Never asked. If they're reading: thank you, sorry about the volume, please don't change anything.</li>
+      <li><strong>Cloudflare</strong> — DNS for <code>pyrecoin.com</code>. Email forwarding for <code>admin@pyrecoin.com</code>. Both free. The email forwarding alone would have been a SaaS bill in 2014 and we feel old saying that.</li>
+      <li><strong>X (formerly Twitter)</strong> — hosts <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a> and the <a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer">live community feed</a>. The blue checkmark is, regrettably, not free. We accept this as the cost of doing memecoin in this (still unfortunate) timeline.</li>
+      <li><strong>pump.fun</strong> — minted the SPL token for a one-time fee best described as "a coffee." This is the closest thing the project has to a treasury event.</li>
+    </ul>
+
+    <p>
+      There is no team. There is no roadmap. There is no funding round.
+      There are no milestones, no vesting, no foundation, no DAO, no
+      "we will integrate with X," no "Q3 we ship Y." The creator's job
+      ended when the static page deployed and the cron started polling.
+      What you see is what there is. If something breaks, the chain still
+      works. If the chain breaks, your leaderboard slot is the least of
+      your concerns.
+    </p>
+
+    <p class="colophon-sign">
+      — assembled in the open, deployed once, set on fire forever —
     </p>
   </section>
 
@@ -341,11 +380,13 @@
   <footer>
     <div class="footer-logo">PYRE</div>
     <div class="footer-links">
-      <a href="https://github.com/PyreCoin/PyreCoin" target="_blank">GitHub</a>
-      <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a>
-      <a href="https://pump.fun" target="_blank">pump.fun</a>
+      <a href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
+      <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@PYREcoin</a>
+      <a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>$PYRE on X</a>
+      <a href="https://pump.fun" target="_blank" rel="noopener noreferrer">pump.fun</a>
       <a href="#rules">Rules</a>
       <a href="#disclaimer">Disclaimer</a>
+      <a href="#colophon">Colophon</a>
     </div>
     <div class="footer-note">$PYRE is a memecoin · digital collectible · not a security · not financial advice · burn responsibly</div>
   </footer>

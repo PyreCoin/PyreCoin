@@ -431,12 +431,24 @@ footer{
   backdrop-filter:blur(8px);
   z-index:1000;
   display:none;
-  align-items:center;justify-content:center;
-  padding:20px;
+  /* Backdrop scrolls when modal taller than viewport. align-items:flex-start
+     + margin:auto on child gives us: vertical-center when fits, top-aligned
+     scrollable when doesn't. Firefox Android was cutting off the bottom of
+     the modal (submit button) because center alignment in flexbox + tall
+     content + browser-chrome-eating-100vh leaves overflow inaccessible. */
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
 }
-.burn-modal-backdrop.open{display:flex;}
+.burn-modal-backdrop.open{
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:20px 16px;
+  min-height:100%;
+}
 .burn-modal{
   width:100%;max-width:460px;
+  margin:auto;
   background:#0a0300;
   border:0.5px solid rgba(255,100,30,0.3);
   border-radius:4px;
@@ -813,6 +825,78 @@ footer{
   border-top:0.5px dashed rgba(255,100,30,0.2);
   text-align:center;
 }
+
+/* ── INLINE ICONS ──
+   Inline SVG icons used across nav/CTA/footer/colophon. Sized via .icon
+   default; CTA buttons get a slightly larger variant. All paths use
+   currentColor so they inherit text color and tint correctly on hover. */
+.icon{
+  width:13px;height:13px;
+  flex-shrink:0;
+  vertical-align:-2px;
+  fill:currentColor;
+}
+.btn-primary .icon,.btn-ghost .icon{
+  width:14px;height:14px;margin-right:8px;
+}
+
+/* ── COLOPHON ──
+   Sits between the disclaimer and the footer. Credits + free-tier
+   acknowledgments + reinforcement of no-team / no-roadmap framing
+   (which doubles as compliance reinforcement per project-policy §1). */
+.colophon{
+  padding:48px 36px 36px;
+  margin:24px auto 16px;
+  max-width:1200px;width:100%;
+  font-family:'DM Sans',sans-serif;
+  font-size:13.5px;line-height:1.75;color:var(--text2);
+  border-top:0.5px solid var(--border2);
+}
+.colophon-head{margin-bottom:16px;}
+.colophon-label{
+  font-family:'DM Mono',monospace;
+  font-size:11px;letter-spacing:3px;
+  color:var(--ember);text-transform:uppercase;
+  margin-right:10px;
+}
+.colophon-meta{
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:1px;
+  color:var(--text3);font-style:italic;
+}
+.colophon p{margin:14px 0;}
+.colophon ul{
+  list-style:none;padding:0;margin:18px 0;
+  display:grid;gap:10px;
+}
+.colophon li{
+  padding:10px 14px;
+  border-left:1px solid rgba(255,100,30,0.18);
+  font-size:12.5px;line-height:1.65;
+  background:rgba(255,100,30,0.03);
+  border-radius:0 2px 2px 0;
+}
+.colophon li strong{color:var(--ember2);font-weight:500;}
+.colophon a{color:var(--ember2);text-decoration:none;border-bottom:0.5px dotted var(--ember2);}
+.colophon a:hover{color:var(--ember);border-color:var(--ember);}
+.colophon code{
+  font-family:'DM Mono',monospace;font-size:11.5px;
+  color:var(--ember);background:rgba(255,100,30,0.08);
+  padding:1px 6px;border-radius:2px;
+}
+.colophon-sign{
+  font-family:'DM Mono',monospace;
+  font-size:11px;color:var(--text3);
+  text-align:center;letter-spacing:1px;
+  padding-top:16px;margin-top:18px;
+  border-top:0.5px dashed rgba(255,100,30,0.15);
+  font-style:italic;
+}
+
+/* ── FOOTER LINK FLEX ──
+   Footer links now contain inline SVG icons; switch from plain
+   anchors to inline-flex for icon+text alignment. */
+.footer-links a{display:inline-flex;align-items:center;gap:5px;}
 /* ── MOBILE OPTIMIZATIONS ───────────────────────────────────────────
    Below 560px the page was crushed inside a 40px section-padding shell;
    the 4-col stats bar squeezed digits to ~88px each; the CTA buttons
@@ -865,9 +949,22 @@ footer{
      ~245px and rule text wrapped to 5+ lines per item. */
   .rules-grid{grid-template-columns:1fr;gap:32px;}
 
+  /* Burn modal: compact padding + smaller title so it fits inside
+     mobile browser chrome on smaller phones (Firefox Android, iPhone SE). */
+  .burn-modal-backdrop.open{padding:14px 12px;}
+  .burn-modal{padding:24px 22px 22px;}
+  .burn-modal-title{font-size:26px;letter-spacing:1.5px;}
+  .burn-modal-sub{margin-bottom:18px;}
+  .burn-form-row{margin-bottom:12px;}
+  .burn-wallet-row{margin-bottom:14px;padding-bottom:10px;}
+
   /* Disclaimer (unchanged from previous rule, kept here) */
   .disclaimer{padding:28px 22px;margin:32px 0 16px;}
   .disclaimer h2{font-size:24px;}
+
+  /* Colophon: tighter mobile padding + smaller meta tag */
+  .colophon{padding:32px 20px 28px;}
+  .colophon-meta{display:block;margin-top:4px;}
 }
 
 @media(max-width:440px){
