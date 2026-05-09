@@ -1,1 +1,18 @@
-{"entries":[],"updated":0}
+{
+  "entries": [
+    {
+      "wallet": "AF6Yt5Q6SsKoiiRMURzzRSXmnrHjUofvFBwJE5gdJiHq",
+      "url": "pyrecoin.com",
+      "msg": "is this thing on? @AlphaCove",
+      "burns": [
+        {
+          "amount": 1,
+          "ts": "2026-05-09T07:02:07.000Z",
+          "tx": "5VDy6osdC31HEEUqMxx3B8LxCjmsDQhjw8xAQjvyR7rcCLDSBeLuNaG3YNTreKQvjyjqH1zgMKkE9QyJK2VfoCUJ"
+        }
+      ]
+    }
+  ],
+  "updated": "2026-05-09T07:33:10.388Z",
+  "updatedBy": "ingest-bot"
+}
