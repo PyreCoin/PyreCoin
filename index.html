@@ -388,7 +388,12 @@
 </div><!-- /page -->
 
 <!-- FIRE SHADER -->
-<script type="module" src="js/main.js"></script>
+<!-- Bump ?v= on every deploy that touches user-visible JS. The same
+     version constant is mirrored in js/main.js (which dynamic-imports
+     its top-level modules with the same query string). GitHub Pages
+     serves JS with max-age=600, so without this returning visitors
+     see stale code for up to 10 min post-deploy. -->
+<script type="module" src="js/main.js?v=20260509-1"></script>
 
 </body>
 </html>
