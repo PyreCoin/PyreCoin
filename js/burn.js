@@ -75,6 +75,32 @@ document.addEventListener('input', e => {
   if (e.target.id === 'burnMsg') $('msgCount').textContent = e.target.value.length;
 });
 
+// Click-outside-to-close — but only if the pointer goes DOWN and UP on
+// the backdrop itself. The previous inline `onclick` handler closed
+// the modal on any click event whose target was the backdrop, which
+// included the case where a user mousedown'd on a form field, dragged
+// to select text, and released outside the modal — closing it
+// mid-selection. This pattern preserves text-selection inside the
+// modal while still closing on a clean outside click.
+(function wireBackdropDismiss() {
+  const backdrop = $('burnModal');
+  if (!backdrop) return;
+  let pointerDownOnBackdrop = false;
+  backdrop.addEventListener('pointerdown', (e) => {
+    pointerDownOnBackdrop = (e.target === backdrop);
+  });
+  backdrop.addEventListener('pointerup', (e) => {
+    if (pointerDownOnBackdrop && e.target === backdrop) {
+      closeBurnModal();
+    }
+    pointerDownOnBackdrop = false;
+  });
+  // Reset state if the pointer is cancelled (e.g., drag becomes a
+  // browser gesture). Without this, a stray cancel could leave the
+  // flag set and a subsequent legitimate click misbehave.
+  backdrop.addEventListener('pointercancel', () => { pointerDownOnBackdrop = false; });
+})();
+
 // ─── WALLET DETECTION ────────────────────────────────────────────────
 function detectProvider() {
   // Phantom, Solflare, Backpack all inject into window.solana.
