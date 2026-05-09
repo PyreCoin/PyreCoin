@@ -394,21 +394,49 @@ nav{
 }
 .btn-ghost:hover{border-color:var(--ember);color:var(--ember2);}
 
-/* ── FOOTER ── */
+/* ── FOOTER ──
+   Stacks vertically at all viewports. Seven link items with leading
+   icons make the previous 3-column horizontal layout cramped even at
+   1280px — the centred vertical column reads cleaner and gives the
+   note real breathing room. */
 footer{
   border-top:0.5px solid var(--border);
-  padding:24px 40px;
-  display:flex;align-items:center;justify-content:space-between;
-  background:rgba(0,0,0,0.8);backdrop-filter:blur(20px);
+  padding:56px 40px 44px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:24px;
+  text-align:center;
+  background:rgba(0,0,0,0.8);
+  backdrop-filter:blur(20px);
 }
-.footer-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:4px;color:var(--text3);}
-.footer-links{display:flex;gap:24px;}
+.footer-logo{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:20px;letter-spacing:5px;
+  color:var(--text3);
+}
+.footer-links{
+  display:flex;flex-wrap:wrap;justify-content:center;
+  row-gap:16px;column-gap:32px;
+  max-width:780px;
+  padding:6px 0 4px;
+}
 .footer-links a{
-  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;
-  color:var(--text3);text-decoration:none;text-transform:uppercase;transition:color .2s;
+  font-family:'DM Mono',monospace;
+  font-size:10.5px;letter-spacing:2px;
+  color:var(--text3);text-decoration:none;text-transform:uppercase;
+  transition:color .2s;
 }
 .footer-links a:hover{color:var(--ember);}
-.footer-note{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,140,60,0.2);letter-spacing:1px;}
+.footer-note{
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:1.2px;line-height:1.7;
+  color:rgba(255,140,60,0.4);
+  max-width:560px;
+  padding-top:8px;
+  border-top:0.5px dashed rgba(255,100,30,0.12);
+  width:100%;
+}
 
 /* ── UPDATE BADGE ── */
 .update-badge{
@@ -936,9 +964,10 @@ footer{
   .btn-row{flex-direction:column;gap:10px;}
   .btn-primary,.btn-ghost{width:100%;text-align:center;padding:14px 24px;}
 
-  /* Footer: stack vertically, wrap links */
-  footer{flex-direction:column;align-items:center;gap:16px;padding:40px 18px;text-align:center;}
-  .footer-links{flex-wrap:wrap;justify-content:center;gap:14px;}
+  /* Footer: tighter padding on small screens. Base layout is already
+     vertical-stacked — we just shrink the padding here. */
+  footer{padding:44px 20px 36px;}
+  .footer-links{column-gap:24px;row-gap:14px;}
 
   /* Dictionary card: tighter padding so the entry isn't cramped */
   .dict-card{padding:24px 22px 44px;}
