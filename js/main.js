@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260510-1';
+const V = '20260510-2';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick="openBurnModal()" / form onsubmit never call
@@ -41,26 +41,31 @@ window.submitBurn = function(){};
 // Top-level module loads with cache-busting. await is module-top-level,
 // supported in all browsers that support ES modules.
 await import(`./fire-shader.js?v=${V}`);
+const { refreshEntries } = await import(`./data.js?v=${V}`);
 const lb = await import(`./leaderboard.js?v=${V}`);
 const { renderLeaderboard } = lb;
 const { updateStats } = await import(`./stats.js?v=${V}`);
 
 // Expose the leaderboard module so burn.js can read minBurnToTakeTop
 // without re-importing the module under a different specifier (which
-// would create a second _liveEntries state + duplicate the fetch).
+// would create a second module instance with its own state).
 window.__pyreLeaderboard = lb;
 
-// Initial render of stats + leaderboard at wall-clock now.
-updateStats();
-renderLeaderboard(new Date());
-
-// Re-rank periodically so heat visibly decays while the page is open.
-// updateStats() also re-fetches leaderboard.json so totals + burner
-// count refresh as new burns ingest.
-setInterval(() => {
+// Single tick: refresh the shared entries cache once, then run both
+// renderers off the same snapshot. Previously each renderer fetched
+// leaderboard.json independently and only stats.js refreshed on the
+// 30s interval — the leaderboard itself never updated post-load.
+async function tick() {
+  await refreshEntries();
   renderLeaderboard(new Date());
   updateStats();
-}, 30000);
+}
+
+// Initial render + steady cadence. Heat visibly decays between ticks
+// because renderLeaderboard takes wall-clock `now` as input even when
+// the underlying entries are unchanged.
+tick();
+setInterval(tick, 30000);
 
 // Lazy-load burn module — defers heavy Solana lib download. Versioned
 // so post-launch fixes propagate without a hard refresh.

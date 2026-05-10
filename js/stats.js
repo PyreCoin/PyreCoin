@@ -18,6 +18,7 @@
 
 import { isPlaceholder, INITIAL_SUPPLY, PYRE_MINT_STR, RPC_URL } from './config.js';
 import { $, fmt } from './utils.js';
+import { getEntries } from './data.js';
 
 // charts.js + big-charts.js are dynamic-imported with the same `?v=`
 // version that this module was loaded under. Per CLAUDE.md §7.1: any
@@ -51,15 +52,9 @@ const WINDOW_HOURS = 240;             // 10 days × 24h
 const WINDOW_DAYS  = 10;
 
 // ── fetchers ─────────────────────────────────────────────────────
-
-async function fetchLiveEntries(){
-  try {
-    const res = await fetch('./leaderboard.json', { cache: 'no-cache' });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data && Array.isArray(data.entries)) ? data.entries : [];
-  } catch (_) { return []; }
-}
+// leaderboard.json is fetched centrally by js/data.js — main.js calls
+// refreshEntries() each tick, so getEntries() here returns the freshest
+// cached snapshot without an extra round trip.
 
 async function fetchTokenSupply(mint){
   try {
@@ -337,16 +332,17 @@ export async function updateStats(){
     return;
   }
 
-  // Five independent fetches in parallel. The worker caches
-  // /price-history and /analytics for 5 min, so most ticks resolve
-  // these cheaply. leaderboard.json is in-repo and fast (~10ms).
-  const [entries, jup, supply, priceHistory, analytics] = await Promise.all([
-    fetchLiveEntries(),
+  // Four independent fetches in parallel; entries come from the
+  // shared data module's cache (refreshed by main.js each tick).
+  // The worker caches /price-history and /analytics for 5 min, so most
+  // ticks resolve these cheaply.
+  const [jup, supply, priceHistory, analytics] = await Promise.all([
     fetchJupPrice(PYRE_MINT_STR),
     fetchTokenSupply(PYRE_MINT_STR),
     fetchPriceHistory(),
     fetchAnalytics(),
   ]);
+  const entries = getEntries();
 
   const nowMs = Date.now();
 

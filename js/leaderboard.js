@@ -14,6 +14,7 @@
 
 import { isPlaceholder } from './config.js';
 import { fmt, hoursSince, relTime, escapeHtml } from './utils.js';
+import { getEntries } from './data.js';
 
 const GRAVITY = 1.5;
 const DECAY_BASE_HOURS = 2;
@@ -29,7 +30,7 @@ const FRESH_MULTIPLIER = Math.pow(DECAY_BASE_HOURS, GRAVITY);
 // Min fresh-burn amount that would outrank the current #1 (read by
 // burn.js to populate the modal helper).
 export function minBurnToTakeTop(now){
-  const entries = _liveEntries || [];
+  const entries = getEntries();
   if (entries.length === 0) return 1;
   const topScore = entries
     .map(e => scoreEntry(e, now))
@@ -38,7 +39,7 @@ export function minBurnToTakeTop(now){
 }
 
 export function liveEntryCount(){
-  return (_liveEntries || []).length;
+  return getEntries().length;
 }
 
 // ── linkify ───────────────────────────────────────────────────────
@@ -132,28 +133,16 @@ function renderBackburner(displaced, now){
 }
 
 // ── DATA ──────────────────────────────────────────────────────────
-let _liveEntries = null;
-
-async function loadLiveEntries(){
-  try {
-    const res = await fetch('./leaderboard.json', { cache: 'no-cache' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    _liveEntries = (data && Array.isArray(data.entries)) ? data.entries : [];
-  } catch (e) {
-    _liveEntries = [];
-  }
-  renderLeaderboard(new Date());
-}
-
-loadLiveEntries();
+// Source-of-truth for entries lives in js/data.js — main.js calls
+// refreshEntries() on every tick before invoking renderLeaderboard,
+// so getEntries() here is always the freshest cached array.
 
 export function renderLeaderboard(now){
   const lb = document.getElementById('lb-container');
   if (!lb) return;
 
   const preLaunch = isPlaceholder();
-  const source = preLaunch ? [] : (_liveEntries || []);
+  const source = preLaunch ? [] : getEntries();
 
   const ranked = source
     .map(e => ({ entry: e, score: scoreEntry(e, now) }))
