@@ -265,6 +265,22 @@ query DiscoverSites($accountTag: String!, $datetimeStart: Time!) {
         count
         dimensions { siteTag, requestPath }
       }
+      byHost: rumPageloadEventsAdaptiveGroups(
+        limit: 50
+        filter: { datetime_geq: $datetimeStart }
+        orderBy: [count_DESC]
+      ) {
+        count
+        dimensions { requestHost, siteTag }
+      }
+      hostOnly: rumPageloadEventsAdaptiveGroups(
+        limit: 20
+        filter: { datetime_geq: $datetimeStart }
+        orderBy: [count_DESC]
+      ) {
+        count
+        dimensions { requestHost }
+      }
     }
   }
 }`;
