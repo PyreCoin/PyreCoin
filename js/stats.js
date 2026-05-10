@@ -285,12 +285,13 @@ function setChange(el, c){
   if (cls) el.classList.add(cls);
 }
 
-// Mcap blurb does the schoolteacher bit with live numbers when we
-// have them, falls back to the no-numbers version otherwise. Always
-// re-renders both states so a tick that loses one input doesn't
-// strand stale figures from the previous tick.
+// Mcap blurb: when both inputs are live, callback the two cards above
+// (Circulating Supply, Price) so the multiplication reads like a
+// schoolteacher's blackboard demo with the operands physically present
+// on the page. Falls back to the abstract version if either input is
+// missing — never strands stale figures from the previous tick.
 const MCAP_FALLBACK_BLURB =
-  'What does the circulating supply multiplied by the current price equal, children? Very good — <em>the market cap</em>! Say it with reverence. Moves with price action and burn activity; structurally deflationary because supply only contracts.';
+  'What does the circulating supply multiplied by the current price equal, children? Very good — <em>the market cap</em>! Say it with reverence. Moves with price action and the slow contraction of supply; structurally deflationary because tokens only ever leave the room.';
 
 function renderMcapBlurb(supply, price, mcap){
   const el = $('s-mcap-blurb');
@@ -303,11 +304,11 @@ function renderMcapBlurb(supply, price, mcap){
   const priceStr  = fmtPrice(price);
   const mcapStr   = fmtMcap(mcap);
   el.innerHTML =
-    `What does <code>${supplyStr}</code> (circulating supply) multiplied by <code>${priceStr}</code> (current price) equal, children? Very good — <code>${mcapStr}</code>! That, my degens, is <em>the market cap</em>. Say it with reverence. Moves with price action and burn activity; structurally deflationary because supply only contracts.`;
+    `What does <code>${supplyStr}</code> (the circulating supply, two cards up) multiplied by <code>${priceStr}</code> (the price, card right above this one) equal, children? Very good — <code>${mcapStr}</code>! That, my degens, is <em>the market cap</em>. Say it with reverence. Moves with price and the slow contraction of supply; structurally deflationary because tokens only ever leave the room.`;
 }
 
 function clearAllSparks() {
-  ['sp-price','sp-burned','sp-burners','sp-mcap',
+  ['sp-supply','sp-price','sp-burned','sp-burners','sp-mcap',
    'sp-vol24','sp-avgburn','sp-vis24','sp-vis7d'].forEach(id => {
     const el = $(id); if (el) el.innerHTML = '';
   });
@@ -317,6 +318,7 @@ function clearAllSparks() {
 
 export async function updateStats(){
   if (isPlaceholder()) {
+    $('s-supply').textContent  = '—';
     $('s-burned').textContent  = '0';
     $('s-burners').textContent = '0';
     $('s-price').textContent   = '—';
@@ -350,6 +352,10 @@ export async function updateStats(){
   const burned  = (supply != null) ? Math.max(0, INITIAL_SUPPLY - supply) : null;
   const burners = new Set(entries.map(e => e.wallet)).size;
 
+  // Supply card: full integer, comma-grouped — the punchline of the
+  // mcap blurb depends on the reader having just seen "999,999,999"
+  // two cards up, so abbreviation (~1B) would defang the joke.
+  $('s-supply').textContent  = supply == null ? '—' : Math.floor(supply).toLocaleString('en-US');
   $('s-burned').textContent  = burned == null ? '—' : fmt(burned);
   $('s-burners').textContent = burners.toLocaleString();
   $('s-price').textContent   = fmtPrice(jup.price);
@@ -403,6 +409,12 @@ export async function updateStats(){
   const mcapSeries = (supply != null) ? closes24h.map(c => c == null ? null : c * supply) : closes24h;
   const priceTone = (jup.change24h == null) ? 'neutral' : (jup.change24h >= 0 ? 'up' : 'down');
 
+  // Supply sparkline mirrors the cumulative-burned series, just from
+  // INITIAL_SUPPLY's perspective — visually descends instead of climbing.
+  // While total burns are tiny vs 1B the line is essentially flat at the
+  // top; that's an honest visual.
+  const supplySeries = cumBurned.map(c => c == null ? null : (INITIAL_SUPPLY - c));
+  sparkline($('sp-supply'),  supplySeries);
   sparkline($('sp-price'),   closes24h,   { tone: priceTone });
   sparkline($('sp-mcap'),    mcapSeries,  { tone: priceTone });
   sparkline($('sp-burned'),  cumBurned);

@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260510-4">
+<link rel="stylesheet" href="style.css?v=20260510-5">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -172,60 +172,70 @@
          all cards so the section reads as a uniform table of metrics
          rather than a marketing wall. -->
     <div class="stats-bar">
+      <!-- Cards 1 → 3 are deliberately ordered to set up the market-cap
+           blurb's joke: supply × price = mcap, in that visual sequence.
+           Don't reorder these three without rewriting the mcap blurb. -->
+      <div class="stat">
+        <div class="stat-lbl">Circulating Supply</div>
+        <div class="stat-val" id="s-supply">—</div>
+        <div class="stat-blurb">How many $PYRE tokens exist this very second. Started at exactly <code>1,000,000,000</code> because pump.fun, like every memecoin platform before it, refuses to mint a more dignified initial supply. The number only ever shrinks — every <code>BurnChecked</code> tx eats from it. Sparkline traces the descent.</div>
+        <div class="stat-spark" id="sp-supply"></div>
+      </div>
+
       <div class="stat">
         <div class="stat-lbl">Price</div>
         <div class="stat-val" id="s-price">—</div>
         <div class="stat-change" id="s-price-change"></div>
-        <div class="stat-blurb">Live USD price per $PYRE token, sourced from Jupiter's price oracle — the standard Solana DEX aggregator. Each leaderboard burn's effective USD cost scales with this number; the sparkline at right shows the past 24 hours of hourly closes.</div>
+        <div class="stat-blurb">What one $PYRE costs in real United States dollars right now, per Jupiter's price oracle. Sub-cent prices render in scientific notation so the leading zeros don't eat the entire card. The line below is what twenty-four hours of degen attention looks like translated into a percentage.</div>
         <div class="stat-spark" id="sp-price"></div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-lbl">Market Cap</div>
+        <div class="stat-val" id="s-mcap">—</div>
+        <div class="stat-blurb" id="s-mcap-blurb">What does the circulating supply multiplied by the current price equal, children? Very good — <em>the market cap</em>! Say it with reverence. Moves with price action and the slow contraction of supply; structurally deflationary because tokens only ever leave the room.</div>
+        <div class="stat-spark" id="sp-mcap"></div>
       </div>
 
       <div class="stat">
         <div class="stat-lbl">$PYRE Burned</div>
         <div class="stat-val" id="s-burned">—</div>
-        <div class="stat-blurb">Total $PYRE permanently destroyed via the Token-2022 BurnChecked instruction since launch. Read directly from on-chain supply (initial 1B − live <code>getTokenSupply</code>). Tokens never come back — supply only ever moves down. Sparkline shows cumulative burned, daily, last 10 days.</div>
+        <div class="stat-blurb">Total tokens that have been escorted off the chain. Read directly from on-chain supply (initial 1B − live <code>getTokenSupply</code>), so this number cannot be faked, inflated, or politely returned. Every figure here corresponds to a transaction sitting in a block somewhere; you can verify by burning one yourself.</div>
         <div class="stat-spark" id="sp-burned"></div>
       </div>
 
       <div class="stat">
         <div class="stat-lbl">Burners</div>
         <div class="stat-val" id="s-burners">—</div>
-        <div class="stat-blurb">Distinct wallet addresses that have burned at least once. A rough proxy for unique participants. The same wallet burning ten times still counts as one burner here — but each individual burn opens its own leaderboard slot, with its own message and URL.</div>
+        <div class="stat-blurb">Distinct wallets that have ever thrown anything on the pyre. A weak proxy for unique humans (one wallet per dog, four wallets per crypto-native human). The same wallet burning ten times still counts as one burner here — though each individual burn opens its own slot up top.</div>
         <div class="stat-spark" id="sp-burners"></div>
-      </div>
-
-      <div class="stat">
-        <div class="stat-lbl">Market Cap</div>
-        <div class="stat-val" id="s-mcap">—</div>
-        <div class="stat-blurb" id="s-mcap-blurb">What does the circulating supply multiplied by the current price equal, children? Very good — <em>the market cap</em>! Say it with reverence. Moves with price action and burn activity; structurally deflationary because supply only contracts.</div>
-        <div class="stat-spark" id="sp-mcap"></div>
       </div>
 
       <div class="stat">
         <div class="stat-lbl">24h Burn Volume</div>
         <div class="stat-val" id="s-vol24">—</div>
-        <div class="stat-blurb">Sum of $PYRE thrown on the pyre in the last 24 hours, across all wallets. The clearest near-term measure of leaderboard activity: high volume means slots turn over faster, low volume means a top slot stays visible longer. Sparkline shows daily totals over the last 10 days.</div>
+        <div class="stat-blurb">Total $PYRE incinerated in the last twenty-four hours, summed across every wallet. The clearest near-term measure of "is the leaderboard moving." Tomorrow's number replaces today's. Sparkline shows daily totals over the last ten days — every spike was someone choosing to be famous.</div>
         <div class="stat-spark" id="sp-vol24"></div>
       </div>
 
       <div class="stat">
         <div class="stat-lbl">Avg Burn Size</div>
         <div class="stat-val" id="s-avgburn">—</div>
-        <div class="stat-blurb">Average $PYRE per burn over the trailing 10 days. A rough sense of what a typical leaderboard slot costs at the moment. A small recent burn can still outrank a large day-old burn — see the heat math above. Sparkline shows the daily average burn size.</div>
+        <div class="stat-blurb">Mean $PYRE per burn over the trailing ten days. Roughly: what a leaderboard slot costs when a typical degen decides today's the day. Small recent burns still outrank large day-old whales — see the heat math above; the universe corrects for size.</div>
         <div class="stat-spark" id="sp-avgburn"></div>
       </div>
 
       <div class="stat">
         <div class="stat-lbl">Visitors Today</div>
         <div class="stat-val" id="s-vis24">—</div>
-        <div class="stat-blurb">Page views in the last 24 hours, counted cookielessly via Cloudflare Web Analytics — no cookies, no fingerprinting, no IP storage. The number of eyeballs your slot can land in front of within a single day. Sparkline shows hourly views over the last 24 hours.</div>
+        <div class="stat-blurb">Page views in the last twenty-four hours, counted cookielessly via Cloudflare Web Analytics — no cookies, no fingerprinting, no IP harvest. The number of literal eyeballs your slot can land in front of inside a single rotation of the planet. The spikes in the sparkline are usually a tweet.</div>
         <div class="stat-spark" id="sp-vis24"></div>
       </div>
 
       <div class="stat">
         <div class="stat-lbl">Visitors 7d</div>
         <div class="stat-val" id="s-vis7d">—</div>
-        <div class="stat-blurb">Page views over the trailing week. The reach a leaderboard slot accumulates if it holds the top ranks for a full week before decaying onto the backburner. Sparkline shows the last 10 days of daily totals for additional context.</div>
+        <div class="stat-blurb">Trailing-week page views. The reach a slot accumulates if it holds the top ranks long enough to outlast a few news cycles before heat decay slides it down to the backburner. Sparkline shows daily totals over ten days — useful for noticing whether the project is being watched or merely existed.</div>
         <div class="stat-spark" id="sp-vis7d"></div>
       </div>
     </div>
@@ -606,7 +616,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260510-4"></script>
+<script type="module" src="js/main.js?v=20260510-5"></script>
 
 </body>
 </html>
