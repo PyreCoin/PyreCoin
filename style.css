@@ -552,9 +552,17 @@ nav{
      hourly candles spanning a ~1100px panel width, a 220px height
      gives a ~5:1 aspect ratio — comfortable for spotting trend
      without exaggerating the per-tick swings of a memecoin priced in
-     micro-dollars. */
+     micro-dollars.
+
+     DO NOT add flex:1 here. flex:1 expands to flex-basis:0% which
+     overrides this explicit height, leaving body height "auto". The
+     inner <svg> with width:100% height:100% then resolves its height
+     against its OWN intrinsic aspect ratio (viewBox W/H), making body
+     height = container_width × H/W. Each toggle click recomputes
+     opts.height = el.clientHeight, feeding the *previous* grown
+     height back into the next viewBox H — runaway feedback loop, the
+     chart inflates further on every click. */
   height:220px;
-  flex:1;
 }
 .chart-panel-body svg{
   display:block;
