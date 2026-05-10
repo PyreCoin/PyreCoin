@@ -159,13 +159,20 @@ nav{
   .nav-links{gap:20px;}
   .nav-links a{letter-spacing:2px;font-size:10.5px;}
 }
-@media(max-width:820px){
+/* Nav links in DOM order (1-indexed nth-child):
+   1 = How it works · 2 = Numbers · 3 = Etymology · 4 = Rules
+   Drop priority as the viewport narrows: Etymology first (deepest
+   tangent), then How it works (its content lives inline below
+   anyway). Numbers + Rules survive longest because they're the
+   highest-signal links — Numbers is the headline feature, Rules
+   carries compliance copy. */
+@media(max-width:880px){
   .nav-links a:nth-child(3){display:none;} /* drop "Etymology" first */
 }
-@media(max-width:680px){
+@media(max-width:720px){
   nav{padding:16px 20px;}
   .nav-logo{font-size:24px;letter-spacing:3px;}
-  .nav-links a:nth-child(2){display:none;} /* drop "How it works" */
+  .nav-links a:nth-child(1){display:none;} /* then drop "How it works" */
   .nav-links{gap:14px;}
   .nav-links a{font-size:10px;}
 }

@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260509-27';
+const V = '20260509-28';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick="openBurnModal()" / form onsubmit never call
@@ -78,7 +78,7 @@ import(`./burn.js?v=${V}`);
 // band. Net effect: only one section is on fire at a time, and the
 // transition feels like the flame passing from one link to the
 // next as you scroll.
-const FIRE_SECTIONS = ['how', 'etymology', 'rules'];
+const FIRE_SECTIONS = ['how', 'metrics', 'etymology', 'rules'];
 const fireObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     const link = document.querySelector(`.nav-links a[href="#${entry.target.id}"]`);
