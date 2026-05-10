@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260509-34">
+<link rel="stylesheet" href="style.css?v=20260510-1">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -83,8 +83,11 @@
     </div>
   </section>
 
-  <!-- HOW IT WORKS — four step cards in a 2x2 grid + a heat-math
-       callout that grounds the formula in concrete examples. -->
+  <!-- HOW IT WORKS — reframed as a Solana social experiment in writing
+       things onto the blockchain on purpose. Two steps: burn, exist
+       on-chain forever. The "buy first" framing is gone — buying is a
+       side note below the steps, not the entry point. The heat-math
+       callout still grounds the decay formula in concrete examples. -->
   <div class="full-divider"></div>
   <section class="section how-section" id="how">
     <div class="section-header">
@@ -92,28 +95,33 @@
       <div class="section-line"></div>
     </div>
 
-    <div class="how-grid">
-      <a class="how-card" href="https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">
-        <div class="how-num">01</div>
-        <div class="how-title">Buy</div>
-        <div class="how-body">Grab some $PYRE.</div>
-        <div class="how-link">→ on jupiter</div>
-      </a>
+    <p class="how-intro">
+      PYRE is a Solana experiment in writing things onto the blockchain
+      <em>on purpose</em>. You burn some $PYRE, attach a URL plus a
+      280-character message, and Solana logs the receipt forever. If your
+      burn is big or fresh enough, your message lands on the public
+      leaderboard above. Either way, the chain remembers. Two steps:
+    </p>
 
+    <div class="how-grid how-grid-2">
       <a class="how-card" href="#" onclick="event.preventDefault();openBurnModal();return false;">
-        <div class="how-num">02</div>
-        <div class="how-title">Burn</div>
-        <div class="how-body">Pick a URL, type a message, sign.</div>
+        <div class="how-num">01</div>
+        <div class="how-title">Burn PYRE</div>
+        <div class="how-body">Open the burn modal, type your URL plus your message, sign the transaction. Tokens leave via Token-2022 <code>BurnChecked</code> — protocol-level destruction, supply actually contracts — and the memo rides along on the on-chain receipt forever.</div>
         <div class="how-link">→ open the burn modal</div>
       </a>
 
       <a class="how-card" href="#leaderboard">
-        <div class="how-num">03</div>
-        <div class="how-title">Be famous</div>
-        <div class="how-body">Top 16 land on the page. Bigger and fresher climbs. That's it.</div>
+        <div class="how-num">02</div>
+        <div class="how-title">Be blockchain famous</div>
+        <div class="how-body">Top 16 burns by heat surface on the leaderboard above. Bigger and fresher both climb — see the heat math below. Cool off below #16 and you slide to the backburner. Either way, your message is a permanent line on Solana.</div>
         <div class="how-link">→ see the live ranks</div>
       </a>
     </div>
+
+    <p class="how-aside">
+      Don't have any $PYRE? Try begging <a href="https://x.com/AlphaCove" target="_blank" rel="noopener noreferrer">@AlphaCove</a> on X — or you can always buy some on <a href="https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">Jupiter</a>.
+    </p>
 
     <div class="heat-math">
       <div class="heat-math-label">— the heat math —</div>
@@ -589,7 +597,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260509-34"></script>
+<script type="module" src="js/main.js?v=20260510-1"></script>
 
 </body>
 </html>

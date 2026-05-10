@@ -871,7 +871,58 @@ nav{
   display:grid;grid-template-columns:repeat(3,1fr);
   gap:18px;
 }
-@media(max-width:880px){.how-grid{grid-template-columns:1fr;}}
+/* 2-up variant — used by the simplified "Burn PYRE" / "Be blockchain
+   famous" pair under #how. Wider cards breathe more on a 2-up grid
+   than 3-up. */
+.how-grid-2{grid-template-columns:repeat(2,1fr);gap:22px;}
+@media(max-width:880px){
+  .how-grid,
+  .how-grid-2{grid-template-columns:1fr;}
+}
+
+/* Intro paragraph above the two how-cards — frames PYRE as a Solana
+   social experiment in writing onto the blockchain on purpose. */
+.how-intro{
+  font-family:'DM Sans',sans-serif;
+  font-size:15.5px;
+  font-weight:300;
+  letter-spacing:0.15px;
+  color:var(--text2);
+  line-height:1.85;
+  margin:0 0 32px;
+  max-width:72ch;
+}
+.how-intro em{
+  color:var(--ember2);
+  font-style:italic;
+}
+
+/* Aside line below the two how-cards — small, dashed-bordered tip
+   pointing to @AlphaCove + Jupiter for people without $PYRE. Sits
+   above the heat-math callout. */
+.how-aside{
+  font-family:'DM Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.5px;
+  color:var(--text3);
+  text-align:center;
+  margin:24px 0 0;
+  padding:14px 20px;
+  background:rgba(255,80,0,0.04);
+  border:0.5px dashed rgba(255,100,30,0.18);
+  border-radius:3px;
+  line-height:1.7;
+}
+.how-aside a{
+  color:var(--ember2);
+  text-decoration:none;
+  border-bottom:0.5px dotted rgba(255,180,80,0.5);
+  transition:color .2s,border-color .2s;
+}
+.how-aside a:hover{
+  color:var(--ember);
+  border-color:var(--ember);
+}
 
 .how-card{
   position:relative;
