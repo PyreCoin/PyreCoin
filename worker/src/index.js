@@ -154,13 +154,20 @@ async function handlePriceHistory(request, env, ctx, origin) {
 
 const CF_GRAPHQL_URL = 'https://api.cloudflare.com/client/v4/graphql';
 
+// Multiple siteTags supported via siteTag_in array filter. CF can
+// generate distinct siteTags across a site's lifecycle (e.g.
+// auto-inject phase → manual snippet phase produces a different
+// internal id), so we accept a comma-separated CF_SITE_TAG env var
+// and union them. The visible site in the dashboard is the same
+// site, the data is just bucketed under the active id at ingest
+// time.
 const ANALYTICS_QUERY = `
-query GetAnalytics($accountTag: String!, $siteTag: String!, $datetimeStart: Time!) {
+query GetAnalytics($accountTag: String!, $siteTags: [String!]!, $datetimeStart: Time!) {
   viewer {
     accounts(filter: { accountTag: $accountTag }) {
       hourly: rumPageloadEventsAdaptiveGroups(
         limit: 240
-        filter: { siteTag: $siteTag, datetime_geq: $datetimeStart }
+        filter: { siteTag_in: $siteTags, datetime_geq: $datetimeStart }
         orderBy: [datetimeHour_DESC]
       ) {
         count
@@ -170,7 +177,7 @@ query GetAnalytics($accountTag: String!, $siteTag: String!, $datetimeStart: Time
       }
       countries: rumPageloadEventsAdaptiveGroups(
         limit: 50
-        filter: { siteTag: $siteTag, datetime_geq: $datetimeStart }
+        filter: { siteTag_in: $siteTags, datetime_geq: $datetimeStart }
         orderBy: [count_DESC]
       ) {
         count
@@ -183,7 +190,7 @@ query GetAnalytics($accountTag: String!, $siteTag: String!, $datetimeStart: Time
 }
 `;
 
-async function fetchCfAnalytics(env) {
+async function fetchCfAnalytics(env, debug = false) {
   const token = env.CF_ANALYTICS_TOKEN;
   const accountTag = env.CF_ACCOUNT_ID;
   const siteTag = env.CF_SITE_TAG;
@@ -195,6 +202,9 @@ async function fetchCfAnalytics(env) {
     };
   }
   const datetimeStart = new Date(Date.now() - 240 * 3_600_000).toISOString();
+  // Split on commas/whitespace, drop empties — supports both single
+  // and multi-siteTag configurations transparently.
+  const siteTags = siteTag.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
   const r = await fetch(CF_GRAPHQL_URL, {
     method: 'POST',
     headers: {
@@ -203,7 +213,7 @@ async function fetchCfAnalytics(env) {
     },
     body: JSON.stringify({
       query: ANALYTICS_QUERY,
-      variables: { accountTag, siteTag, datetimeStart },
+      variables: { accountTag, siteTags, datetimeStart },
     }),
   });
   if (!r.ok) {
@@ -211,6 +221,10 @@ async function fetchCfAnalytics(env) {
     throw new Error(`cf graphql ${r.status}: ${txt.slice(0, 300)}`);
   }
   const json = await r.json();
+  // Always log the raw response so `npx wrangler tail` shows what CF
+  // came back with — easiest way to spot field-name mismatches when
+  // the dashboard has data but the page reads empty.
+  console.log('cf graphql response:', JSON.stringify(json).slice(0, 1500));
   if (Array.isArray(json.errors) && json.errors.length) {
     // Surface the first error message — usually a permission scope
     // issue (token missing Account.Account Analytics: Read) or an
@@ -220,6 +234,67 @@ async function fetchCfAnalytics(env) {
   const acct = json?.data?.viewer?.accounts?.[0];
   const hourlyRaw = acct?.hourly || [];
   const countriesRaw = acct?.countries || [];
+
+  // Debug mode: include the raw GraphQL response and the variables
+  // we sent so the caller can inspect exactly what CF returned and
+  // what we asked for. Used to diagnose siteTag / field-name issues
+  // when the dashboard has data but the parsed payload is empty.
+  if (debug) {
+    // Discovery query: same dataset, NO siteTag filter, group by
+    // siteTag in the dimensions. Reveals every siteTag that actually
+    // has data in the account — directly comparable to whatever's
+    // currently set as CF_SITE_TAG. If they don't match, that's the
+    // bug.
+    const discoveryQuery = `
+query DiscoverSites($accountTag: String!, $datetimeStart: Time!) {
+  viewer {
+    accounts(filter: { accountTag: $accountTag }) {
+      sites: rumPageloadEventsAdaptiveGroups(
+        limit: 50
+        filter: { datetime_geq: $datetimeStart }
+        orderBy: [count_DESC]
+      ) {
+        count
+        dimensions { siteTag }
+      }
+      withPath: rumPageloadEventsAdaptiveGroups(
+        limit: 80
+        filter: { datetime_geq: $datetimeStart }
+        orderBy: [count_DESC]
+      ) {
+        count
+        dimensions { siteTag, requestPath }
+      }
+    }
+  }
+}`;
+    const dr = await fetch(CF_GRAPHQL_URL, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: discoveryQuery, variables: { accountTag, datetimeStart } }),
+    });
+    let discoveryRaw = null;
+    try { discoveryRaw = await dr.json(); } catch (_) { discoveryRaw = { _error: 'discovery parse failed' }; }
+    return {
+      hourlyVisits: hourlyRaw.map(g => ({
+        tsSeconds: Math.floor(Date.parse(g?.dimensions?.datetimeHour) / 1000),
+        count: g?.count || 0,
+      })),
+      topCountries: countriesRaw.map(g => ({
+        label: g?.dimensions?.countryName || 'Unknown',
+        value: g?.count || 0,
+      })),
+      _debug: {
+        sentVariables: { accountTag, siteTags, datetimeStart },
+        sentQuery: ANALYTICS_QUERY,
+        rawResponse: json,
+        hourlyRowCount: hourlyRaw.length,
+        countriesRowCount: countriesRaw.length,
+        discovery: discoveryRaw,
+        howToCompare: 'Compare _debug.sentVariables.siteTags (what we sent) vs _debug.discovery.data.viewer.accounts[0].sites[*].dimensions.siteTag (what CF has data for). Any siteTag in discovery that is NOT in sentVariables is data we are missing.',
+      },
+    };
+  }
   return {
     hourlyVisits: hourlyRaw.map(g => ({
       tsSeconds: Math.floor(Date.parse(g?.dimensions?.datetimeHour) / 1000),
@@ -233,26 +308,34 @@ async function fetchCfAnalytics(env) {
 }
 
 async function handleAnalytics(request, env, ctx, origin) {
+  const url = new URL(request.url);
+  // ?debug=1 bypasses the 5-min cache and returns the raw CF GraphQL
+  // response so we can inspect what's actually coming back when the
+  // dashboard has data but the parsed payload reads empty.
+  const debug = url.searchParams.get('debug') === '1';
   const cache = caches.default;
   const cacheKey = new Request(request.url, { method: 'GET' });
-  let response = await cache.match(cacheKey);
-  if (response) {
-    return withCors(response, origin);
+
+  if (!debug) {
+    const cached = await cache.match(cacheKey);
+    if (cached) return withCors(cached, origin);
   }
   let payload;
   try {
-    payload = await fetchCfAnalytics(env);
+    payload = await fetchCfAnalytics(env, debug);
   } catch (err) {
     return jsonResponse({ error: 'analytics upstream failed', detail: err.message }, { status: 502 }, origin);
   }
-  response = new Response(JSON.stringify(payload), {
+  const response = new Response(JSON.stringify(payload), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Cache-Control': `public, s-maxage=${ENDPOINT_CACHE_TTL}, max-age=${ENDPOINT_CACHE_TTL}`,
+      'Cache-Control': debug
+        ? 'no-store'
+        : `public, s-maxage=${ENDPOINT_CACHE_TTL}, max-age=${ENDPOINT_CACHE_TTL}`,
     },
   });
-  ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  if (!debug) ctx.waitUntil(cache.put(cacheKey, response.clone()));
   return withCors(response, origin);
 }
 
