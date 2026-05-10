@@ -9,3 +9,7 @@ PROMPT_TO_PICKUP_THE_TORCH.md
 LAUNCH.md
 .wrangler/
 TWEETS.txt
+
+# Source images that live on X (or other platforms) and don't ship
+# in clones. Add filenames here as new ones get generated.
+profile_x_image.png
