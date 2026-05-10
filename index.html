@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260509-30">
+<link rel="stylesheet" href="style.css?v=20260509-31">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -189,7 +189,7 @@
       <div class="stat">
         <div class="stat-lbl">Market Cap</div>
         <div class="stat-val" id="s-mcap">—</div>
-        <div class="stat-blurb">Live price × on-chain supply, the way Jupiter and pump.fun render it. Moves with both price action and burn activity; structurally deflationary because supply only contracts. Sparkline tracks the past 24 hours of hourly mcap.</div>
+        <div class="stat-blurb" id="s-mcap-blurb">What does the circulating supply multiplied by the current price equal, children? Very good — <em>the market cap</em>! Say it with reverence. Moves with price action and burn activity; structurally deflationary because supply only contracts.</div>
         <div class="stat-spark" id="sp-mcap"></div>
       </div>
 
@@ -589,7 +589,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260509-30"></script>
+<script type="module" src="js/main.js?v=20260509-31"></script>
 
 </body>
 </html>

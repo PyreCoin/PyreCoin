@@ -283,6 +283,27 @@ function setChange(el, c){
   if (cls) el.classList.add(cls);
 }
 
+// Mcap blurb does the schoolteacher bit with live numbers when we
+// have them, falls back to the no-numbers version otherwise. Always
+// re-renders both states so a tick that loses one input doesn't
+// strand stale figures from the previous tick.
+const MCAP_FALLBACK_BLURB =
+  'What does the circulating supply multiplied by the current price equal, children? Very good — <em>the market cap</em>! Say it with reverence. Moves with price action and burn activity; structurally deflationary because supply only contracts.';
+
+function renderMcapBlurb(supply, price, mcap){
+  const el = $('s-mcap-blurb');
+  if (!el) return;
+  if (supply == null || price == null || mcap == null) {
+    el.innerHTML = MCAP_FALLBACK_BLURB;
+    return;
+  }
+  const supplyStr = Math.floor(supply).toLocaleString('en-US');
+  const priceStr  = fmtPrice(price);
+  const mcapStr   = fmtMcap(mcap);
+  el.innerHTML =
+    `What does <code>${supplyStr}</code> (circulating supply) multiplied by <code>${priceStr}</code> (current price) equal, children? Very good — <code>${mcapStr}</code>! That, my degens, is <em>the market cap</em>. Say it with reverence. Moves with price action and burn activity; structurally deflationary because supply only contracts.`;
+}
+
 function clearAllSparks() {
   ['sp-price','sp-burned','sp-burners','sp-mcap',
    'sp-vol24','sp-avgburn','sp-vis24','sp-vis7d'].forEach(id => {
@@ -303,6 +324,7 @@ export async function updateStats(){
     $('s-vis24').textContent   = '—';
     $('s-vis7d').textContent   = '—';
     setChange($('s-price-change'), null);
+    renderMcapBlurb(null, null, null);
     clearAllSparks();
     renderBigCharts({ priceHistory: null, analytics: null, hourlyBurns: null });
     return;
@@ -331,6 +353,7 @@ export async function updateStats(){
   setChange($('s-price-change'), jup.change24h);
   const mcapNum = (jup.price != null && supply != null) ? jup.price * supply : null;
   $('s-mcap').textContent    = mcapNum == null ? '—' : fmtMcap(mcapNum);
+  renderMcapBlurb(supply, jup.price, mcapNum);
 
   // 24h burn volume — sum entries with ts in last 24h.
   const cutoff24 = nowMs - DAY_MS;
