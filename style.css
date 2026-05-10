@@ -219,16 +219,18 @@ nav{
   .lb-cold-sub{font-size:13px;}
 }
 
-/* ── BY THE NUMBERS — full section with stat-card pillars + chart panels ──
-   Eight stat cards in a 4-up grid (4×2). Each card has a label, a big
-   Bebas Neue number, an inline SVG sparkline beneath, and a sublabel
-   line. Below the cards are four big chart panels (price candles,
-   visitor bars, burn-volume bars, top countries) in a 2-up grid. The
-   numbers and charts are pure inline SVG — no chart library, no CDN
-   dep — see js/charts.js. */
+/* ── BY THE NUMBERS — single-column section, every card breathes ──
+   Eight stat cards stacked vertically, each spanning the full content
+   width. Inside each card: label + huge Bebas number + (optional 24h
+   change line) + explanation paragraph on the LEFT, large sparkline
+   on the RIGHT. Below the cards: four full-width chart panels also
+   stacked. Nothing horizontal-bunched — the section reads top-to-
+   bottom like a one-metric-per-screen dashboard, which fits a single-
+   page site better than the previous compressed grid. */
 .stats-section{padding-top:128px;padding-bottom:128px;}
 .stats-bar{
-  display:grid;grid-template-columns:repeat(4,1fr);
+  display:flex;
+  flex-direction:column;
   gap:18px;
   padding:0;margin:0;
   width:100%;
@@ -237,17 +239,28 @@ nav{
 }
 .stat{
   position:relative;
-  padding:32px 28px 26px;
-  text-align:left;
+  padding:44px 56px;
   background:rgba(0,0,0,0.55);
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
   border:0.5px solid var(--border);
   border-radius:3px;
-  min-height:240px;
-  display:flex;flex-direction:column;
   overflow:hidden;
   transition:border-color .2s,background .2s,transform .2s;
+  /* Two-column grid: text on the left, sparkline on the right. The
+     sparkline spans all four left-column rows and is vertically
+     centered against them. Missing .stat-change rows collapse to 0
+     height since row-gap is 0. */
+  display:grid;
+  grid-template-columns:1fr 380px;
+  grid-template-areas:
+    "lbl    spark"
+    "val    spark"
+    "change spark"
+    "blurb  spark";
+  column-gap:64px;
+  row-gap:0;
+  align-items:start;
 }
 .stat:hover{
   border-color:rgba(255,100,30,0.4);
@@ -256,38 +269,72 @@ nav{
 }
 .stat::before{
   content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse at 100% 0%,rgba(255,80,0,0.12) 0%,transparent 60%);
+  background:radial-gradient(ellipse at 100% 0%,rgba(255,80,0,0.10) 0%,transparent 60%);
   pointer-events:none;
 }
 .stat-lbl{
+  grid-area:lbl;
   font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:2.5px;
+  font-size:11px;letter-spacing:3px;
   color:var(--text3);text-transform:uppercase;
   position:relative;
+  margin-bottom:8px;
 }
 .stat-val{
+  grid-area:val;
   font-family:'Bebas Neue',sans-serif;
-  font-size:64px;letter-spacing:1px;
+  font-size:96px;letter-spacing:1px;
   color:var(--ember);
-  text-shadow:0 0 30px rgba(255,100,20,0.55);
+  text-shadow:0 0 36px rgba(255,100,20,0.55);
   line-height:1;
-  margin:10px 0 6px;
   position:relative;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  margin-bottom:6px;
+}
+/* Footer line of each stat card — 24h price change for #s-price,
+   absent on every other card (replaced by the longer .stat-blurb). */
+.stat-change{
+  grid-area:change;
+  font-family:'DM Mono',monospace;
+  font-size:11px;letter-spacing:1px;
+  color:var(--text3);
+  line-height:1.5;
+  position:relative;
+  margin-bottom:14px;
+}
+.stat-change.up{color:#5dd99a;}
+.stat-change.down{color:#ff7a7a;}
+.stat-change:empty{margin-bottom:0;}
+/* "What this number is and why it matters" paragraph beneath the
+   number on every card. Reads as plain English. <code> inline for
+   the BurnChecked / getTokenSupply references. */
+.stat-blurb{
+  grid-area:blurb;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  font-weight:300;
+  letter-spacing:0.15px;
+  color:var(--text2);
+  line-height:1.75;
+  position:relative;
+  max-width:60ch;
+}
+.stat-blurb code{
+  font-family:'DM Mono',monospace;
+  font-size:12px;
+  color:var(--ember);
+  background:rgba(255,80,0,0.08);
+  padding:1px 6px;
+  border-radius:2px;
 }
 /* Sparkline slot — populated by js/charts.js with an inline <svg>.
-   Fixed height keeps cards aligned even if the sparkline fails to
-   render (chart code falls back to an empty SVG, not a layout shift). */
+   Spans all four text rows on the left and centers vertically. */
 .stat-spark{
+  grid-area:spark;
+  align-self:center;
   position:relative;
   width:100%;
-  height:38px;
-  margin:4px 0 8px;
+  height:120px;
   display:block;
-  flex:1;
-  min-height:38px;
 }
 .stat-spark svg{
   display:block;
@@ -295,32 +342,32 @@ nav{
   height:100%;
   overflow:visible;
 }
-/* Footer line of each stat card — 24h price change for #s-price,
-   descriptive sublabel for the others. */
-.stat-change{
-  font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:1px;
-  color:var(--text3);
-  line-height:1.5;
-  position:relative;
-  min-height:12px;
-}
-.stat-change.up{color:#5dd99a;}
-.stat-change.down{color:#ff7a7a;}
 
-/* Tablet: 2-up grid (4 rows × 2). */
-@media(max-width:980px){
-  .stats-bar{grid-template-columns:repeat(2,1fr);gap:14px;}
-  .stat{min-height:220px;padding:28px 24px 22px;}
-  .stat-val{font-size:56px;}
+/* Tablet: stack sparkline beneath the text so the card stays readable
+   when the right column would otherwise crush. */
+@media(max-width:880px){
+  .stat{
+    padding:32px 32px;
+    grid-template-columns:1fr;
+    grid-template-areas:
+      "lbl"
+      "val"
+      "change"
+      "spark"
+      "blurb";
+    row-gap:0;
+  }
+  .stat-val{font-size:72px;}
+  .stat-spark{height:80px;margin:14px 0 18px;}
+  .stat-blurb{font-size:13.5px;line-height:1.7;}
 }
 
 /* ── CHART PANELS ── */
 .charts-grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
+  display:flex;
+  flex-direction:column;
   gap:18px;
-  margin-top:32px;
+  margin-top:36px;
 }
 .chart-panel{
   position:relative;
@@ -329,7 +376,7 @@ nav{
   -webkit-backdrop-filter:blur(14px);
   border:0.5px solid var(--border);
   border-radius:3px;
-  padding:22px 24px 18px;
+  padding:32px 40px 28px;
   display:flex;flex-direction:column;
   overflow:hidden;
   transition:border-color .2s;
@@ -340,19 +387,18 @@ nav{
   background:radial-gradient(ellipse at 100% 0%,rgba(255,80,0,0.06) 0%,transparent 60%);
   pointer-events:none;
 }
-.chart-panel-wide{grid-column:span 1;}
 
 .chart-panel-head{
   display:flex;align-items:center;justify-content:space-between;
   gap:14px;
-  padding-bottom:14px;
-  margin-bottom:10px;
+  padding-bottom:18px;
+  margin-bottom:14px;
   border-bottom:0.5px dashed var(--border2);
   position:relative;
 }
 .chart-panel-title{
   font-family:'DM Mono',monospace;
-  font-size:11px;letter-spacing:2px;
+  font-size:13px;letter-spacing:2.5px;
   color:var(--ember2);
   text-transform:uppercase;
 }
@@ -365,10 +411,10 @@ nav{
 }
 .chart-range{
   font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:1px;
+  font-size:11px;letter-spacing:1px;
   color:var(--text3);
   background:transparent;border:none;
-  padding:4px 10px;
+  padding:5px 12px;
   cursor:pointer;
   text-transform:uppercase;
   border-radius:1px;
@@ -380,10 +426,23 @@ nav{
   background:rgba(255,100,30,0.1);
   text-shadow:0 0 8px rgba(255,100,30,0.4);
 }
+/* "What this chart is" paragraph between the head and the chart
+   body. Same shape as .stat-blurb so the section reads consistently. */
+.chart-panel-blurb{
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;
+  font-weight:300;
+  letter-spacing:0.15px;
+  color:var(--text2);
+  line-height:1.75;
+  margin-bottom:22px;
+  max-width:75ch;
+  position:relative;
+}
 .chart-panel-body{
   position:relative;
   width:100%;
-  height:240px;
+  height:360px;
   flex:1;
 }
 .chart-panel-body svg{
@@ -396,28 +455,28 @@ nav{
   display:flex;align-items:center;justify-content:center;
   height:100%;
   font-family:'DM Mono',monospace;
-  font-size:11px;letter-spacing:1.5px;
+  font-size:11.5px;letter-spacing:1.5px;
   color:var(--text3);
   text-transform:uppercase;
   text-align:center;
-  padding:0 24px;
-  line-height:1.6;
+  padding:0 32px;
+  line-height:1.7;
 }
 .chart-panel-foot{
   font-family:'DM Mono',monospace;
-  font-size:9.5px;letter-spacing:1px;
+  font-size:10px;letter-spacing:1px;
   color:var(--text3);
-  margin-top:10px;padding-top:10px;
+  margin-top:14px;padding-top:12px;
   border-top:0.5px dashed var(--border2);
   text-transform:lowercase;
   position:relative;
 }
 
-/* Tablet + below: chart panels stack to 1-up. */
-@media(max-width:980px){
-  .charts-grid{grid-template-columns:1fr;gap:14px;}
-  .chart-panel{padding:20px 20px 16px;}
-  .chart-panel-body{height:200px;}
+/* Tablet + below — same single-column flex layout, just trimmed. */
+@media(max-width:880px){
+  .chart-panel{padding:24px 24px 18px;}
+  .chart-panel-body{height:280px;}
+  .chart-panel-blurb{font-size:13.5px;line-height:1.7;}
 }
 
 /* ── SECTION ──
@@ -1478,21 +1537,23 @@ nav{
   .stats-section{padding:88px 20px;}
   .hero{padding:48px 20px 40px;min-height:auto;}
 
-  /* Stats: 1-up on phones — 8 cards in 2-up would be tiny. Single
-     column gives each number room to breathe. */
-  .stats-bar{grid-template-columns:1fr;gap:12px;padding:0;}
-  .stat{min-height:auto;padding:24px 22px 20px;}
-  .stat-val{font-size:48px;margin:8px 0 4px;}
+  /* Stats — already single-column with sparkline-below by the
+     tablet rule, just shrink padding/type. */
+  .stats-bar{gap:12px;padding:0;}
+  .stat{padding:26px 22px 22px;}
+  .stat-val{font-size:60px;}
   .stat-lbl{font-size:10px;letter-spacing:2.5px;}
-  .stat-spark{height:32px;min-height:32px;margin:2px 0 6px;}
-  .stat-change{font-size:10px;}
+  .stat-spark{height:64px;margin:10px 0 14px;}
+  .stat-change{font-size:10.5px;margin-bottom:10px;}
+  .stat-blurb{font-size:13px;line-height:1.65;}
 
-  /* Chart panels — already 1-up by tablet rule, just shrink height. */
-  .chart-panel{padding:18px 18px 14px;}
-  .chart-panel-body{height:180px;}
-  .chart-panel-title{font-size:10px;letter-spacing:1.5px;}
-  .chart-range{font-size:9.5px;padding:3px 8px;}
-  .chart-panel-foot{font-size:9px;}
+  /* Chart panels — single-column by base; just shrink. */
+  .chart-panel{padding:22px 20px 16px;}
+  .chart-panel-body{height:220px;}
+  .chart-panel-title{font-size:11px;letter-spacing:1.5px;}
+  .chart-panel-blurb{font-size:13px;line-height:1.65;margin-bottom:18px;}
+  .chart-range{font-size:10px;padding:4px 9px;}
+  .chart-panel-foot{font-size:9.5px;}
 
   /* Section header on mobile: stack title over the line so the big
      Bebas heading isn't crushed. The line goes underneath. */
@@ -1549,10 +1610,14 @@ nav{
   .section{padding:64px 14px;}
   .stats-section{padding:64px 14px;}
   .hero{padding:36px 14px 32px;}
-  .stat-val{font-size:42px;}
-  .stat-lbl{font-size:9px;letter-spacing:2px;}
-  .stat-spark{height:28px;min-height:28px;}
-  .chart-panel-body{height:160px;}
+  .stat{padding:22px 18px 18px;}
+  .stat-val{font-size:52px;}
+  .stat-lbl{font-size:9.5px;letter-spacing:2px;}
+  .stat-spark{height:54px;margin:8px 0 12px;}
+  .stat-blurb{font-size:12.5px;line-height:1.6;}
+  .chart-panel{padding:20px 16px 14px;}
+  .chart-panel-body{height:200px;}
+  .chart-panel-blurb{font-size:12.5px;line-height:1.6;}
   .cta-block{padding:52px 14px;}
   .cta-title{font-size:34px;}
   .dict-card{padding:18px 16px 38px;}

@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260509-26">
+<link rel="stylesheet" href="style.css?v=20260509-27">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -152,63 +152,78 @@
       <div class="section-title">By the Numbers</div>
       <div class="section-line"></div>
     </div>
+    <!-- Eight stat cards, each its own full-width row. Layout inside
+         each card: label + big number + (optional change line) + blurb
+         on the left; large sparkline on the right. The blurbs are the
+         "what is this and why does it matter" copy — same shape across
+         all cards so the section reads as a uniform table of metrics
+         rather than a marketing wall. -->
     <div class="stats-bar">
       <div class="stat">
         <div class="stat-lbl">Price</div>
         <div class="stat-val" id="s-price">—</div>
-        <div class="stat-spark" id="sp-price"></div>
         <div class="stat-change" id="s-price-change"></div>
+        <div class="stat-blurb">Live USD price per $PYRE token, sourced from Jupiter's price oracle — the standard Solana DEX aggregator. Each leaderboard burn's effective USD cost scales with this number; the sparkline at right shows the past 24 hours of hourly closes.</div>
+        <div class="stat-spark" id="sp-price"></div>
       </div>
+
       <div class="stat">
         <div class="stat-lbl">$PYRE Burned</div>
         <div class="stat-val" id="s-burned">—</div>
+        <div class="stat-blurb">Total $PYRE permanently destroyed via the Token-2022 BurnChecked instruction since launch. Read directly from on-chain supply (initial 1B − live <code>getTokenSupply</code>). Tokens never come back — supply only ever moves down. Sparkline shows cumulative burned, daily, last 10 days.</div>
         <div class="stat-spark" id="sp-burned"></div>
-        <div class="stat-change">supply destroyed on chain</div>
       </div>
+
       <div class="stat">
         <div class="stat-lbl">Burners</div>
         <div class="stat-val" id="s-burners">—</div>
+        <div class="stat-blurb">Distinct wallet addresses that have burned at least once. A rough proxy for unique participants. The same wallet burning ten times still counts as one burner here — but each individual burn opens its own leaderboard slot, with its own message and URL.</div>
         <div class="stat-spark" id="sp-burners"></div>
-        <div class="stat-change">distinct wallets, all time</div>
       </div>
+
       <div class="stat">
         <div class="stat-lbl">Market Cap</div>
         <div class="stat-val" id="s-mcap">—</div>
+        <div class="stat-blurb">Live price × on-chain supply, the way Jupiter and pump.fun render it. Moves with both price action and burn activity; structurally deflationary because supply only contracts. Sparkline tracks the past 24 hours of hourly mcap.</div>
         <div class="stat-spark" id="sp-mcap"></div>
-        <div class="stat-change">price × on-chain supply</div>
       </div>
+
       <div class="stat">
         <div class="stat-lbl">24h Burn Volume</div>
         <div class="stat-val" id="s-vol24">—</div>
+        <div class="stat-blurb">Sum of $PYRE thrown on the pyre in the last 24 hours, across all wallets. The clearest near-term measure of leaderboard activity: high volume means slots turn over faster, low volume means a top slot stays visible longer. Sparkline shows daily totals over the last 10 days.</div>
         <div class="stat-spark" id="sp-vol24"></div>
-        <div class="stat-change">$PYRE thrown on the pyre, last 24h</div>
       </div>
+
       <div class="stat">
         <div class="stat-lbl">Avg Burn Size</div>
         <div class="stat-val" id="s-avgburn">—</div>
+        <div class="stat-blurb">Average $PYRE per burn over the trailing 10 days. A rough sense of what a typical leaderboard slot costs at the moment. A small recent burn can still outrank a large day-old burn — see the heat math above. Sparkline shows the daily average burn size.</div>
         <div class="stat-spark" id="sp-avgburn"></div>
-        <div class="stat-change">$PYRE per burn, last 10 days</div>
       </div>
+
       <div class="stat">
         <div class="stat-lbl">Visitors Today</div>
         <div class="stat-val" id="s-vis24">—</div>
+        <div class="stat-blurb">Page views in the last 24 hours, counted cookielessly via Cloudflare Web Analytics — no cookies, no fingerprinting, no IP storage. The number of eyeballs your slot can land in front of within a single day. Sparkline shows hourly views over the last 24 hours.</div>
         <div class="stat-spark" id="sp-vis24"></div>
-        <div class="stat-change">page views, last 24h</div>
       </div>
+
       <div class="stat">
         <div class="stat-lbl">Visitors 7d</div>
         <div class="stat-val" id="s-vis7d">—</div>
+        <div class="stat-blurb">Page views over the trailing week. The reach a leaderboard slot accumulates if it holds the top ranks for a full week before decaying onto the backburner. Sparkline shows the last 10 days of daily totals for additional context.</div>
         <div class="stat-spark" id="sp-vis7d"></div>
-        <div class="stat-change">page views, last 7 days</div>
       </div>
     </div>
 
-    <!-- Big chart panels — populated by js/big-charts.js. Range
-         toggles (1d/3d/10d) live in each header and trim the rendered
-         data array client-side; underlying fetches always pull the
-         full 240-bucket window. -->
+    <!-- Big chart panels, each its own full-width row. Each panel:
+         title + toggle + intro blurb + chart body + footer line.
+         Range toggles (1d/3d/10d) live in each header and trim the
+         rendered data array client-side; the underlying fetches always
+         pull the full 240-bucket window so toggling is free. -->
     <div class="charts-grid" id="charts">
-      <div class="chart-panel chart-panel-wide">
+      <div class="chart-panel">
         <div class="chart-panel-head">
           <div class="chart-panel-title">Price · 1h candles</div>
           <div class="chart-panel-toggle" data-target="chart-price">
@@ -217,11 +232,12 @@
             <button class="chart-range active" data-range="240">10d</button>
           </div>
         </div>
+        <div class="chart-panel-blurb">OHLC candles from the PYRE / SOL pool on pump-fun, sourced via GeckoTerminal's free public API and cached 5 minutes at the worker. Each candle is one full hour. Green = close ≥ open, red = close &lt; open. Use the toggle to zoom from a single day out to the full 10-day window.</div>
         <div class="chart-panel-body" id="chart-price"></div>
         <div class="chart-panel-foot" id="chart-price-foot">last 10 days · USD · pump-fun pool · data via geckoterminal.com</div>
       </div>
 
-      <div class="chart-panel chart-panel-wide">
+      <div class="chart-panel">
         <div class="chart-panel-head">
           <div class="chart-panel-title">Visitors · 1h bars</div>
           <div class="chart-panel-toggle" data-target="chart-visitors">
@@ -230,11 +246,12 @@
             <button class="chart-range active" data-range="240">10d</button>
           </div>
         </div>
+        <div class="chart-panel-blurb">Page views per hour over the last 10 days, cookielessly counted by Cloudflare Web Analytics — no cookies, no fingerprinting, no IP storage per Cloudflare's docs. Each bar is a one-hour bucket. Toggle to a single day for granular detail or 10 days for the full reach picture.</div>
         <div class="chart-panel-body" id="chart-visitors"></div>
         <div class="chart-panel-foot" id="chart-visitors-foot">last 10 days · page views per hour · cookieless, via cloudflare web analytics</div>
       </div>
 
-      <div class="chart-panel chart-panel-wide">
+      <div class="chart-panel">
         <div class="chart-panel-head">
           <div class="chart-panel-title">Burn volume · 1h bars</div>
           <div class="chart-panel-toggle" data-target="chart-burns">
@@ -243,14 +260,16 @@
             <button class="chart-range active" data-range="240">10d</button>
           </div>
         </div>
+        <div class="chart-panel-blurb">$PYRE burned per hour, summed from every Token-2022 BurnChecked transaction targeting the PYRE mint. Each bar is a one-hour bucket. Cross-reference with the visitors chart above — peaks in burn activity often track peaks in attention, and vice versa.</div>
         <div class="chart-panel-body" id="chart-burns"></div>
         <div class="chart-panel-foot" id="chart-burns-foot">last 10 days · $PYRE burned per hour · derived from leaderboard.json</div>
       </div>
 
-      <div class="chart-panel chart-panel-wide">
+      <div class="chart-panel">
         <div class="chart-panel-head">
           <div class="chart-panel-title">Top countries · last 10 days</div>
         </div>
+        <div class="chart-panel-blurb">Share of page views by country over the last 10 days, read from Cloudflare's Web Analytics RUM dataset. Useful if you're picking a leaderboard slot to advertise into a specific geography — or if you want to see where the pyre is being watched from.</div>
         <div class="chart-panel-body" id="chart-countries"></div>
         <div class="chart-panel-foot" id="chart-countries-foot">share of page views · cookieless, via cloudflare web analytics</div>
       </div>
@@ -562,7 +581,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260509-26"></script>
+<script type="module" src="js/main.js?v=20260509-27"></script>
 
 </body>
 </html>
