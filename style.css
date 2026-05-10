@@ -50,6 +50,7 @@ nav{
   gap:18px;
 }
 .nav-logo{
+  position:relative;          /* anchor for the absolute-positioned tooltip below */
   font-family:'Bebas Neue',sans-serif;
   font-size:28px;letter-spacing:4px;color:#fff;
   text-shadow:0 0 30px rgba(255,120,20,0.8);
@@ -57,9 +58,107 @@ nav{
   text-decoration:none;
   cursor:pointer;
   transition:text-shadow .2s;
+  /* Keep width stable across the PYRE↔πυρά swap so the rest of the
+     nav (links + burn button) doesn't shift on hover. The Greek
+     glyph cluster is narrower than Bebas-spaced "PYRE", and a
+     shrinking element under the cursor can trigger hover oscillation
+     once the cursor falls outside the new smaller bounding box. */
+  min-width:92px;
 }
 .nav-logo:hover{
   text-shadow:0 0 40px rgba(255,140,30,1),0 0 80px rgba(255,80,0,0.5);
+}
+
+/* Two text spans share the slot: PYRE shows by default, πυρά shows
+   on hover/focus. ling class wires Noto Serif for the Greek glyphs
+   (Bebas Neue has no Greek coverage; without the override the
+   browser's per-character fallback would look terrible). */
+.nav-logo-default{display:inline-block;}
+.nav-logo-hover{
+  display:none;
+  font-family:'Noto Serif','Charis SIL',Cambria,Georgia,serif;
+  font-size:34px;
+  letter-spacing:1px;
+  font-style:italic;
+  color:var(--ember2);
+  line-height:1;
+}
+.nav-logo:hover .nav-logo-default,
+.nav-logo:focus-visible .nav-logo-default{display:none;}
+.nav-logo:hover .nav-logo-hover,
+.nav-logo:focus-visible .nav-logo-hover{display:inline-block;}
+
+/* Tooltip — appears beneath the wordmark on hover/focus. Sits inside
+   the anchor for hit-testing simplicity but is pointer-events:none so
+   moving the cursor onto it ends the parent's :hover and the tooltip
+   cleanly fades. Solid panel matches the nav glass treatment. */
+.nav-logo-tooltip{
+  position:absolute;
+  top:calc(100% + 16px);
+  left:0;
+  width:340px;
+  padding:14px 18px;
+  background:rgba(10,3,0,0.97);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  border:0.5px solid rgba(255,100,30,0.4);
+  border-radius:3px;
+  box-shadow:
+    0 14px 40px rgba(0,0,0,0.75),
+    0 0 50px rgba(255,80,0,0.18);
+  font-family:'DM Sans',sans-serif;
+  font-size:12.5px;
+  font-weight:300;
+  letter-spacing:0.2px;
+  text-transform:none;
+  text-shadow:none;
+  color:var(--text2);
+  line-height:1.75;
+  pointer-events:none;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(-4px);
+  transition:opacity .15s ease,visibility .15s,transform .15s ease;
+  z-index:200;
+  white-space:normal;
+}
+/* Caret pointing up at the wordmark. Two layers — outer = border
+   color, inner = fill color — so the caret reads as part of the
+   tooltip rather than a stray triangle. */
+.nav-logo-tooltip::before{
+  content:'';
+  position:absolute;
+  bottom:100%;
+  left:24px;
+  width:0;height:0;
+  border-left:7px solid transparent;
+  border-right:7px solid transparent;
+  border-bottom:7px solid rgba(255,100,30,0.4);
+}
+.nav-logo-tooltip::after{
+  content:'';
+  position:absolute;
+  bottom:100%;
+  left:25px;
+  width:0;height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-bottom:6px solid rgba(10,3,0,0.97);
+}
+.nav-logo:hover .nav-logo-tooltip,
+.nav-logo:focus-visible .nav-logo-tooltip{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+}
+
+/* Touch devices: no hover, no swap, no tooltip — tap navigates
+   straight to top. Without this the swap briefly flashes during the
+   tap-to-navigate gesture on iOS Safari. */
+@media (hover:none){
+  .nav-logo-hover,
+  .nav-logo-tooltip{display:none !important;}
+  .nav-logo:hover .nav-logo-default{display:inline-block !important;}
 }
 .nav-links{display:flex;gap:28px;align-items:center;flex-wrap:nowrap;}
 .nav-links a{

@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260509-28">
+<link rel="stylesheet" href="style.css?v=20260509-29">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -41,7 +41,11 @@
        flames when their section enters the viewport (see main.js
        IntersectionObserver). -->
   <nav>
-    <a class="nav-logo" href="#" aria-label="Top of page">PYRE</a>
+    <a class="nav-logo" href="#" aria-label="Top of page">
+      <span class="nav-logo-default">PYRE</span>
+      <span class="nav-logo-hover ling" aria-hidden="true">πυρά</span>
+      <span class="nav-logo-tooltip" role="tooltip"><span class="ling" style="color:var(--ember2);">πυρά</span> <span class="ling" style="color:var(--text3);font-style:italic;">(purá)</span> — Ancient Greek for any meaningful fire: funeral pyre, altar-fire, hearth. The root of this project's name.</span>
+    </a>
     <div class="nav-links">
       <a href="#how">How it works</a>
       <a href="#metrics">Numbers</a>
@@ -582,7 +586,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260509-28"></script>
+<script type="module" src="js/main.js?v=20260509-29"></script>
 
 </body>
 </html>
