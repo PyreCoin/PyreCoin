@@ -1,76 +1,137 @@
-// Leaderboard data + rendering. Score is computed via time-decay
-// (HN/Reddit-style "hot" ranking), so old whales fade and fresh burns can
-// climb. Feed the pyre to stay on top — that's the whole game.
+// Leaderboard data + rendering.
 //
-// Score formula:
-//     score(wallet) = Σ ( amount_i / (hours_since(ts_i) + 2)^GRAVITY )
+// One unified list above the fold: 16 uniform rows, each
+//   [ amount on the left ][ message in the middle ][ url on the right ]
+// Same wallet can appear multiple times (per-burn entries).
+// URLs found INSIDE message text are auto-linked.
 //
-// GRAVITY tuning:
-//     1.5 → top burn meaningfully fades over ~24h, stale by ~72h.
-//     Higher = faster churn. Lower = whales sticky for days.
+// Score (per burn):
+//     score = amount / (hours_since(ts) + 2)^GRAVITY
+//
+// Surfaces:
+//   #lb-container → top-16 rows (the hero)
+//   #bb-container → ranks 17+ (the backburner)
 
 import { isPlaceholder } from './config.js';
 import { fmt, hoursSince, relTime, escapeHtml } from './utils.js';
 
 const GRAVITY = 1.5;
 const DECAY_BASE_HOURS = 2;
-
-// Each live entry: { wallet, url, msg, burns: [{amount, ts, tx}, ...] }
-// — same shape the ingest pipeline writes to leaderboard.json.
+const TOP_N = 16;
 
 function scoreEntry(entry, now){
-  let s = 0;
-  for(const b of entry.burns){
-    const h = hoursSince(b.ts, now);
-    s += b.amount / Math.pow(h + DECAY_BASE_HOURS, GRAVITY);
-  }
-  return s;
+  const h = hoursSince(entry.ts, now);
+  return entry.amount / Math.pow(h + DECAY_BASE_HOURS, GRAVITY);
 }
 
-export function totalBurned(entry){
-  return entry.burns.reduce((a,b)=>a+b.amount, 0);
+const FRESH_MULTIPLIER = Math.pow(DECAY_BASE_HOURS, GRAVITY);
+
+// Min fresh-burn amount that would outrank the current #1 (read by
+// burn.js to populate the modal helper).
+export function minBurnToTakeTop(now){
+  const entries = _liveEntries || [];
+  if (entries.length === 0) return 1;
+  const topScore = entries
+    .map(e => scoreEntry(e, now))
+    .reduce((m, s) => s > m ? s : m, 0);
+  return Math.ceil(topScore * FRESH_MULTIPLIER) + 1;
 }
 
-function latestBurn(entry){
-  return entry.burns.reduce((max,b)=> b.ts > max ? b.ts : max, '0');
+export function liveEntryCount(){
+  return (_liveEntries || []).length;
 }
 
+// ── linkify ───────────────────────────────────────────────────────
+// Turns URLs found inside message text into clickable anchors. Runs on
+// already-HTML-escaped text — the regex excludes "&", ";", "<", ">",
+// "\"" so existing HTML entities (&lt; &amp; etc.) aren't pulled into
+// the match. Conservative TLD check (2-8 alpha chars) avoids
+// false-positives on things like "etc." or "e.g.".
+const URL_RE = /(?:https?:\/\/[^\s<>"&]+)|(?:\b[a-z0-9](?:[\w\-]*[a-z0-9])?(?:\.[a-z0-9](?:[\w\-]*[a-z0-9])?){1,3}(?:\/[^\s<>"&]*)?)/gi;
+
+function linkifyMsg(escaped){
+  return escaped.replace(URL_RE, (m) => {
+    const beforeSlash = m.split('/')[0];
+    const lastDot = beforeSlash.lastIndexOf('.');
+    if (lastDot < 0) return m;
+    const tld = beforeSlash.slice(lastDot + 1);
+    if (!/^[a-z]{2,8}$/i.test(tld)) return m;
+    const href = /^https?:\/\//i.test(m) ? m : 'https://' + m;
+    return `<a class="msg-link" href="${href}" target="_blank" rel="noopener noreferrer ugc">${m}</a>`;
+  });
+}
+
+// ── ember labels for backburner rows ─────────────────────────────
+function emberLabel(hoursOld){
+  if (hoursOld < 24)  return 'still warm';
+  if (hoursOld < 72)  return 'smouldering';
+  if (hoursOld < 168) return 'down to embers';
+  return 'ash';
+}
+
+// ── TOP-16 ROWS (the hero) ───────────────────────────────────────
 function buildSlot(entry, rank, now){
   const div = document.createElement('div');
-  div.className = 'slot rank'+rank;
-  const total = totalBurned(entry);
-  const last = latestBurn(entry);
-  // All user-controlled fields (entry.url, entry.msg) come from on-chain
-  // memos that the moderation filter has structurally validated but does
-  // NOT HTML-escape. We MUST escape before feeding into innerHTML — URL
-  // canonicalization preserves path/query/hash which can carry <script>
-  // bytes through any number of structural checks. entry.wallet is base58,
-  // so safe to URL-encode without HTML-escape.
+  div.className = 'slot';
   const url = escapeHtml(entry.url);
-  const msg = escapeHtml(entry.msg);
-  const wallet = encodeURIComponent(entry.wallet);
+  const msg = linkifyMsg(escapeHtml(entry.msg));
+  const tx  = encodeURIComponent(entry.tx);
+  // The burn amount itself IS the proof link — clicking it opens the
+  // Solscan tx page for that specific burn. Title attribute provides
+  // a hover hint explaining what the click does.
   div.innerHTML = `
-    <div class="slot-rank">${rank}</div>
-    <div class="slot-body">
-      <a class="slot-url" href="https://${url}" target="_blank" rel="noopener noreferrer sponsored ugc">${url}</a>
-      <span class="slot-msg">${msg}</span>
-      <div class="slot-meta">
-        <span class="slot-time">last fed ${escapeHtml(relTime(last, now))}</span>
-        <span class="slot-meta-sep">·</span>
-        <a class="slot-solscan" href="https://solscan.io/account/${wallet}" target="_blank" rel="noopener noreferrer">verify on solscan ↗</a>
-      </div>
-    </div>
-    <div class="slot-burn">
-      <span class="slot-amount">${escapeHtml(fmt(total))}</span>
-      <span class="slot-ticker">$PYRE burned</span>
-    </div>`;
+    <a class="slot-amount" href="https://solscan.io/tx/${tx}" target="_blank" rel="noopener noreferrer" title="Verify this burn on Solscan ↗">${escapeHtml(fmt(entry.amount))}<span class="slot-ticker">$PYRE</span></a>
+    <div class="slot-msg">${msg}</div>
+    <a class="slot-url" href="https://${url}" target="_blank" rel="noopener noreferrer sponsored ugc">${url}<span class="slot-arrow"> ↗</span></a>`;
   return div;
 }
 
-// Live leaderboard entries fetched from leaderboard.json. The ingest
-// pipeline (scripts/ingest.mjs, run by GitHub Actions every 5 min)
-// writes accepted on-chain burns into that file. We fetch it on
-// module load and re-render once it resolves.
+const COLD_HTML = `
+  <div class="lb-cold">
+    <div class="lb-cold-title">The pyre is cold.</div>
+    <div class="lb-cold-sub">Be the first to feed it. Any burn lights it up.</div>
+  </div>`;
+
+// ── BACKBURNER (ranks 17+) ──────────────────────────────────────
+function buildBackburnerSlot(entry, rank, now){
+  const div = document.createElement('div');
+  div.className = 'bb-slot';
+  const h   = hoursSince(entry.ts, now);
+  const url = escapeHtml(entry.url);
+  const msg = linkifyMsg(escapeHtml(entry.msg));
+  const tx  = encodeURIComponent(entry.tx);
+  div.innerHTML = `
+    <div class="bb-rank">#${rank}</div>
+    <div class="bb-body">
+      <a class="bb-url" href="https://${url}" target="_blank" rel="noopener noreferrer sponsored ugc">${url}</a>
+      <span class="bb-msg">${msg}</span>
+    </div>
+    <div class="bb-state">
+      <span class="bb-ember">${emberLabel(h)}</span>
+      <span class="bb-time">${escapeHtml(relTime(entry.ts, now))}</span>
+      <a class="bb-solscan" href="https://solscan.io/tx/${tx}" target="_blank" rel="noopener noreferrer">↗</a>
+    </div>
+    <div class="bb-amount">${escapeHtml(fmt(entry.amount))} <span class="bb-ticker">$PYRE</span></div>`;
+  return div;
+}
+
+function renderBackburner(displaced, now){
+  const section = document.getElementById('backburner');
+  const host    = document.getElementById('bb-container');
+  if (!section || !host) return;
+  if (displaced.length === 0){
+    section.style.display = 'none';
+    host.innerHTML = '';
+    return;
+  }
+  section.style.display = '';
+  host.innerHTML = '';
+  displaced.forEach((e, i) => {
+    host.appendChild(buildBackburnerSlot(e, TOP_N + 1 + i, now));
+  });
+}
+
+// ── DATA ──────────────────────────────────────────────────────────
 let _liveEntries = null;
 
 async function loadLiveEntries(){
@@ -80,44 +141,34 @@ async function loadLiveEntries(){
     const data = await res.json();
     _liveEntries = (data && Array.isArray(data.entries)) ? data.entries : [];
   } catch (e) {
-    // Network/parse error — render the empty state instead of crashing
-    // or surfacing demo data. The page is still useful (footer, rules,
-    // disclaimer); just no leaderboard until the next reload.
     _liveEntries = [];
   }
-  // Refresh now that data has arrived. The first paint already showed
-  // an empty state; this swap is what makes new burns appear.
   renderLeaderboard(new Date());
 }
 
-// Kick off the fetch immediately on module import.
 loadLiveEntries();
-
-const EMPTY_STATE_HTML = `
-      <div style="text-align:center;padding:64px 24px;border:0.5px dashed var(--border);background:rgba(0,0,0,0.32);">
-        <div style="font-size:44px;line-height:1;margin-bottom:14px;opacity:0.45;filter:saturate(0.7);">🔥</div>
-        <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--text);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;">Awaiting first burn</div>
-        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);max-width:440px;margin:0 auto;line-height:1.65;">The pyre is cold. Be the first to feed it — your URL takes the top slot until someone outburns you.</div>
-      </div>`;
 
 export function renderLeaderboard(now){
   const lb = document.getElementById('lb-container');
-  const preLaunch = isPlaceholder();
+  if (!lb) return;
 
-  // Pre-launch always shows the empty state. Post-launch, the empty
-  // state is rendered while the JSON fetch is still pending, and also
-  // when the JSON has zero entries (e.g., immediately after the
-  // mainnet flip wipes leaderboard.json).
+  const preLaunch = isPlaceholder();
   const source = preLaunch ? [] : (_liveEntries || []);
-  if (source.length === 0) {
-    lb.innerHTML = EMPTY_STATE_HTML;
-    return;
-  }
 
   const ranked = source
-    .map(e => ({entry:e, score:scoreEntry(e, now)}))
-    .sort((a,b)=> b.score - a.score)
-    .slice(0, 16);
-  lb.innerHTML = '';
-  ranked.forEach((r, i) => lb.appendChild(buildSlot(r.entry, i+1, now)));
+    .map(e => ({ entry: e, score: scoreEntry(e, now) }))
+    .sort((a,b) => b.score - a.score)
+    .map(r => r.entry);
+
+  const top16     = ranked.slice(0, TOP_N);
+  const displaced = ranked.slice(TOP_N);
+
+  if (top16.length === 0){
+    lb.innerHTML = COLD_HTML;
+  } else {
+    lb.innerHTML = '';
+    top16.forEach((e, i) => lb.appendChild(buildSlot(e, i + 1, now)));
+  }
+
+  renderBackburner(displaced, now);
 }

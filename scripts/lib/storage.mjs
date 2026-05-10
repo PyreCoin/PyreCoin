@@ -36,6 +36,9 @@ export class Storage {
       updatedBy: 'ingest-bot',
       solscanVerified: true,
       config: { gravity: 1.5, decayBaseHours: 2, topN: 16 },
+      // Each burn = its own entry. Same wallet can appear multiple
+      // times. De-dup is by tx hash. See applyAcceptedBurn for how
+      // entries are appended.
       entries: [],
     });
   }
@@ -70,28 +73,20 @@ export class Storage {
   }
 }
 
-// Apply a single accepted burn to the leaderboard. Aggregates by wallet:
-// the wallet's burns array gains a new entry, and the latest memo wins for
-// the displayed url + msg.
+// Apply a single accepted burn to the leaderboard. Each burn is its own
+// entry — same wallet can appear multiple times, each with its own
+// memo / amount / timestamp / tx. De-dup is by tx hash so re-running
+// the ingest is safe.
 export function applyAcceptedBurn(lb, burn) {
-  let entry = lb.entries.find(e => e.wallet === burn.wallet);
-  if (!entry) {
-    entry = {
-      wallet: burn.wallet,
-      url: burn.url,
-      msg: burn.msg,
-      burns: [],
-    };
-    lb.entries.push(entry);
-  } else {
-    // Latest memo replaces displayed values
-    entry.url = burn.url;
-    entry.msg = burn.msg;
-  }
-  // Avoid duplicate ingestion of the same tx
-  if (!entry.burns.some(b => b.tx === burn.tx)) {
-    entry.burns.push({ amount: burn.amount, ts: burn.ts, tx: burn.tx });
-  }
+  if (lb.entries.some(e => e.tx === burn.tx)) return lb;
+  lb.entries.push({
+    wallet: burn.wallet,
+    url: burn.url,
+    msg: burn.msg,
+    amount: burn.amount,
+    ts: burn.ts,
+    tx: burn.tx,
+  });
   return lb;
 }
 

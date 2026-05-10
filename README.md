@@ -18,10 +18,12 @@ slots ranked by heat.
 
 ## How heat works
 
-Each burn is an upvote with a timestamp. A wallet's heat is:
+Each burn is its own slot — its own URL, its own message, its own
+timestamp, its own on-chain receipt. Same wallet can hold many slots
+at once. Each slot's heat is:
 
 ```
-heat(wallet) = Σ amount_i / (hours_since_burn_i + 2)^1.5
+heat(slot) = amount / (hours_since_burn + 2)^1.5
 ```
 
 This is the Hacker News / Reddit "hot" formula, applied to fire.
@@ -34,7 +36,8 @@ Concretely:
 
 There is no permanent rank. Whales must keep burning to keep their
 slot. Fresh small burns can take a top-16 position for the cost of a
-bus ticket. The pyre does not coast.
+bus ticket. Rank 1 gets the sponsored hero card above the fold;
+ranks 2–16 the live leaderboard; ranks 17+ the backburner.
 
 ## How to participate
 
@@ -72,8 +75,8 @@ This repo *is* the leaderboard backend. There is no server, no
 database, no account system.
 
 - `index.html` — landing page, leaderboard renderer, etymology.
-- `leaderboard.json` — list of accepted entries (one per wallet, with
-  burn events).
+- `leaderboard.json` — list of accepted entries (one per burn — same
+  wallet can appear multiple times, each row carrying its own memo).
 - `pending.json` — quarantined entries flagged by the moderation
   filter (never rendered on the live page).
 - `moderation-log.jsonl` — append-only audit log of every ingest

@@ -27,7 +27,7 @@ import {
 import {
   PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, isPlaceholder
 } from './config.js';
-import { $, shortAddr, escapeHtml } from './utils.js';
+import { $, shortAddr, escapeHtml, fmt } from './utils.js';
 
 // ─── STATE ───────────────────────────────────────────────────────────
 const burnState = {
@@ -61,6 +61,7 @@ window.openBurnModal = function() {
   $('burnModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   refreshWalletState();
+  refreshBurnHint();
   stopWalletDetectPoller();
   let retries = 8; // ~2s at 250ms intervals
   _walletDetectPoller = setInterval(() => {
@@ -70,6 +71,27 @@ window.openBurnModal = function() {
     }
   }, 250);
 };
+
+// Populate the modal's "min burn to take #1" tip from the live
+// leaderboard module (attached to window by main.js to avoid a
+// dual-import of leaderboard.js — which would spawn a second
+// _liveEntries state and double the leaderboard.json fetch).
+function refreshBurnHint() {
+  const el = $('burnHint');
+  if (!el) return;
+  const lb = window.__pyreLeaderboard;
+  if (!lb || typeof lb.minBurnToTakeTop !== 'function') {
+    el.innerHTML = '';
+    return;
+  }
+  const min = lb.minBurnToTakeTop(new Date());
+  const count = (typeof lb.liveEntryCount === 'function') ? lb.liveEntryCount() : 0;
+  if (count === 0) {
+    el.innerHTML = 'tip · the pyre is cold — any burn takes #1.';
+  } else {
+    el.innerHTML = `tip · burn <strong>≥ ${escapeHtml(fmt(min))} $PYRE</strong> right now to take #1.`;
+  }
+}
 window.closeBurnModal = function() {
   stopWalletDetectPoller();
   $('burnModal').classList.remove('open');

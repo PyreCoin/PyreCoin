@@ -40,13 +40,13 @@ Constraints (enforced by the ingest filter):
 - No homograph abuse (Cyrillic letters in Latin-script URLs etc.)
 - Profanity wordlist applied (English + common variants)
 
-A wallet's burns are aggregated under one slot. Latest memo replaces
-the displayed message. Burn amounts contribute to heat with time
-decay (formula in the README).
+Each burn is its own slot. The same wallet can hold multiple slots
+simultaneously, each with its own URL, message, timestamp, and tx.
+Heat per slot decays independently with time (formula in the README).
 
 ## Data shape
 
-`leaderboard.json` (per-wallet, accepted entries):
+`leaderboard.json` (one entry per accepted burn):
 
 ```jsonc
 {
@@ -57,17 +57,26 @@ decay (formula in the README).
       "wallet": "7xKmP...f3Rq",
       "url": "moonfi.xyz",
       "msg": "Daily alpha calls.",
-      "burns": [
-        { "amount": 300000, "ts": "2026-05-06T22:00:00Z", "tx": "3nZ9x...8kLm" },
-        { "amount": 120000, "ts": "2026-05-07T18:00:00Z", "tx": "3nZ9x...9aBc" }
-      ]
+      "amount": 300000,
+      "ts": "2026-05-06T22:00:00Z",
+      "tx": "3nZ9x...8kLm"
+    },
+    {
+      "wallet": "7xKmP...f3Rq",
+      "url": "moonfi.xyz/v2",
+      "msg": "Bigger alpha. Smaller fonts.",
+      "amount": 120000,
+      "ts": "2026-05-07T18:00:00Z",
+      "tx": "3nZ9x...9aBc"
     }
   ]
 }
 ```
 
-The page sorts by computed heat at render time, takes the top 16, and
-re-ranks every 30s while the page is open.
+The page sorts by per-burn heat at render time. Rank 1 is featured
+in the hero card; ranks 2–16 in the live leaderboard; ranks 17+ on
+the backburner. The page re-ranks every 30s while open. De-dup is by
+`tx` — re-running the ingest is safe.
 
 ## Reporting bad content
 
