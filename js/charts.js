@@ -149,7 +149,15 @@ export function histogramBars(container, buckets, opts = {}){
   }
 
   const n = vals.length;
-  const W = Math.max(400, n * 4); // enough resolution; SVG scales to container
+  // viewBox W must match the container's actual CSS pixel width, NOT
+  // the data-derived n*4 we used previously. With preserveAspectRatio
+  // "none" and a viewBox wider than the container, SVG squeezes
+  // horizontally — the bars look fine because they're solid shapes
+  // but the text labels and tooltips visibly compress. Setting
+  // viewBox W = cssW gives SVG units a 1:1 mapping to pixels, so text
+  // renders at its real font size even on a 300px-wide phone.
+  const cssW = Math.max(1, container.clientWidth || 400);
+  const W = cssW;
   const H = height;
   const TOP_PAD = 8, BOT_PAD = 14, SIDE_PAD = 4;
   const innerH = H - TOP_PAD - BOT_PAD;
@@ -222,7 +230,12 @@ export function candlestick(container, ohlcv, opts = {}){
   const range = (hi - lo) || 1;
 
   const n = rows.length;
-  const W = Math.max(400, n * 4);
+  // viewBox W = container CSS width so SVG units map 1:1 to pixels;
+  // otherwise preserveAspectRatio="none" stretches the y-axis price
+  // labels horizontally (visible as fat squashed text on the live
+  // site). See histogramBars above for the same trick.
+  const cssW = Math.max(1, container.clientWidth || 400);
+  const W = cssW;
   const H = height;
   // RIGHT_PAD reserves room for the y-axis price labels along the
   // right edge. 56 fits "$3.85e-6" comfortably at 9px monospace,

@@ -1827,3 +1827,45 @@ nav{
   .cta-title{font-size:34px;}
   .dict-card{padding:18px 16px 38px;}
 }
+
+@media(max-width:360px){
+  /* Compact-phone (280–360px). The price card and supply card both
+     render values that overflow at the prior breakpoint's 52px Bebas:
+     "$0.000003853" is 12 chars × ~30px = ~360px (way past a 264px card
+     width); "999,999,999" is similarly wide. Drop stat-val font and
+     allow the two big number cards to wrap if a value still overflows
+     so nothing gets visually clipped. Also tighten section padding so
+     the cards themselves get more breathing room inside the section. */
+  .section{padding:48px 10px;}
+  .stats-section{padding:48px 10px;}
+  .hero{padding:28px 10px 24px;}
+  .stat{padding:18px 14px 14px;}
+  .stat-val{
+    font-size:40px;
+    letter-spacing:0;
+    /* Long literals (price, supply) overflow even at 40px — allow a
+       last-resort break so the box stays inside the card rather than
+       horizontally scrolling the whole section. */
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+  .stat-lbl{font-size:9px;letter-spacing:1.5px;}
+  .stat-spark{height:46px;margin:6px 0 10px;}
+  .stat-blurb{font-size:12px;line-height:1.55;}
+  .chart-panel{padding:16px 12px 12px;}
+  .chart-panel-body{height:150px;}
+  .chart-panel-blurb{font-size:12px;line-height:1.55;}
+  .chart-panel-title{font-size:10.5px;letter-spacing:1px;}
+  .chart-range{font-size:9.5px;padding:3px 7px;}
+  .section-title{font-size:26px;letter-spacing:1.5px;}
+  .section-intro{font-size:13px;line-height:1.7;margin:0 0 24px;}
+  .cta-block{padding:44px 10px;}
+  .cta-title{font-size:28px;}
+  .cta-sub{font-size:11px;}
+  .dict-card{padding:14px 12px 34px;}
+  .dict-word{font-size:42px;}
+  .heat-math{padding:24px 14px;}
+  .heat-math-formula{font-size:12px;}
+  .disclaimer{padding:22px 16px;}
+  .disclaimer h2{font-size:20px;letter-spacing:1.2px;}
+}
