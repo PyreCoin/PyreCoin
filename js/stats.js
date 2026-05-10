@@ -108,10 +108,17 @@ async function fetchAnalytics(){
     const res = await fetch(`${origin}/analytics?hours=${WINDOW_HOURS}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
-    // Expected shape: { hourlyVisits: [{tsSeconds, count}, ...], topCountries: [{label, value}, ...] }
+    // Expected shape: { hourlyVisits: [{tsSeconds, count}, ...], topCountries: [{label, value}, ...], note? }
+    // The worker sets `note` only when one of CF_ANALYTICS_TOKEN /
+    // CF_ACCOUNT_ID / CF_SITE_TAG is missing — i.e. the endpoint
+    // can't even attempt the GraphQL call. When secrets ARE set but
+    // the response arrays are empty, the secrets are working and
+    // we're just in CF's 15-30min warmup window. The `configured`
+    // flag lets the empty-state copy distinguish those cases.
     return {
       hourlyVisits: Array.isArray(data?.hourlyVisits) ? data.hourlyVisits : [],
       topCountries: Array.isArray(data?.topCountries) ? data.topCountries : [],
+      configured:   !data?.note,
     };
   } catch (_) { return null; }
 }
@@ -419,6 +426,7 @@ export async function updateStats(){
     hourlyBurns: hourlyBurns10d,                   // 240 hourly buckets, oldest → newest
     hourlyVisits: hourlyVisits10d,                 // 240 hourly buckets, oldest → newest
     topCountries: analytics?.topCountries || [],
+    analyticsConfigured: analytics?.configured,    // null = fetch failed; true/false from worker
   });
 }
 

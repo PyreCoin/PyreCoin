@@ -116,7 +116,7 @@ export function sparkline(container, values, opts = {}){
   const last = pts[pts.length - 1];
 
   container.innerHTML = `
-<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
   <defs>
     <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${fillStop}" stop-opacity="0.35"/>
@@ -180,7 +180,7 @@ export function histogramBars(container, buckets, opts = {}){
   }).join('');
 
   container.innerHTML = `
-<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="false" role="img">
+<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="false" role="img">
   <defs>
     <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${COLOR.emberSoft}" stop-opacity="0.95"/>
@@ -282,7 +282,7 @@ export function candlestick(container, ohlcv, opts = {}){
   }).join('');
 
   container.innerHTML = `
-<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="false" role="img">
+<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="false" role="img">
   ${grids.join('')}
   ${candles}
 </svg>`;
@@ -329,7 +329,7 @@ export function horizontalBars(container, items, opts = {}){
   }).join('');
 
   container.innerHTML = `
-<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin meet" aria-hidden="false" role="img">
+<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin meet" aria-hidden="false" role="img">
   <defs>
     <linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="${COLOR.emberFill}" stop-opacity="0.85"/>

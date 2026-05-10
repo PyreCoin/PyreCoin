@@ -548,11 +548,11 @@ nav{
 .chart-panel-body{
   position:relative;
   width:100%;
-  /* Wide-and-short ribbon, not a Bloomberg trading screen. With 240
-     hourly candles spanning a ~1100px panel width, a 220px height
-     gives a ~5:1 aspect ratio — comfortable for spotting trend
-     without exaggerating the per-tick swings of a memecoin priced in
-     micro-dollars.
+  /* Wide-and-short ribbon, not a Bloomberg trading screen. 260px
+     gives a ~4:1 aspect ratio at typical desktop widths — tall
+     enough that intraday candle bodies have room to breathe, short
+     enough that micro-dollar memecoin wiggles don't look like
+     market crashes.
 
      DO NOT add flex:1 here. flex:1 expands to flex-basis:0% which
      overrides this explicit height, leaving body height "auto". The
@@ -562,7 +562,7 @@ nav{
      opts.height = el.clientHeight, feeding the *previous* grown
      height back into the next viewBox H — runaway feedback loop, the
      chart inflates further on every click. */
-  height:220px;
+  height:260px;
 }
 .chart-panel-body svg{
   display:block;
@@ -594,7 +594,7 @@ nav{
 /* Tablet + below — same single-column flex layout, just trimmed. */
 @media(max-width:880px){
   .chart-panel{padding:24px 24px 18px;}
-  .chart-panel-body{height:190px;}
+  .chart-panel-body{height:220px;}
   .chart-panel-blurb{font-size:13.5px;line-height:1.7;}
 }
 
@@ -1668,7 +1668,7 @@ nav{
 
   /* Chart panels — single-column by base; just shrink. */
   .chart-panel{padding:22px 20px 16px;}
-  .chart-panel-body{height:160px;}
+  .chart-panel-body{height:190px;}
   .chart-panel-title{font-size:11px;letter-spacing:1.5px;}
   .chart-panel-blurb{font-size:13px;line-height:1.65;margin-bottom:18px;}
   .chart-range{font-size:10px;padding:4px 9px;}
@@ -1735,7 +1735,7 @@ nav{
   .stat-spark{height:54px;margin:8px 0 12px;}
   .stat-blurb{font-size:12.5px;line-height:1.6;}
   .chart-panel{padding:20px 16px 14px;}
-  .chart-panel-body{height:140px;}
+  .chart-panel-body{height:170px;}
   .chart-panel-blurb{font-size:12.5px;line-height:1.6;}
   .cta-block{padding:52px 14px;}
   .cta-title{font-size:34px;}

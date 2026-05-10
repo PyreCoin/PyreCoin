@@ -24,10 +24,13 @@ const { candlestick, histogramBars, horizontalBars, emptyState } = _chartsMod;
 // Latest data, kept so toggle clicks can re-render without forcing a
 // full /price-history + /analytics refetch.
 let _data = {
-  priceHistory: null,   // raw GeckoTerminal OHLCV (newest-first)
-  hourlyBurns:  null,   // length WINDOW_HOURS (oldest → newest)
-  hourlyVisits: null,   // length WINDOW_HOURS (oldest → newest)
-  topCountries: null,   // [{label, value}, ...]
+  priceHistory: null,         // raw GeckoTerminal OHLCV (newest-first)
+  hourlyBurns:  null,         // length WINDOW_HOURS (oldest → newest)
+  hourlyVisits: null,         // length WINDOW_HOURS (oldest → newest)
+  topCountries: null,         // [{label, value}, ...]
+  analyticsConfigured: null,  // true = secrets set, just no data yet (warming up);
+                              // false = worker says note='not configured';
+                              // null = analytics fetch outright failed
 };
 
 // Per-panel current range (in HOURS). Default = 240 (10 days).
@@ -84,7 +87,7 @@ function renderVisitorsChart(){
   if (!el) return;
   const series = _data.hourlyVisits;
   if (!Array.isArray(series) || series.length === 0 || series.every(v => v == null)) {
-    emptyState(el, 'visitor analytics not configured yet · paste your CF Web Analytics token in index.html, set CF_ANALYTICS_TOKEN / CF_ACCOUNT_ID / CF_SITE_TAG worker secrets, then redeploy');
+    emptyState(el, analyticsEmptyMessage());
     return;
   }
   const range = _range['chart-visitors'];
@@ -120,10 +123,29 @@ function renderCountriesChart(){
   if (!el) return;
   const items = _data.topCountries;
   if (!Array.isArray(items) || items.length === 0) {
-    emptyState(el, 'visitor analytics not configured yet · once the CF beacon has data, top countries will appear here');
+    emptyState(el, analyticsEmptyMessage());
     return;
   }
   horizontalBars(el, items, { limit: 10 });
+}
+
+// Centralized empty-state copy for the two CF-analytics panels. Three
+// shapes depending on what the worker / fetch reported:
+//   true  → secrets are set, GraphQL call succeeded, just no data
+//           in CF's bucket yet (warmup window — typical 15-30 min,
+//           sometimes longer first time)
+//   false → worker explicitly returned note='not configured', i.e.
+//           one of the CF_* secrets is missing
+//   null  → /analytics fetch outright failed (502, network blip,
+//           worker down) — wait for next 30s tick
+function analyticsEmptyMessage(){
+  if (_data.analyticsConfigured === false) {
+    return 'visitor analytics not configured yet · paste your CF Web Analytics token in index.html, set CF_ANALYTICS_TOKEN / CF_ACCOUNT_ID / CF_SITE_TAG worker secrets, then redeploy';
+  }
+  if (_data.analyticsConfigured === null) {
+    return 'analytics endpoint unreachable · retrying on the next refresh tick';
+  }
+  return 'warming up · cloudflare web analytics typically takes 15-30 minutes after the first beacon hit before data surfaces through their graphql api · be patient';
 }
 
 function renderPanel(target){
@@ -158,10 +180,11 @@ function renderFoot(target){
 export function renderBigCharts(data){
   // Update internal state. Defaults to nulls when stats.js can't
   // produce a series (e.g. placeholder mint, fetch failure).
-  _data.priceHistory = data?.priceHistory || null;
-  _data.hourlyBurns  = data?.hourlyBurns  || null;
-  _data.hourlyVisits = data?.hourlyVisits || null;
-  _data.topCountries = data?.topCountries || null;
+  _data.priceHistory       = data?.priceHistory       || null;
+  _data.hourlyBurns        = data?.hourlyBurns        || null;
+  _data.hourlyVisits       = data?.hourlyVisits       || null;
+  _data.topCountries       = data?.topCountries       || null;
+  _data.analyticsConfigured = (data?.analyticsConfigured === undefined) ? null : data.analyticsConfigured;
 
   wireToggles();
 
