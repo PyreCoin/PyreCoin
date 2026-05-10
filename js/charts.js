@@ -226,7 +226,10 @@ export function candlestick(container, ohlcv, opts = {}){
   const n = rows.length;
   const W = Math.max(400, n * 4);
   const H = height;
-  const TOP_PAD = 8, BOT_PAD = 14, LEFT_PAD = 4, RIGHT_PAD = 50;
+  // RIGHT_PAD reserves room for the y-axis price labels along the
+  // right edge. 56 fits "$3.85e-6" comfortably at 9px monospace,
+  // which is the format we use for any sub-cent price.
+  const TOP_PAD = 8, BOT_PAD = 14, LEFT_PAD = 4, RIGHT_PAD = 56;
   const innerH = H - TOP_PAD - BOT_PAD;
   const innerW = W - LEFT_PAD - RIGHT_PAD;
   const slotW = innerW / n;
@@ -235,11 +238,15 @@ export function candlestick(container, ohlcv, opts = {}){
 
   const yFor = p => TOP_PAD + (innerH - ((p - lo) / range) * innerH);
 
+  // Memecoin-friendly price formatting. Anything sub-tenth-of-a-cent
+  // gets scientific notation — six-leading-zero strings like
+  // "$0.00000385" eat a quarter of the y-axis label slot and are
+  // unreadable at a glance. "$3.85e-6" carries the same information
+  // in a third the space and is universally legible.
   const fmtPrice = (p) => {
     if (!isFinite(p)) return '—';
-    if (p < 1e-6) return p.toExponential(2);
-    if (p < 0.0001) return p.toFixed(9).replace(/0+$/, '').replace(/\.$/, '');
-    if (p < 1)      return p.toFixed(6);
+    if (p < 0.001) return p.toExponential(2);
+    if (p < 1)     return p.toFixed(6);
     return p.toFixed(4);
   };
 

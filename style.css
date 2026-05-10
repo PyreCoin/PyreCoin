@@ -548,7 +548,12 @@ nav{
 .chart-panel-body{
   position:relative;
   width:100%;
-  height:360px;
+  /* Wide-and-short ribbon, not a Bloomberg trading screen. With 240
+     hourly candles spanning a ~1100px panel width, a 220px height
+     gives a ~5:1 aspect ratio — comfortable for spotting trend
+     without exaggerating the per-tick swings of a memecoin priced in
+     micro-dollars. */
+  height:220px;
   flex:1;
 }
 .chart-panel-body svg{
@@ -581,7 +586,7 @@ nav{
 /* Tablet + below — same single-column flex layout, just trimmed. */
 @media(max-width:880px){
   .chart-panel{padding:24px 24px 18px;}
-  .chart-panel-body{height:280px;}
+  .chart-panel-body{height:190px;}
   .chart-panel-blurb{font-size:13.5px;line-height:1.7;}
 }
 
@@ -1655,7 +1660,7 @@ nav{
 
   /* Chart panels — single-column by base; just shrink. */
   .chart-panel{padding:22px 20px 16px;}
-  .chart-panel-body{height:220px;}
+  .chart-panel-body{height:160px;}
   .chart-panel-title{font-size:11px;letter-spacing:1.5px;}
   .chart-panel-blurb{font-size:13px;line-height:1.65;margin-bottom:18px;}
   .chart-range{font-size:10px;padding:4px 9px;}
@@ -1722,7 +1727,7 @@ nav{
   .stat-spark{height:54px;margin:8px 0 12px;}
   .stat-blurb{font-size:12.5px;line-height:1.6;}
   .chart-panel{padding:20px 16px 14px;}
-  .chart-panel-body{height:200px;}
+  .chart-panel-body{height:140px;}
   .chart-panel-blurb{font-size:12.5px;line-height:1.6;}
   .cta-block{padding:52px 14px;}
   .cta-title{font-size:34px;}
