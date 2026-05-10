@@ -1,10 +1,16 @@
-# PYRE RPC proxy worker
+# PYRE worker — RPC proxy + price history + analytics + ingest cron
 
-Tiny Cloudflare Worker that proxies Solana mainnet RPC calls from
-`pyrecoin.com` to Helius. The browser-side burn modal calls this
-worker; the worker holds the Helius API key server-side and enforces
-an origin allowlist so third parties can't use the endpoint even if
-they harvest the worker URL from page source.
+Tiny Cloudflare Worker that does four jobs for `pyrecoin.com`:
+
+| Path | Method | Purpose |
+|---|---|---|
+| `/` | POST | Solana mainnet RPC proxy (Helius) — used by the burn modal |
+| `/price-history` | GET | Hourly OHLCV for the PYRE pool (GeckoTerminal), 5-min cache |
+| `/analytics` | GET | Hourly visitor counts + top countries (CF GraphQL Web Analytics), 5-min cache |
+| (cron) | scheduled | Pokes GitHub workflow_dispatch every 5 min to drive the ingest cron |
+
+The worker holds every API key server-side. An origin allowlist + per-IP rate limit
+gate the public endpoints so a harvested worker URL can't be used to drain quotas.
 
 ## One-time setup
 
@@ -93,3 +99,110 @@ Cloudflare's edge until the next quota window. The fallback in
 `burn.js` would then need to either retry directly against Helius
 (losing the origin protection) or surface a "try again in a moment"
 message — not implemented yet.
+
+## `/price-history` — hourly OHLCV
+
+Returns 240 hourly candles for the PYRE/SOL pool on pump-fun, sourced
+from GeckoTerminal's free public API (no key required, 30 req/min
+limit comfortably absorbed by the 5-min Cache API TTL).
+
+**Response shape:**
+```json
+{
+  "ohlcv": [[1778374800, 3.87e-6, 3.87e-6, 3.85e-6, 3.85e-6, 8.93], ...],
+  "source": "geckoterminal",
+  "pool": "6qtLrqwJu132JtMWTRzVymZJPkczbifzN9ejq4Lg5u2P"
+}
+```
+
+Tuple order matches GeckoTerminal: `[unix_ts_seconds, open, high, low, close, volume_usd]`.
+Newest-first (the frontend re-sorts ascending for left-to-right rendering).
+
+The pool address lives in `wrangler.toml` `[vars] PYRE_POOL` — swap
+the value if pump.fun ever migrates the pool to PumpSwap or Raydium.
+
+## `/analytics` — hourly visits + top countries
+
+Queries Cloudflare's GraphQL Analytics API for the Web Analytics
+beacon's RUM dataset (`rumPageloadEventsAdaptiveGroups`). Single
+GraphQL call returns both the hourly time series and the top
+countries.
+
+**Response shape:**
+```json
+{
+  "hourlyVisits": [{ "tsSeconds": 1778374800, "count": 42 }, ...],
+  "topCountries": [{ "label": "United States", "value": 1234 }, ...]
+}
+```
+
+When the secrets aren't set, the response is the same shape with
+empty arrays + a `note` field — the frontend renders an empty-state
+placeholder rather than failing hard.
+
+### One-time setup for analytics
+
+1. **Add the beacon to the page.** Cloudflare → Web Analytics →
+   "Add a site" → enter `pyrecoin.com`. Copy the **Site tag**.
+   Paste it into `index.html` where the comment reads
+   `REPLACE_WITH_BEACON_TOKEN`. Commit + deploy.
+
+2. **Create a CF API token.** Cloudflare → My Profile → API Tokens →
+   "Create Token" → Custom token. Permissions: **Account · Account
+   Analytics · Read** (only). Account resources: include the account
+   that owns pyrecoin.com. Save the token value — CF only shows it
+   once.
+
+3. **Find your CF Account ID.** Cloudflare dashboard → any zone
+   overview → right sidebar → "Account ID". Copy it.
+
+4. **Set the three worker secrets** (all from `worker/`, paste at
+   the prompt — never as a command argument, per CLAUDE.md §7.12):
+
+   ```bash
+   npx wrangler secret put CF_ANALYTICS_TOKEN   # paste the API token
+   npx wrangler secret put CF_ACCOUNT_ID        # paste the Account ID
+   npx wrangler secret put CF_SITE_TAG          # paste the Site tag from step 1
+   ```
+
+5. **Deploy:**
+
+   ```bash
+   npx wrangler deploy
+   ```
+
+   Within ~5 min CF will start surfacing visitor data via the
+   GraphQL API. The "By the Numbers" section auto-renders it on
+   each refresh tick.
+
+### Rotate the analytics token
+
+```bash
+cd worker
+npx wrangler secret put CF_ANALYTICS_TOKEN
+```
+
+CF API tokens don't have a forced expiration but any compromise
+(e.g. the token leaks via a log) calls for a rotation. The new value
+takes effect on the next cache-miss request (worst case, 5 min
+later).
+
+### Diagnostics
+
+If `/analytics` returns `note: "not configured"`, one of the three
+secrets is missing. Verify with:
+
+```bash
+cd worker
+npx wrangler secret list
+```
+
+If `/analytics` returns `502` with `detail` containing
+`Authentication error` or `permission`, the API token is missing the
+`Account.Account Analytics: Read` permission. Re-create with the
+right scope and `secret put` again.
+
+If `/analytics` returns `502` with an error mentioning `siteTag` or
+empty results, double-check that the value pasted into
+`CF_SITE_TAG` matches the **Site tag** in CF Web Analytics — same
+value as the `data-cf-beacon` token in `index.html`.

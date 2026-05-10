@@ -54,16 +54,94 @@ nav{
   font-size:28px;letter-spacing:4px;color:#fff;
   text-shadow:0 0 30px rgba(255,120,20,0.8);
   flex-shrink:0;
+  text-decoration:none;
+  cursor:pointer;
+  transition:text-shadow .2s;
+}
+.nav-logo:hover{
+  text-shadow:0 0 40px rgba(255,140,30,1),0 0 80px rgba(255,80,0,0.5);
 }
 .nav-links{display:flex;gap:28px;align-items:center;flex-wrap:nowrap;}
 .nav-links a{
-  font-size:11px;font-weight:500;letter-spacing:2.5px;
+  position:relative;
+  font-size:11px;font-weight:700;letter-spacing:2.5px;
   color:var(--text2);text-decoration:none;
   transition:color .2s;text-transform:uppercase;
   font-family:'DM Mono',monospace;
   white-space:nowrap;
 }
 .nav-links a:hover{color:var(--ember)}
+
+/* ── NAV LINK ON FIRE ──
+   Wired by main.js's IntersectionObserver: when a section enters the
+   viewport's active band, the matching nav link gets `.is-on-fire`
+   and the fire visually transfers from the pyre (behind the nav) to
+   the link itself. */
+.nav-links a.is-on-fire{
+  color:var(--ember);
+  text-shadow:
+    0 0 8px rgba(255,140,30,0.95),
+    0 0 18px rgba(255,80,0,0.6),
+    0 -3px 14px rgba(255,60,0,0.5);
+  animation:nav-flicker 1.6s ease-in-out infinite;
+}
+.nav-links a.is-on-fire::before{
+  content:'';
+  position:absolute;
+  left:-10px;right:-10px;top:-6px;bottom:-10px;
+  background:radial-gradient(ellipse at 50% 100%,
+    rgba(255,80,0,0.55) 0%,
+    rgba(255,140,30,0.28) 35%,
+    transparent 75%);
+  filter:blur(10px);
+  animation:nav-flames 1.8s ease-in-out infinite;
+  pointer-events:none;
+  z-index:-1;
+}
+@keyframes nav-flicker{
+  0%,100%{
+    text-shadow:
+      0 0 8px rgba(255,140,30,0.95),
+      0 0 18px rgba(255,80,0,0.6),
+      0 -3px 14px rgba(255,60,0,0.5);
+  }
+  18%{
+    text-shadow:
+      0 0 6px rgba(255,120,30,0.8),
+      0 0 14px rgba(255,70,0,0.5),
+      0 -3px 11px rgba(255,50,0,0.4);
+  }
+  47%{
+    text-shadow:
+      0 0 13px rgba(255,180,50,1),
+      0 0 26px rgba(255,100,0,0.75),
+      0 -6px 18px rgba(255,80,0,0.6);
+  }
+  73%{
+    text-shadow:
+      0 0 7px rgba(255,130,30,0.88),
+      0 0 16px rgba(255,75,0,0.55),
+      0 -3px 12px rgba(255,55,0,0.42);
+  }
+}
+@keyframes nav-flames{
+  0%,100%{
+    transform:translateY(0) scaleY(1) scaleX(1);
+    opacity:0.7;
+  }
+  35%{
+    transform:translateY(-1px) scaleY(1.18) scaleX(0.96);
+    opacity:0.92;
+  }
+  60%{
+    transform:translateY(-2px) scaleY(1.08) scaleX(1.04);
+    opacity:1;
+  }
+  82%{
+    transform:translateY(-1px) scaleY(1.12) scaleX(0.98);
+    opacity:0.85;
+  }
+}
 .nav-badge{
   font-family:'DM Mono',monospace;
   font-size:10px;letter-spacing:1px;
@@ -97,76 +175,267 @@ nav{
   .nav-links{gap:0;}
 }
 
-/* ── HERO ── */
+/* ── HERO ──
+   The leaderboard floats here directly in front of the fire shader.
+   Sixteen uniform rows. */
 .hero{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:80px 40px 60px;
-  text-align:center;
-  min-height:52vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:48px 40px 64px;
+  min-height:90vh;
 }
-.hero-eyebrow{
-  font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:5px;color:var(--text3);
-  text-transform:uppercase;margin-bottom:20px;
+.hero-board{
+  width:100%;
+  max-width:920px;
 }
-.hero-title{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(100px,18vw,200px);
-  letter-spacing:-2px;line-height:.88;
-  color:#fff;
-  text-shadow:
-    0 0 80px rgba(255,140,20,1),
-    0 0 200px rgba(255,60,0,0.5),
-    0 0 400px rgba(255,20,0,0.2);
-}
-.hero-sub{
-  margin-top:28px;
-  font-size:15px;font-weight:300;
-  color:var(--text2);line-height:1.8;
-  max-width:460px;letter-spacing:0.2px;
-}
-.hero-sub strong{color:var(--ember2);font-weight:500;}
 
-/* ── STATS BAR ── */
+/* Empty/cold state for the floating board. */
+.lb-cold{
+  text-align:center;
+  padding:80px 24px;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:0.5px dashed rgba(255,100,30,0.3);
+  border-radius:3px;
+}
+.lb-cold-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:64px;letter-spacing:2px;color:#fff;
+  text-shadow:0 0 60px rgba(255,120,20,0.7);
+  margin-bottom:14px;
+}
+.lb-cold-sub{
+  font-size:15px;color:var(--text2);font-weight:300;
+  max-width:420px;margin:0 auto;line-height:1.65;
+}
+
+@media(max-width:880px){
+  .hero{padding:32px 22px 48px;min-height:auto;}
+}
+@media(max-width:560px){
+  .hero{padding:24px 14px 36px;}
+  .lb-cold{padding:56px 18px;}
+  .lb-cold-title{font-size:42px;}
+  .lb-cold-sub{font-size:13px;}
+}
+
+/* ── BY THE NUMBERS — full section with stat-card pillars + chart panels ──
+   Eight stat cards in a 4-up grid (4×2). Each card has a label, a big
+   Bebas Neue number, an inline SVG sparkline beneath, and a sublabel
+   line. Below the cards are four big chart panels (price candles,
+   visitor bars, burn-volume bars, top countries) in a 2-up grid. The
+   numbers and charts are pure inline SVG — no chart library, no CDN
+   dep — see js/charts.js. */
+.stats-section{padding-top:128px;padding-bottom:128px;}
 .stats-bar{
   display:grid;grid-template-columns:repeat(4,1fr);
-  border-top:0.5px solid var(--border);
-  border-bottom:0.5px solid var(--border);
-  background:var(--glass);
-  backdrop-filter:blur(24px);
-  margin:0;
+  gap:18px;
+  padding:0;margin:0;
+  width:100%;
+  background:transparent;
+  border:none;
 }
 .stat{
-  padding:18px 0;text-align:center;
-  border-right:0.5px solid var(--border2);
+  position:relative;
+  padding:32px 28px 26px;
+  text-align:left;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:0.5px solid var(--border);
+  border-radius:3px;
+  min-height:240px;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  transition:border-color .2s,background .2s,transform .2s;
 }
-.stat:last-child{border:none;}
-.stat-val{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:28px;letter-spacing:1px;
-  color:var(--ember);
-  text-shadow:0 0 20px rgba(255,100,20,0.5);
+.stat:hover{
+  border-color:rgba(255,100,30,0.4);
+  background:rgba(255,40,0,0.05);
+  transform:translateY(-2px);
+}
+.stat::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 100% 0%,rgba(255,80,0,0.12) 0%,transparent 60%);
+  pointer-events:none;
 }
 .stat-lbl{
   font-family:'DM Mono',monospace;
-  font-size:9px;letter-spacing:2.5px;
-  color:var(--text3);margin-top:3px;text-transform:uppercase;
+  font-size:10px;letter-spacing:2.5px;
+  color:var(--text3);text-transform:uppercase;
+  position:relative;
 }
-/* 24h price change indicator. Reserved height prevents layout shift
-   when the value loads asynchronously from the empty state. */
+.stat-val{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:64px;letter-spacing:1px;
+  color:var(--ember);
+  text-shadow:0 0 30px rgba(255,100,20,0.55);
+  line-height:1;
+  margin:10px 0 6px;
+  position:relative;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+/* Sparkline slot — populated by js/charts.js with an inline <svg>.
+   Fixed height keeps cards aligned even if the sparkline fails to
+   render (chart code falls back to an empty SVG, not a layout shift). */
+.stat-spark{
+  position:relative;
+  width:100%;
+  height:38px;
+  margin:4px 0 8px;
+  display:block;
+  flex:1;
+  min-height:38px;
+}
+.stat-spark svg{
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+/* Footer line of each stat card — 24h price change for #s-price,
+   descriptive sublabel for the others. */
 .stat-change{
   font-family:'DM Mono',monospace;
-  font-size:9px;letter-spacing:1px;
-  margin-top:3px;height:12px;line-height:12px;
+  font-size:10px;letter-spacing:1px;
   color:var(--text3);
+  line-height:1.5;
+  position:relative;
+  min-height:12px;
 }
 .stat-change.up{color:#5dd99a;}
 .stat-change.down{color:#ff7a7a;}
 
-/* ── SECTION ── */
-.section{padding:96px 40px;max-width:1200px;margin:0 auto;width:100%;}
+/* Tablet: 2-up grid (4 rows × 2). */
+@media(max-width:980px){
+  .stats-bar{grid-template-columns:repeat(2,1fr);gap:14px;}
+  .stat{min-height:220px;padding:28px 24px 22px;}
+  .stat-val{font-size:56px;}
+}
+
+/* ── CHART PANELS ── */
+.charts-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:18px;
+  margin-top:32px;
+}
+.chart-panel{
+  position:relative;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:0.5px solid var(--border);
+  border-radius:3px;
+  padding:22px 24px 18px;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  transition:border-color .2s;
+}
+.chart-panel:hover{border-color:rgba(255,100,30,0.32);}
+.chart-panel::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 100% 0%,rgba(255,80,0,0.06) 0%,transparent 60%);
+  pointer-events:none;
+}
+.chart-panel-wide{grid-column:span 1;}
+
+.chart-panel-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;
+  padding-bottom:14px;
+  margin-bottom:10px;
+  border-bottom:0.5px dashed var(--border2);
+  position:relative;
+}
+.chart-panel-title{
+  font-family:'DM Mono',monospace;
+  font-size:11px;letter-spacing:2px;
+  color:var(--ember2);
+  text-transform:uppercase;
+}
+.chart-panel-toggle{
+  display:flex;gap:4px;
+  background:rgba(0,0,0,0.4);
+  border:0.5px solid var(--border2);
+  border-radius:2px;
+  padding:2px;
+}
+.chart-range{
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:1px;
+  color:var(--text3);
+  background:transparent;border:none;
+  padding:4px 10px;
+  cursor:pointer;
+  text-transform:uppercase;
+  border-radius:1px;
+  transition:color .15s,background .15s;
+}
+.chart-range:hover{color:var(--ember2);}
+.chart-range.active{
+  color:var(--ember);
+  background:rgba(255,100,30,0.1);
+  text-shadow:0 0 8px rgba(255,100,30,0.4);
+}
+.chart-panel-body{
+  position:relative;
+  width:100%;
+  height:240px;
+  flex:1;
+}
+.chart-panel-body svg{
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+.chart-panel-empty{
+  display:flex;align-items:center;justify-content:center;
+  height:100%;
+  font-family:'DM Mono',monospace;
+  font-size:11px;letter-spacing:1.5px;
+  color:var(--text3);
+  text-transform:uppercase;
+  text-align:center;
+  padding:0 24px;
+  line-height:1.6;
+}
+.chart-panel-foot{
+  font-family:'DM Mono',monospace;
+  font-size:9.5px;letter-spacing:1px;
+  color:var(--text3);
+  margin-top:10px;padding-top:10px;
+  border-top:0.5px dashed var(--border2);
+  text-transform:lowercase;
+  position:relative;
+}
+
+/* Tablet + below: chart panels stack to 1-up. */
+@media(max-width:980px){
+  .charts-grid{grid-template-columns:1fr;gap:14px;}
+  .chart-panel{padding:20px 20px 16px;}
+  .chart-panel-body{height:200px;}
+}
+
+/* ── SECTION ──
+   Increased padding throughout — the page felt cramped at 96px. Each
+   section now has 128px top/bottom on desktop, scaling down on
+   smaller screens. */
+.section{padding:128px 40px;max-width:1200px;margin:0 auto;width:100%;}
 .section-header{
-  display:flex;align-items:baseline;gap:16px;margin-bottom:32px;
+  display:flex;align-items:baseline;gap:16px;margin-bottom:40px;
+}
+/* Optional one-line subtitle that sits between the section header
+   and the section's body. Used by the leaderboard ("Fifteen Other
+   Flames") and backburner sections. */
+.section-blurb{
+  font-size:14px;color:var(--text2);
+  line-height:1.7;font-weight:300;
+  max-width:680px;margin:-18px 0 32px;
+  letter-spacing:0.2px;
 }
 /* Panel variant: used by the leaderboard section, which sits directly
    below the hero where the fire canvas's bottom-mask is still partly
@@ -182,193 +451,403 @@ nav{
 }
 .section-title{
   font-family:'Bebas Neue',sans-serif;
-  font-size:13px;letter-spacing:5px;color:var(--text3);text-transform:uppercase;
+  font-size:44px;letter-spacing:3px;
+  color:var(--text);
+  text-transform:uppercase;
+  line-height:1;
+  text-shadow:0 0 32px rgba(255,120,20,0.35);
 }
-.section-line{flex:1;height:0.5px;background:var(--border);margin-bottom:3px;}
-.section-meta{
-  font-family:'DM Mono',monospace;
-  font-size:10px;color:var(--text3);letter-spacing:1px;
-  white-space:nowrap;
-}
+.section-line{flex:1;height:0.5px;background:var(--border);margin-bottom:8px;}
 
-/* ── LEADERBOARD ── */
+/* ── LEADERBOARD ──
+   Uniform list of 16 rows floating directly on the fire shader.
+   Each row: [ amount | message | url ]. No rank-based size variation
+   — order alone implies rank. URLs found inside a message are
+   auto-linked by leaderboard.js (see linkifyMsg). */
 .leaderboard{display:flex;flex-direction:column;gap:6px;}
 
-/* RANK 1 — HERO SLOT */
 .slot{
   display:grid;
-  grid-template-columns:48px 1fr auto;
+  grid-template-columns:140px 1fr 220px;
   align-items:center;
-  gap:16px;
-  padding:0 20px;
-  border:0.5px solid var(--border2);
+  gap:20px;
+  padding:14px 22px;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:0.5px solid var(--border);
   border-radius:3px;
-  background:var(--glass2);
-  backdrop-filter:blur(12px);
-  transition:border-color .2s,background .2s;
+  transition:border-color .2s,background .2s,transform .15s;
 }
-.slot:hover{border-color:rgba(255,100,30,0.35);background:rgba(255,40,0,0.06);}
-
-.slot.rank1{
-  padding:28px 28px;
-  border-color:rgba(255,100,30,0.35);
-  background:rgba(10,3,0,0.75);
-  grid-template-columns:64px 1fr auto;
-  position:relative;overflow:hidden;
-}
-.slot.rank1::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse at 20% 50%,rgba(255,80,0,0.08) 0%,transparent 70%);
-  pointer-events:none;
-}
-.slot.rank2{padding:18px 22px;border-color:rgba(255,80,20,0.2);background:rgba(8,2,0,0.7);}
-.slot.rank3{padding:14px 20px;border-color:rgba(255,60,10,0.15);}
-.slot.rank4,.slot.rank5,.slot.rank6{padding:11px 18px;}
-.slot.rank7,.slot.rank8,.slot.rank9,.slot.rank10,.slot.rank11,.slot.rank12,.slot.rank13,.slot.rank14,.slot.rank15,.slot.rank16{
-  padding:9px 16px;
-  grid-template-columns:40px 1fr auto;
-  gap:12px;
+.slot:hover{
+  border-color:rgba(255,100,30,0.4);
+  background:rgba(0,0,0,0.7);
+  transform:translateY(-1px);
 }
 
-.slot-rank{
-  font-family:'Bebas Neue',sans-serif;
-  color:var(--text3);text-align:center;line-height:1;
-}
-.slot.rank1 .slot-rank{font-size:52px;color:rgba(255,100,30,0.5);text-shadow:0 0 20px rgba(255,80,0,0.3);}
-.slot.rank2 .slot-rank{font-size:36px;color:rgba(255,80,20,0.4);}
-.slot.rank3 .slot-rank{font-size:28px;}
-.slot.rank4 .slot-rank,.slot.rank5 .slot-rank,.slot.rank6 .slot-rank{font-size:22px;}
-.slot.rank7 .slot-rank,.slot.rank8 .slot-rank,.slot.rank9 .slot-rank,
-.slot.rank10 .slot-rank,.slot.rank11 .slot-rank,.slot.rank12 .slot-rank,
-.slot.rank13 .slot-rank,.slot.rank14 .slot-rank,.slot.rank15 .slot-rank,
-.slot.rank16 .slot-rank{font-size:16px;}
-
-.slot-body{min-width:0;}
-.slot-url{
-  font-family:'DM Mono',monospace;
-  font-weight:500;color:var(--ember2);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  display:block;
-}
-.slot.rank1 .slot-url{font-size:20px;margin-bottom:6px;}
-.slot.rank2 .slot-url{font-size:15px;margin-bottom:4px;}
-.slot.rank3 .slot-url{font-size:13px;margin-bottom:3px;}
-.slot.rank4 .slot-url,.slot.rank5 .slot-url,.slot.rank6 .slot-url{font-size:12px;margin-bottom:2px;}
-.slot.rank7 .slot-url,.slot.rank8 .slot-url,.slot.rank9 .slot-url,
-.slot.rank10 .slot-url,.slot.rank11 .slot-url,.slot.rank12 .slot-url,
-.slot.rank13 .slot-url,.slot.rank14 .slot-url,.slot.rank15 .slot-url,
-.slot.rank16 .slot-url{font-size:11px;}
-
-.slot-msg{
-  font-size:12px;color:var(--text2);font-weight:300;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.slot.rank1 .slot-msg{font-size:14px;line-height:1.6;white-space:normal;}
-.slot.rank2 .slot-msg{font-size:12px;}
-.slot.rank3 .slot-msg,.slot.rank4 .slot-msg,.slot.rank5 .slot-msg,.slot.rank6 .slot-msg{font-size:11px;}
-.slot.rank7 .slot-msg,.slot.rank8 .slot-msg,.slot.rank9 .slot-msg,
-.slot.rank10 .slot-msg,.slot.rank11 .slot-msg,.slot.rank12 .slot-msg,
-.slot.rank13 .slot-msg,.slot.rank14 .slot-msg,.slot.rank15 .slot-msg,
-.slot.rank16 .slot-msg{display:none;}
-
-.slot-burn{text-align:right;white-space:nowrap;}
+/* Burn amount doubles as the proof link — clicking opens the
+   Solscan tx page for this burn. Title attribute provides the
+   tooltip ("Verify this burn on Solscan"). */
 .slot-amount{
   font-family:'Bebas Neue',sans-serif;
-  color:var(--ember);display:block;
-  text-shadow:0 0 12px rgba(255,100,20,0.4);
+  font-size:26px;letter-spacing:0.5px;
+  color:var(--ember);
+  text-shadow:0 0 16px rgba(255,100,20,0.5);
+  white-space:nowrap;
+  line-height:1;
+  text-decoration:none;
+  cursor:pointer;
+  transition:color .2s,text-shadow .2s;
+  display:inline-block;
 }
-.slot.rank1 .slot-amount{font-size:32px;}
-.slot.rank2 .slot-amount{font-size:24px;}
-.slot.rank3 .slot-amount{font-size:20px;}
-.slot.rank4 .slot-amount,.slot.rank5 .slot-amount,.slot.rank6 .slot-amount{font-size:17px;}
-.slot.rank7 .slot-amount,.slot.rank8 .slot-amount,.slot.rank9 .slot-amount,
-.slot.rank10 .slot-amount,.slot.rank11 .slot-amount,.slot.rank12 .slot-amount,
-.slot.rank13 .slot-amount,.slot.rank14 .slot-amount,.slot.rank15 .slot-amount,
-.slot.rank16 .slot-amount{font-size:13px;}
-
+.slot-amount:hover{
+  color:var(--ember2);
+  text-shadow:0 0 28px rgba(255,160,50,0.85);
+}
+/* "$PYRE" ticker is redundant inline — hidden by default, revealed
+   on hover/focus of the row. Mobile shows it permanently since
+   hover doesn't exist there. */
 .slot-ticker{
   font-family:'DM Mono',monospace;
   font-size:9px;letter-spacing:1.5px;
-  color:var(--text3);display:block;margin-top:1px;
-}
-/* ── SLOT META (time + solscan link) ──
-   One inline row under msg: friendly relative time, separator dot,
-   outbound link to solscan.io/account/<wallet>. Replaces the old
-   <details>/burn-list expandable, which buried info behind a tap
-   AND duplicated slot-amount (per-burn rows showed the same value
-   that lives in the big right-hand number). Solscan's account page
-   shows the full burn history in its native UI — that's what the
-   "verify" affordance is actually for. */
-.slot-meta{
-  margin-top:6px;
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  align-items:center;
-  font-family:'DM Mono',monospace;
-  font-size:10px;
   color:var(--text3);
-  letter-spacing:1px;
+  margin-left:4px;
+  vertical-align:2px;
+  text-transform:uppercase;
+  opacity:0;
+  transition:opacity .18s;
 }
-.slot-time{color:var(--text3);}
-.slot-meta-sep{color:var(--text3);opacity:0.5;}
-.slot-solscan{
+.slot:hover .slot-ticker,
+.slot:focus-within .slot-ticker{
+  opacity:1;
+}
+@media(hover:none){
+  .slot-ticker{opacity:1;}
+}
+
+.slot-msg{
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;font-weight:300;
+  color:var(--text);
+  line-height:1.5;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+/* Inline URL inside a message (auto-linked by linkifyMsg). */
+.msg-link{
   color:var(--ember2);
   text-decoration:none;
   border-bottom:0.5px dotted rgba(255,180,80,0.5);
   transition:color .2s,border-color .2s;
+}
+.msg-link:hover{color:var(--ember);border-color:var(--ember);}
+
+.slot-url{
+  font-family:'DM Mono',monospace;
+  font-size:12px;font-weight:500;
+  color:var(--ember2);
+  text-decoration:none;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:color .2s;
+}
+.slot-url:hover{color:var(--ember);}
+.slot-arrow{opacity:0.65;}
+
+/* (.slot-verify removed — the proof link is now the .slot-amount
+   itself.) */
+
+/* Tablet: tighter row, URL drops below the message + amount line. */
+@media(max-width:880px){
+  .slot{
+    grid-template-columns:110px 1fr;
+    gap:6px 12px;
+    padding:12px 16px;
+  }
+  .slot-url{
+    grid-column:1 / -1;
+    text-align:left;
+    font-size:11px;
+    padding-top:6px;
+    margin-top:2px;
+    border-top:0.5px dashed rgba(255,100,30,0.12);
+  }
+  .slot-amount{font-size:22px;}
+  .slot-msg{font-size:13px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+}
+@media(max-width:560px){
+  .slot{
+    grid-template-columns:90px 1fr;
+    gap:6px 8px;
+    padding:10px 12px;
+  }
+  .slot-amount{font-size:18px;}
+  .slot-msg{font-size:12px;}
+  .slot-url{font-size:10.5px;}
+  .slot-ticker{font-size:8px;}
+}
+
+/* ── BACKBURNER ──
+   Ranks 17+ — the "knocked off the live board" pile. Dimmed, smaller,
+   funny ember labels per row. The whole section is hidden by JS when
+   no slots are displaced (renderBackburner sets display:none). */
+.bb-blurb{
+  font-size:13px;color:var(--text2);
+  line-height:1.7;font-weight:300;
+  max-width:680px;margin:0 0 24px;
+  letter-spacing:0.2px;
+}
+.backburner-list{
+  display:flex;flex-direction:column;gap:0;
+  border:0.5px solid var(--border2);
+  border-radius:3px;
+  background:rgba(0,0,0,0.32);
+  overflow:hidden;
+}
+.bb-slot{
+  display:grid;
+  grid-template-columns:48px 1fr auto auto;
+  gap:14px;align-items:center;
+  padding:10px 16px;
+  border-bottom:0.5px dashed rgba(255,100,30,0.08);
+  filter:saturate(0.45);
+  transition:filter .2s,background .2s;
+}
+.bb-slot:last-child{border-bottom:none;}
+.bb-slot:hover{
+  filter:saturate(1);
+  background:rgba(255,40,0,0.04);
+}
+.bb-rank{
+  font-family:'DM Mono',monospace;
+  font-size:11px;letter-spacing:1px;
+  color:var(--text3);
+}
+.bb-body{min-width:0;display:flex;flex-direction:column;gap:1px;}
+.bb-url{
+  font-family:'DM Mono',monospace;
+  font-size:12px;font-weight:500;
+  color:var(--text2);text-decoration:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color .2s;
+}
+.bb-url:hover{color:var(--ember2);}
+.bb-msg{
+  font-size:11px;color:var(--text3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.bb-state{
+  display:flex;flex-direction:column;align-items:flex-end;
+  gap:2px;
+  font-family:'DM Mono',monospace;
+  font-size:9px;letter-spacing:0.5px;
+  color:var(--text3);
+  text-transform:lowercase;
   white-space:nowrap;
 }
-.slot-solscan:hover{
-  color:var(--ember);
-  border-color:var(--ember);
+.bb-ember{
+  color:rgba(255,140,60,0.55);
+  font-style:italic;
 }
-/* Hide meta on tail ranks (7+) on desktop — the smaller slots are
-   for visibility-of-presence, not per-slot detail. The user can
-   still click the URL or scroll up for the verify path. */
-.slot.rank7 .slot-meta,.slot.rank8 .slot-meta,.slot.rank9 .slot-meta,
-.slot.rank10 .slot-meta,.slot.rank11 .slot-meta,.slot.rank12 .slot-meta,
-.slot.rank13 .slot-meta,.slot.rank14 .slot-meta,.slot.rank15 .slot-meta,
-.slot.rank16 .slot-meta{display:none;}
+.bb-time{color:var(--text3);}
+.bb-solscan{
+  color:var(--text3);
+  text-decoration:none;
+  font-size:11px;
+  margin-left:2px;
+  transition:color .2s;
+}
+.bb-solscan:hover{color:var(--ember2);}
+.bb-amount{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:15px;
+  color:var(--text2);letter-spacing:0.5px;
+  text-align:right;
+}
+.bb-ticker{
+  font-family:'DM Mono',monospace;
+  font-size:8px;letter-spacing:1.5px;
+  color:var(--text3);
+  margin-left:2px;
+}
+@media(max-width:560px){
+  .bb-slot{
+    grid-template-columns:32px 1fr auto;
+    gap:10px;padding:9px 12px;
+  }
+  .bb-state{display:none;}
+  .bb-url{font-size:11px;}
+  .bb-msg{font-size:10px;}
+  .bb-amount{font-size:13px;}
+}
 
-/* ── HOW IT WORKS ── */
+/* ── HOW IT WORKS ──
+   Three big step cards in a row: buy / burn / get famous. Followed
+   by the wide "heat math" callout that grounds the decay formula in
+   concrete numbers. Single-column on tablet/phone. */
 .how-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
-  border:0.5px solid var(--border);background:var(--border);border-radius:4px;overflow:hidden;
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:18px;
 }
-/* Three cards: skip the 2-col intermediate (would orphan the third card)
-   and stack to single column below ~720px. */
-@media(max-width:720px){.how-grid{grid-template-columns:1fr;}}
+@media(max-width:880px){.how-grid{grid-template-columns:1fr;}}
+
 .how-card{
-  background:var(--glass);backdrop-filter:blur(16px);
-  padding:32px 28px;
-  /* Cards are anchors — strip default link styling and make the
-     entire card-area clickable. */
+  position:relative;
+  background:rgba(0,0,0,0.55);backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  padding:48px 42px 40px;
+  border:0.5px solid var(--border);
+  border-radius:3px;
   display:block;
   text-decoration:none;
   color:inherit;
-  transition:background .18s, transform .18s;
+  transition:background .18s, transform .18s, border-color .18s;
+  overflow:hidden;
+  min-height:300px;
+  display:flex;flex-direction:column;
 }
 .how-card:hover{
   background:rgba(255,100,30,0.05);
-  transform:translateY(-1px);
+  transform:translateY(-2px);
+  border-color:rgba(255,100,30,0.35);
 }
-.how-card:active{
-  transform:translateY(0);
+.how-card:active{transform:translateY(0);}
+.how-card-static{cursor:default;}
+.how-card-static:hover{
+  background:rgba(0,0,0,0.55);
+  transform:none;
+  border-color:var(--border);
 }
 .how-num{
   font-family:'Bebas Neue',sans-serif;
-  font-size:56px;color:rgba(255,80,20,0.15);line-height:1;margin-bottom:16px;
+  font-size:88px;color:rgba(255,80,20,0.18);
+  line-height:1;margin-bottom:18px;letter-spacing:1px;
 }
 .how-title{
-  font-size:13px;font-weight:500;letter-spacing:0.5px;
-  color:var(--text);margin-bottom:10px;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:30px;letter-spacing:1px;
+  color:var(--text);margin-bottom:18px;
+  text-shadow:0 0 24px rgba(255,120,20,0.25);
 }
-.how-body{font-size:12px;color:var(--text2);line-height:1.8;font-weight:300;}
+.how-body{
+  font-size:14.5px;color:var(--text2);
+  line-height:1.85;font-weight:300;
+  letter-spacing:0.15px;
+  flex:1;
+}
 .how-body code{
-  font-family:'DM Mono',monospace;font-size:11px;
+  font-family:'DM Mono',monospace;font-size:11.5px;
   color:var(--ember);background:rgba(255,80,0,0.08);
-  padding:1px 6px;border-radius:2px;
+  padding:2px 7px;border-radius:2px;
+  word-break:break-all;
+}
+.how-link{
+  display:inline-block;
+  margin-top:22px;
+  font-family:'DM Mono',monospace;
+  font-size:10.5px;letter-spacing:2px;
+  color:var(--ember2);
+  text-transform:uppercase;
+  border-bottom:0.5px dotted rgba(255,180,80,0.5);
+  align-self:flex-start;
+  transition:color .2s,border-color .2s;
+}
+.how-card:hover .how-link{
+  color:var(--ember);
+  border-color:var(--ember);
+}
+
+/* ── HEAT MATH CALLOUT ──
+   Wide, centered block under the 4 step cards. Formula at the top,
+   three concrete examples, deadpan TL;DR at the bottom. */
+.heat-math{
+  margin-top:36px;
+  padding:56px 48px;
+  background:rgba(10,3,0,0.65);
+  border:0.5px solid var(--border);
+  border-radius:3px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+.heat-math::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(255,80,0,0.1) 0%,transparent 60%);
+  pointer-events:none;
+}
+.heat-math-label{
+  font-family:'DM Mono',monospace;
+  font-size:11px;letter-spacing:4px;
+  color:var(--text3);text-transform:uppercase;
+  margin-bottom:28px;
+  position:relative;
+}
+.heat-math-formula{
+  font-family:'DM Mono',monospace;
+  font-size:22px;
+  color:var(--ember);
+  text-shadow:0 0 28px rgba(255,100,20,0.45);
+  margin-bottom:36px;
+  letter-spacing:0.5px;
+  position:relative;
+}
+.heat-math-formula sup{font-size:14px;}
+.heat-math-examples{
+  max-width:780px;
+  margin:0 auto 32px;
+  display:flex;flex-direction:column;gap:12px;
+  position:relative;
+}
+.heat-math-row{
+  display:grid;
+  grid-template-columns:170px 170px 24px 1fr;
+  gap:14px;align-items:baseline;
+  padding:14px 18px;
+  background:rgba(0,0,0,0.4);
+  border-left:2px solid rgba(255,100,30,0.4);
+  font-family:'DM Mono',monospace;
+  font-size:13px;
+  text-align:left;
+}
+.hm-burn{color:var(--text);font-weight:500;}
+.hm-when{color:var(--text3);font-style:italic;}
+.hm-arrow{color:var(--ember);text-align:center;}
+.hm-heat{color:var(--ember2);}
+.hm-heat em{color:var(--text2);font-style:italic;font-size:11px;margin-left:8px;}
+.heat-math-tldr{
+  font-family:'DM Mono',monospace;
+  font-size:11px;
+  color:var(--text2);letter-spacing:2px;
+  text-transform:uppercase;
+  padding-top:24px;
+  border-top:0.5px dashed rgba(255,100,30,0.2);
+  position:relative;
+}
+
+@media(max-width:880px){
+  .how-card{padding:40px 32px 32px;min-height:auto;}
+  .how-num{font-size:72px;}
+  .how-title{font-size:26px;}
+  .how-body{font-size:14px;}
+  .heat-math{padding:40px 28px;}
+  .heat-math-formula{font-size:18px;}
+  .heat-math-row{grid-template-columns:1fr 1fr;gap:8px;font-size:12px;}
+  .hm-arrow{display:none;}
+}
+@media(max-width:560px){
+  .how-card{padding:32px 24px 28px;}
+  .how-num{font-size:60px;margin-bottom:12px;}
+  .how-title{font-size:22px;margin-bottom:14px;}
+  .how-body{font-size:13px;line-height:1.75;}
+  .heat-math{padding:32px 18px;}
+  .heat-math-formula{font-size:14px;word-break:break-word;}
+  .heat-math-row{grid-template-columns:1fr;font-size:11.5px;padding:12px 14px;gap:4px;}
+  .hm-when{font-size:10.5px;}
+  .heat-math-tldr{font-size:10px;letter-spacing:1.5px;}
 }
 
 /* ── RULES ── */
@@ -391,11 +870,20 @@ nav{
 .rule-text{font-size:12px;color:var(--text2);line-height:1.7;font-weight:300;}
 .rule-text strong{color:var(--text);font-weight:500;}
 
-/* ── BURN CTA ── */
+/* ── PAGE CLOSER (CTA + footer ribbon) ──
+   The CTA "Throw It On The Pyre" now BE's the footer. Below the
+   buttons, a thin ribbon carries the brand wordmark, secondary links,
+   and the compliance footer-note. */
 .cta-block{
-  text-align:center;padding:96px 40px;
+  text-align:center;padding:128px 40px 56px;
   border-top:0.5px solid var(--border);
   background:var(--glass);backdrop-filter:blur(20px);
+}
+.cta-divider{
+  height:0.5px;
+  background:rgba(255,100,30,0.18);
+  max-width:480px;
+  margin:72px auto 36px;
 }
 .cta-label{
   font-family:'DM Mono',monospace;font-size:10px;
@@ -428,48 +916,56 @@ nav{
 }
 .btn-ghost:hover{border-color:var(--ember);color:var(--ember2);}
 
-/* ── FOOTER ──
-   Stacks vertically at all viewports. Seven link items with leading
-   icons make the previous 3-column horizontal layout cramped even at
-   1280px — the centred vertical column reads cleaner and gives the
-   note real breathing room. */
-footer{
-  border-top:0.5px solid var(--border);
-  padding:56px 40px 44px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:24px;
-  text-align:center;
-  background:rgba(0,0,0,0.8);
-  backdrop-filter:blur(20px);
-}
-.footer-logo{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:20px;letter-spacing:5px;
-  color:var(--text3);
-}
-.footer-links{
-  display:flex;flex-wrap:wrap;justify-content:center;
-  row-gap:16px;column-gap:32px;
+/* ── FOOTER RIBBON ──
+   3-column link grid (Markets / The Project / Community) beneath the
+   page-closing CTA buttons. Lives inside the <footer class="cta-block">. */
+.cta-block .footer-cols{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:64px;
   max-width:780px;
-  padding:6px 0 4px;
+  margin:0 auto 36px;
+  text-align:left;
 }
-.footer-links a{
+.cta-block .footer-col-title{
   font-family:'DM Mono',monospace;
-  font-size:10.5px;letter-spacing:2px;
-  color:var(--text3);text-decoration:none;text-transform:uppercase;
-  transition:color .2s;
+  font-size:10px;letter-spacing:2.5px;
+  color:var(--ember2);
+  text-transform:uppercase;
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:0.5px solid rgba(255,100,30,0.18);
 }
-.footer-links a:hover{color:var(--ember);}
-.footer-note{
+.cta-block .footer-col ul{
+  list-style:none;padding:0;margin:0;
+  display:flex;flex-direction:column;gap:9px;
+}
+.cta-block .footer-col a{
+  font-family:'DM Mono',monospace;
+  font-size:11px;letter-spacing:1.5px;
+  color:var(--text3);
+  text-decoration:none;
+  text-transform:uppercase;
+  transition:color .2s;
+  display:inline-block;
+}
+.cta-block .footer-col a:hover{color:var(--ember);}
+.cta-block .footer-note{
   font-family:'DM Mono',monospace;
   font-size:10px;letter-spacing:1.2px;line-height:1.7;
   color:rgba(255,140,60,0.4);
-  max-width:560px;
-  padding-top:8px;
+  max-width:560px;margin:0 auto;
+  padding-top:18px;
   border-top:0.5px dashed rgba(255,100,30,0.12);
-  width:100%;
+  text-align:center;
+}
+
+@media(max-width:720px){
+  .cta-block .footer-cols{
+    grid-template-columns:1fr;
+    gap:32px;
+    max-width:280px;
+  }
 }
 
 /* ── UPDATE BADGE ── */
@@ -562,6 +1058,23 @@ footer{
   font-size:9px;color:var(--text3);
   margin-top:4px;letter-spacing:0.5px;
 }
+/* Live "min burn to take #1" tip, populated by burn.js's
+   refreshBurnHint() on modal open. Hidden when empty (e.g. before
+   the leaderboard module has attached to window). */
+.burn-hint{
+  margin-top:8px;
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.5px;
+  color:var(--ember2);
+  background:rgba(255,100,30,0.06);
+  border-left:2px solid rgba(255,100,30,0.4);
+  padding:7px 10px;
+  border-radius:0 2px 2px 0;
+  line-height:1.55;
+}
+.burn-hint:empty{display:none;}
+.burn-hint strong{color:var(--ember);font-weight:500;}
 .burn-status{
   margin-top:18px;padding:12px 14px;
   border-radius:2px;
@@ -949,10 +1462,8 @@ footer{
   font-style:italic;
 }
 
-/* ── FOOTER LINK FLEX ──
-   Footer links now contain inline SVG icons; switch from plain
-   anchors to inline-flex for icon+text alignment. */
-.footer-links a{display:inline-flex;align-items:center;gap:5px;}
+/* (footer-link inline-flex rule was here; merged into the
+   .cta-block .footer-links a selector above.) */
 /* ── MOBILE OPTIMIZATIONS ───────────────────────────────────────────
    Below 560px the page was crushed inside a 40px section-padding shell;
    the 4-col stats bar squeezed digits to ~88px each; the CTA buttons
@@ -962,31 +1473,36 @@ footer{
    actual content gets to breathe.
    ────────────────────────────────────────────────────────────────── */
 @media(max-width:560px){
-  /* Section + hero padding */
-  .section{padding:64px 18px;}
-  .hero{padding:56px 20px 40px;min-height:42vh;}
-  .hero-eyebrow{font-size:9px;letter-spacing:3px;margin-bottom:14px;}
-  .hero-sub{font-size:13px;line-height:1.7;margin-top:20px;}
+  /* Section + hero padding — scaled for phone width but still spacious. */
+  .section{padding:88px 20px;}
+  .stats-section{padding:88px 20px;}
+  .hero{padding:48px 20px 40px;min-height:auto;}
 
-  /* Stats: 2x2 grid instead of 4 cramped columns */
-  .stats-bar{grid-template-columns:repeat(2,1fr);}
-  .stat{padding:14px 8px;}
-  .stat:nth-child(2n){border-right:none;}
-  .stat:nth-child(-n+2){border-bottom:0.5px solid var(--border2);}
-  .stat-val{font-size:22px;}
-  .stat-lbl{font-size:8.5px;letter-spacing:2px;}
+  /* Stats: 1-up on phones — 8 cards in 2-up would be tiny. Single
+     column gives each number room to breathe. */
+  .stats-bar{grid-template-columns:1fr;gap:12px;padding:0;}
+  .stat{min-height:auto;padding:24px 22px 20px;}
+  .stat-val{font-size:48px;margin:8px 0 4px;}
+  .stat-lbl{font-size:10px;letter-spacing:2.5px;}
+  .stat-spark{height:32px;min-height:32px;margin:2px 0 6px;}
+  .stat-change{font-size:10px;}
 
-  /* Section header: stack vertically on mobile. The flex-row layout
-     squeezed the title (e.g. "A FIELD GUIDE TO THE WORD 'PYRE'") into
-     a 50px column, wrapping word-per-line, while the section-meta with
-     white-space:nowrap pushed off-screen. Stack title-over-line,
-     hide the meta tagline (nice-to-have, not load-bearing). */
-  .section-header{flex-direction:column;align-items:stretch;gap:10px;margin-bottom:24px;}
+  /* Chart panels — already 1-up by tablet rule, just shrink height. */
+  .chart-panel{padding:18px 18px 14px;}
+  .chart-panel-body{height:180px;}
+  .chart-panel-title{font-size:10px;letter-spacing:1.5px;}
+  .chart-range{font-size:9.5px;padding:3px 8px;}
+  .chart-panel-foot{font-size:9px;}
+
+  /* Section header on mobile: stack title over the line so the big
+     Bebas heading isn't crushed. The line goes underneath. */
+  .section-header{flex-direction:column;align-items:stretch;gap:14px;margin-bottom:32px;}
   .section-line{flex:none;width:100%;}
-  .section-meta{display:none;}
+  .section-title{font-size:32px;letter-spacing:2px;}
 
-  /* CTA: stack buttons full-width, less block padding */
-  .cta-block{padding:64px 18px;}
+  /* CTA closer: stack buttons full-width, scale type, tighten padding. */
+  .cta-block{padding:80px 18px 40px;}
+  .cta-divider{margin:48px auto 28px;}
   .cta-title{font-size:42px;letter-spacing:1px;}
   .cta-sub{font-size:12px;margin-bottom:28px;}
   .btn-row{flex-direction:column;gap:10px;}
@@ -994,8 +1510,8 @@ footer{
 
   /* Footer: tighter padding on small screens. Base layout is already
      vertical-stacked — we just shrink the padding here. */
-  footer{padding:44px 20px 36px;}
-  .footer-links{column-gap:24px;row-gap:14px;}
+  /* (Footer columns mobile sizing handled at the @720px breakpoint
+     above — single column, narrower max-width.) */
 
   /* Dictionary card: tighter padding so the entry isn't cramped */
   .dict-card{padding:24px 22px 44px;}
@@ -1006,54 +1522,9 @@ footer{
      ~245px and rule text wrapped to 5+ lines per item. */
   .rules-grid{grid-template-columns:1fr;gap:32px;}
 
-  /* Leaderboard simplification — too much info packed too tight in a
-     phone-narrow body column was causing word-per-line wrapping and an
-     ambiguous "0" big number (heat score decayed sub-1). Tighter
-     paddings, smaller everything, single-line msg with ellipsis, and
-     hide the verbose meta line. The big right-hand number now shows
-     total burned (set in leaderboard.js), so it's never just "0". */
-  .slot{padding:12px 14px;grid-template-columns:32px 1fr auto;gap:10px;}
-  .slot.rank1{padding:18px 16px;grid-template-columns:40px 1fr auto;}
-  .slot.rank2{padding:14px 14px;}
-  .slot.rank3{padding:12px 14px;}
-  .slot.rank4,.slot.rank5,.slot.rank6{padding:10px 12px;}
-  .slot.rank7,.slot.rank8,.slot.rank9,.slot.rank10,.slot.rank11,.slot.rank12,
-  .slot.rank13,.slot.rank14,.slot.rank15,.slot.rank16{
-    padding:8px 12px;grid-template-columns:28px 1fr auto;gap:8px;
-  }
-
-  .slot-rank{font-size:18px;}
-  .slot.rank1 .slot-rank{font-size:26px;}
-  .slot.rank2 .slot-rank{font-size:22px;}
-  .slot.rank3 .slot-rank{font-size:18px;}
-  .slot.rank4 .slot-rank,.slot.rank5 .slot-rank,.slot.rank6 .slot-rank{font-size:16px;}
-
-  .slot-url{font-size:12px;}
-  .slot.rank1 .slot-url{font-size:14px;margin-bottom:2px;}
-  .slot.rank2 .slot-url{font-size:13px;}
-
-  /* Single-line msg with ellipsis on every rank (overrides desktop
-     rank1's white-space:normal which wraps to 4 lines on phones). */
-  .slot-msg{
-    font-size:11px;
-    white-space:nowrap !important;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    display:block;
-  }
-  .slot.rank1 .slot-msg{font-size:11.5px;line-height:1.4;}
-
-  .slot-amount{font-size:15px;}
-  .slot.rank1 .slot-amount{font-size:20px;}
-  .slot.rank2 .slot-amount{font-size:17px;}
-  .slot.rank3 .slot-amount{font-size:15px;}
-
-  .slot-ticker{font-size:8px;letter-spacing:1px;}
-
-  /* Meta line stays on mobile but tighter — single inline row of
-     "last fed Xh ago · verify on solscan ↗" fits comfortably without
-     wrapping. */
-  .slot-meta{font-size:9px;gap:6px;margin-top:4px;}
+  /* Leaderboard mobile sizing lives next to the new uniform-row
+     definition higher up — those @media(max-width:560px) rules
+     handle the phone layout for the floating board. */
 
   /* Burn modal: compact padding + smaller title so it fits inside
      mobile browser chrome on smaller phones (Firefox Android, iPhone SE). */
@@ -1075,11 +1546,13 @@ footer{
 @media(max-width:440px){
   /* Sub-440 phones — squeeze a little more padding out, drop type sizes
      so headings + dict glyphs stay on a single line. */
-  .section{padding:52px 14px;}
-  .hero{padding:44px 14px 32px;}
-  .hero-sub{font-size:12px;max-width:100%;}
-  .stat-val{font-size:19px;}
-  .stat-lbl{font-size:8px;letter-spacing:1.5px;}
+  .section{padding:64px 14px;}
+  .stats-section{padding:64px 14px;}
+  .hero{padding:36px 14px 32px;}
+  .stat-val{font-size:42px;}
+  .stat-lbl{font-size:9px;letter-spacing:2px;}
+  .stat-spark{height:28px;min-height:28px;}
+  .chart-panel-body{height:160px;}
   .cta-block{padding:52px 14px;}
   .cta-title{font-size:34px;}
   .dict-card{padding:18px 16px 38px;}

@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260509-16';
+const V = '20260509-26';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick="openBurnModal()" / form onsubmit never call
@@ -41,8 +41,14 @@ window.submitBurn = function(){};
 // Top-level module loads with cache-busting. await is module-top-level,
 // supported in all browsers that support ES modules.
 await import(`./fire-shader.js?v=${V}`);
-const { renderLeaderboard } = await import(`./leaderboard.js?v=${V}`);
+const lb = await import(`./leaderboard.js?v=${V}`);
+const { renderLeaderboard } = lb;
 const { updateStats } = await import(`./stats.js?v=${V}`);
+
+// Expose the leaderboard module so burn.js can read minBurnToTakeTop
+// without re-importing the module under a different specifier (which
+// would create a second _liveEntries state + duplicate the fetch).
+window.__pyreLeaderboard = lb;
 
 // Initial render of stats + leaderboard at wall-clock now.
 updateStats();
@@ -59,3 +65,35 @@ setInterval(() => {
 // Lazy-load burn module — defers heavy Solana lib download. Versioned
 // so post-launch fixes propagate without a hard refresh.
 import(`./burn.js?v=${V}`);
+
+// ── NAV LINKS ON FIRE ────────────────────────────────────────────
+// As the user scrolls, the nav anchor link matching the section
+// currently in the active band gets `.is-on-fire` — visually the
+// fire transfers from the pyre (behind the sticky nav) to the link
+// itself. Sections without a corresponding nav link are ignored.
+//
+// rootMargin: '-80px 0px -55% 0px' means a section "ignites" once
+// its top crosses 80px from the viewport top (just under the nav)
+// and "extinguishes" once the section scrolls past the lower 45%
+// band. Net effect: only one section is on fire at a time, and the
+// transition feels like the flame passing from one link to the
+// next as you scroll.
+const FIRE_SECTIONS = ['how', 'etymology', 'rules'];
+const fireObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const link = document.querySelector(`.nav-links a[href="#${entry.target.id}"]`);
+    if (!link) return;
+    if (entry.isIntersecting) {
+      link.classList.add('is-on-fire');
+    } else {
+      link.classList.remove('is-on-fire');
+    }
+  });
+}, {
+  rootMargin: '-80px 0px -55% 0px',
+  threshold: 0,
+});
+FIRE_SECTIONS.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) fireObserver.observe(el);
+});

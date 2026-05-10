@@ -15,7 +15,19 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260509-14">
+<link rel="stylesheet" href="style.css?v=20260509-26">
+<!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
+     per Cloudflare's docs (see project policy §4 — analytics here is
+     explicitly approved as the cookieless variety, never the cookied
+     kind). The token is per-site; replace REPLACE_WITH_BEACON_TOKEN
+     with the value from Cloudflare → Web Analytics → site → "Site
+     tag". The same token doubles as the `siteTag` filter in the CF
+     GraphQL Analytics API, which the worker uses to populate the
+     visitors histogram + top-countries chart on the BY THE NUMBERS
+     section. Until a real token is pasted here, the beacon will
+     silently no-op (CF discards data for unknown tokens), and the
+     analytics charts will render an empty state. -->
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "REPLACE_WITH_BEACON_TOKEN"}'></script>
 </head>
 <body>
 
@@ -23,91 +35,226 @@
 
 <div class="page">
 
-  <!-- NAV -->
+  <!-- NAV — PYRE wordmark is a link to the top of the page (which IS
+       the leaderboard); the old "Leaderboard" link is gone (redundant
+       now). Anchor links on #how / #etymology / #rules will burst into
+       flames when their section enters the viewport (see main.js
+       IntersectionObserver). -->
   <nav>
-    <div class="nav-logo">PYRE</div>
+    <a class="nav-logo" href="#" aria-label="Top of page">PYRE</a>
     <div class="nav-links">
-      <a href="#leaderboard">Leaderboard</a>
       <a href="#how">How it works</a>
       <a href="#etymology">Etymology</a>
       <a href="#rules">Rules</a>
-      <a href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer">GitHub</a>
       <button class="btn-primary" onclick="openBurnModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Burn $PYRE</button>
     </div>
   </nav>
 
-  <!-- HERO -->
-  <section class="hero">
-    <div class="hero-eyebrow">Solana · Deflationary · Proof of Burn</div>
-    <div class="hero-title">PYRE</div>
-    <p class="hero-sub">
-      <em class="ling" style="font-style:normal;color:var(--text3);font-size:11px;letter-spacing:1.5px;">/ˈpaɪ.ər/ &nbsp;·&nbsp; <i>noun</i> &nbsp;·&nbsp; mid 17c., from Gk. πυρά</em><br><br>
-      Burn <strong>$PYRE</strong> tokens to claim your spot on the leaderboard.<br>
-      Every burn is deflationary. Every ad purchase removes supply.<br>
-      The more heat you generate, the more real estate you own.<br>
-      <span style="color:var(--text3);font-size:12px;">You were going to burn the money anyway. This way it has a memo.</span>
-    </p>
+  <!-- HERO — the leaderboard floats here directly on the fire shader.
+       16 uniform rows, each [amount | message | url]. Same wallet can
+       appear multiple times. URLs found inside message text are
+       auto-linked. Populated by leaderboard.js → renderLeaderboard. -->
+  <section class="hero" id="leaderboard">
+    <div class="leaderboard hero-board" id="lb-container">
+      <!-- 16 rows -->
+    </div>
   </section>
 
-  <!-- STATS -->
-  <div class="stats-bar">
-    <div class="stat">
-      <div class="stat-val" id="s-price">—</div>
-      <div class="stat-lbl">Price</div>
-      <div class="stat-change" id="s-price-change"></div>
-    </div>
-    <div class="stat">
-      <div class="stat-val" id="s-burned">—</div>
-      <div class="stat-lbl">$PYRE Burned</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val" id="s-burners">—</div>
-      <div class="stat-lbl">Burners</div>
-    </div>
-    <div class="stat">
-      <div class="stat-val" id="s-mcap">—</div>
-      <div class="stat-lbl">Market Cap</div>
-    </div>
-  </div>
+  <!-- (The standalone leaderboard section is gone — the hero above
+       IS the leaderboard now. Stats moved below "How it works".
+       Ranks 17+ still surface on the backburner section further down.) -->
 
-  <!-- LEADERBOARD -->
+  <!-- BACKBURNER — ranks 17+. Once a burn cools out of the top 16 it
+       slides here. Section is hidden by JS when no slots are displaced. -->
   <div class="full-divider"></div>
-  <section class="section" id="leaderboard">
-    <div class="section-header section-header-panel">
-      <div class="section-title">Live Burn Leaderboard</div>
+  <section class="section" id="backburner" style="display:none;">
+    <div class="section-header">
+      <div class="section-title">Backburner</div>
       <div class="section-line"></div>
     </div>
-
-    <div class="leaderboard" id="lb-container">
-      <!-- populated by JS from leaderboard.json -->
+    <p class="bb-blurb">Slots that cooled below #16. The receipts persist; the heat is just lower. Throw fresh fuel on the pyre to climb back up — or let them slide further into ash.</p>
+    <div class="backburner-list" id="bb-container">
+      <!-- populated by JS -->
     </div>
   </section>
 
-  <!-- HOW IT WORKS -->
+  <!-- HOW IT WORKS — four step cards in a 2x2 grid + a heat-math
+       callout that grounds the formula in concrete examples. -->
   <div class="full-divider"></div>
-  <section class="section" id="how">
+  <section class="section how-section" id="how">
     <div class="section-header">
       <div class="section-title">How it works</div>
       <div class="section-line"></div>
     </div>
+
     <div class="how-grid">
       <a class="how-card" href="https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">
         <div class="how-num">01</div>
         <div class="how-title">Buy</div>
-        <div class="how-body">Grab some $PYRE coin. The more you hold, the more you can burn.</div>
+        <div class="how-body">Grab some $PYRE.</div>
+        <div class="how-link">→ on jupiter</div>
       </a>
+
       <a class="how-card" href="#" onclick="event.preventDefault();openBurnModal();return false;">
         <div class="how-num">02</div>
         <div class="how-title">Burn</div>
-        <div class="how-body">Burn $PYRE. Fill out form. Sign with wallet. Done.</div>
+        <div class="how-body">Pick a URL, type a message, sign.</div>
+        <div class="how-link">→ open the burn modal</div>
       </a>
+
       <a class="how-card" href="#leaderboard">
         <div class="how-num">03</div>
-        <div class="how-title">Get seen</div>
-        <div class="how-body">The top 16 burners are displayed on this page. Burn more, burn fresher, rank higher.</div>
+        <div class="how-title">Get famous</div>
+        <div class="how-body">Top 16 land on the page. Bigger and fresher climbs. That's it.</div>
+        <div class="how-link">→ see the live ranks</div>
       </a>
     </div>
-    <p style="text-align:center;color:var(--text2);font-size:13px;line-height:1.55;margin:28px auto 0;max-width:620px;letter-spacing:0.2px;">Each burn runs you about a shiny Canadian penny… not that Canadian pennies exist anymore… but neither do the numbers in your bank account or your wife's boyfriend, right? …right?</p>
+
+    <div class="heat-math">
+      <div class="heat-math-label">— the heat math —</div>
+      <div class="heat-math-formula">heat&nbsp;&nbsp;=&nbsp;&nbsp;amount&nbsp;÷&nbsp;(hours_since&nbsp;+&nbsp;2)<sup>1.5</sup></div>
+      <div class="heat-math-examples">
+        <div class="heat-math-row">
+          <span class="hm-burn">100K $PYRE burn</span>
+          <span class="hm-when">at t = 0</span>
+          <span class="hm-arrow">→</span>
+          <span class="hm-heat">heat ≈ 35,400</span>
+        </div>
+        <div class="heat-math-row">
+          <span class="hm-burn">same 100K burn</span>
+          <span class="hm-when">24 hours later</span>
+          <span class="hm-arrow">→</span>
+          <span class="hm-heat">heat ≈ 760</span>
+        </div>
+        <div class="heat-math-row">
+          <span class="hm-burn">5K burn</span>
+          <span class="hm-when">1 hour after the original</span>
+          <span class="hm-arrow">→</span>
+          <span class="hm-heat">heat ≈ 960 <em>← outranks the day-old whale</em></span>
+        </div>
+      </div>
+      <div class="heat-math-tldr">the pyre rewards recency · there is no permanent rank</div>
+    </div>
+  </section>
+
+  <!-- BY THE NUMBERS — moved below "How it works" so the reader's path
+       is: leaderboard (the thing) → backburner (the cooled-off thing)
+       → mechanic explainer → live numbers. Eight stat cards (each with
+       a sparkline) followed by four big charts (price candles, visitor
+       bars, burn-volume bars, top countries). The advertiser-facing
+       framing — $PYRE burns are leaderboard ad slots, so the page
+       leans into the audience + activity numbers a buyer would want.
+       All sparklines and charts are pure inline SVG (see js/charts.js)
+       — zero dependencies, ember-styled. -->
+  <div class="full-divider"></div>
+  <section class="section stats-section" id="metrics">
+    <div class="section-header">
+      <div class="section-title">By the Numbers</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat">
+        <div class="stat-lbl">Price</div>
+        <div class="stat-val" id="s-price">—</div>
+        <div class="stat-spark" id="sp-price"></div>
+        <div class="stat-change" id="s-price-change"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">$PYRE Burned</div>
+        <div class="stat-val" id="s-burned">—</div>
+        <div class="stat-spark" id="sp-burned"></div>
+        <div class="stat-change">supply destroyed on chain</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Burners</div>
+        <div class="stat-val" id="s-burners">—</div>
+        <div class="stat-spark" id="sp-burners"></div>
+        <div class="stat-change">distinct wallets, all time</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Market Cap</div>
+        <div class="stat-val" id="s-mcap">—</div>
+        <div class="stat-spark" id="sp-mcap"></div>
+        <div class="stat-change">price × on-chain supply</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">24h Burn Volume</div>
+        <div class="stat-val" id="s-vol24">—</div>
+        <div class="stat-spark" id="sp-vol24"></div>
+        <div class="stat-change">$PYRE thrown on the pyre, last 24h</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Avg Burn Size</div>
+        <div class="stat-val" id="s-avgburn">—</div>
+        <div class="stat-spark" id="sp-avgburn"></div>
+        <div class="stat-change">$PYRE per burn, last 10 days</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Visitors Today</div>
+        <div class="stat-val" id="s-vis24">—</div>
+        <div class="stat-spark" id="sp-vis24"></div>
+        <div class="stat-change">page views, last 24h</div>
+      </div>
+      <div class="stat">
+        <div class="stat-lbl">Visitors 7d</div>
+        <div class="stat-val" id="s-vis7d">—</div>
+        <div class="stat-spark" id="sp-vis7d"></div>
+        <div class="stat-change">page views, last 7 days</div>
+      </div>
+    </div>
+
+    <!-- Big chart panels — populated by js/big-charts.js. Range
+         toggles (1d/3d/10d) live in each header and trim the rendered
+         data array client-side; underlying fetches always pull the
+         full 240-bucket window. -->
+    <div class="charts-grid" id="charts">
+      <div class="chart-panel chart-panel-wide">
+        <div class="chart-panel-head">
+          <div class="chart-panel-title">Price · 1h candles</div>
+          <div class="chart-panel-toggle" data-target="chart-price">
+            <button class="chart-range" data-range="24">1d</button>
+            <button class="chart-range" data-range="72">3d</button>
+            <button class="chart-range active" data-range="240">10d</button>
+          </div>
+        </div>
+        <div class="chart-panel-body" id="chart-price"></div>
+        <div class="chart-panel-foot" id="chart-price-foot">last 10 days · USD · pump-fun pool · data via geckoterminal.com</div>
+      </div>
+
+      <div class="chart-panel chart-panel-wide">
+        <div class="chart-panel-head">
+          <div class="chart-panel-title">Visitors · 1h bars</div>
+          <div class="chart-panel-toggle" data-target="chart-visitors">
+            <button class="chart-range" data-range="24">1d</button>
+            <button class="chart-range" data-range="72">3d</button>
+            <button class="chart-range active" data-range="240">10d</button>
+          </div>
+        </div>
+        <div class="chart-panel-body" id="chart-visitors"></div>
+        <div class="chart-panel-foot" id="chart-visitors-foot">last 10 days · page views per hour · cookieless, via cloudflare web analytics</div>
+      </div>
+
+      <div class="chart-panel chart-panel-wide">
+        <div class="chart-panel-head">
+          <div class="chart-panel-title">Burn volume · 1h bars</div>
+          <div class="chart-panel-toggle" data-target="chart-burns">
+            <button class="chart-range" data-range="24">1d</button>
+            <button class="chart-range" data-range="72">3d</button>
+            <button class="chart-range active" data-range="240">10d</button>
+          </div>
+        </div>
+        <div class="chart-panel-body" id="chart-burns"></div>
+        <div class="chart-panel-foot" id="chart-burns-foot">last 10 days · $PYRE burned per hour · derived from leaderboard.json</div>
+      </div>
+
+      <div class="chart-panel chart-panel-wide">
+        <div class="chart-panel-head">
+          <div class="chart-panel-title">Top countries · last 10 days</div>
+        </div>
+        <div class="chart-panel-body" id="chart-countries"></div>
+        <div class="chart-panel-foot" id="chart-countries-foot">share of page views · cookieless, via cloudflare web analytics</div>
+      </div>
+    </div>
   </section>
 
   <!-- ETYMOLOGY / FIELD GUIDE -->
@@ -116,7 +263,6 @@
     <div class="section-header">
       <div class="section-title">A Field Guide to the Word "Pyre"</div>
       <div class="section-line"></div>
-      <div class="section-meta">For the literate degen · est. ca. 7000 BCE</div>
     </div>
 
     <div class="etym-wrap">
@@ -237,18 +383,17 @@
     <div class="section-header">
       <div class="section-title">The Rules</div>
       <div class="section-line"></div>
-      <div class="section-meta">Simple. Fair. Human-reviewed.</div>
     </div>
     <div class="rules-grid">
       <div>
         <div class="rules-col-title">✓ &nbsp;What flies</div>
         <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Any legal product, project, or community</strong> — crypto, SaaS, art, music, memes, whatever. If it's legal, it's burnable.</div></div>
-        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Burn as many times as you want.</strong> Each burn is its own upvote with its own timestamp. They sum into your <em>heat</em>, decaying like a Reddit "hot" feed: <code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">amount ÷ (hours_since + 2)<sup>1.5</sup></code>.</div></div>
-        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>One URL + one message per wallet.</strong> Subsequent burns from the same wallet add to your wallet's heat — they don't spawn a new slot.</div></div>
-        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Change your message anytime</strong> by burning more. Your latest memo overwrites your displayed message; old burns still count toward heat (until they decay).</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Every burn is its own slot.</strong> Each burn carries its own URL, its own message, its own timestamp, and its own on-chain receipt. The same wallet can hold many slots at once.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Burn as many times as you want.</strong> Heat per slot decays like a Reddit "hot" feed: <code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">amount ÷ (hours_since + 2)<sup>1.5</sup></code>. Bigger and fresher both climb.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Change your pitch anytime.</strong> Just burn again with a new memo — that's a new slot. The old one keeps decaying until it slides to the backburner.</div></div>
         <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Fresh burns climb fast.</strong> A 10K burn from the last hour can outrank a 100K burn from yesterday. The pyre rewards recency — that's the quid pro quo.</div></div>
         <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Links open in a new tab.</strong> Your URL is live, clickable, and in front of every degen watching the leaderboard.</div></div>
-        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>The more you burn, the bigger your slot.</strong> Rank 1 gets a full hero card. Ranks 2–6 get medium cards. Ranks 7–16 get compact rows.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>The bigger the burn, the bigger the slot.</strong> Rank 1 gets the sponsored hero card above the fold. Ranks 2–6 get medium cards. Ranks 7–16 get compact rows. Below #16 you cool off on the backburner.</div></div>
       </div>
       <div>
         <div class="rules-col-title">✗ &nbsp;What gets pulled</div>
@@ -256,29 +401,11 @@
         <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Illegal content of any kind</strong> — scams, fraud, counterfeit goods, anything prohibited by law. We cooperate fully with any lawful request.</div></div>
         <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>NSFW or adult content.</strong> Keep it safe for all audiences. This is a public leaderboard.</div></div>
         <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Impersonation of other projects, people, or brands</strong> without clear permission or obvious parody context.</div></div>
-        <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Burn stuffing / wash transactions.</strong> If we see circular wallet activity inflating burn amounts, the slot is removed and flagged publicly.</div></div>
+        <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Spam-flooding / wash trading.</strong> A wallet drowning the board in low-value repeat slots, or circular activity inflating ranks, gets pulled and flagged publicly.</div></div>
         <div class="rule"><div class="rule-icon no">✗</div><div class="rule-text"><strong>Final say is human.</strong> The GitHub maintainers are the last word. We're chill — but we're not neutral. The culture of this leaderboard matters to us.</div></div>
       </div>
     </div>
   </section>
-
-  <!-- BURN CTA -->
-  <div class="full-divider"></div>
-  <div class="cta-block" id="burn">
-    <div class="cta-label">Ready to be seen?</div>
-    <div class="cta-title">Throw It On The Pyre</div>
-    <p class="cta-sub">
-      Burn $PYRE. Own the leaderboard. Get seen by every degen in this (unfortunate) timeline.<br>
-      No subscription. No renewal. No vesting. No cliff. No one to email.<br>
-      Just <em class="ling" style="color:var(--ember2);font-style:italic;">πυρά</em>.
-    </p>
-    <div class="btn-row">
-      <button class="btn-primary" onclick="openBurnModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Burn $PYRE</button>
-      <button class="btn-ghost" onclick="window.open('https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>$PYRE on X</button>
-      <button class="btn-ghost" onclick="window.open('https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump','_blank','noopener')">Buy $PYRE on Jupiter</button>
-      <button class="btn-ghost" onclick="window.open('https://github.com/PyreCoin/PyreCoin','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</button>
-    </div>
-  </div>
 
   <!-- DISCLAIMER -->
   <section id="disclaimer" class="disclaimer section">
@@ -367,6 +494,8 @@
           <label for="burnAmount">Amount of $PYRE to burn</label>
           <input id="burnAmount" type="number" min="1" step="any" placeholder="10000" required>
           <div class="helper">This amount is permanently destroyed. There is no refund.</div>
+          <!-- "min to take #1" hint, populated by burn.js on modal open -->
+          <div class="burn-hint" id="burnHint"></div>
         </div>
         <div class="burn-status" id="burnStatus"></div>
         <button type="submit" class="burn-modal-submit" id="burnSubmit">Connect wallet &amp; burn</button>
@@ -374,20 +503,54 @@
     </div>
   </div>
 
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-logo">PYRE</div>
-    <div class="footer-links">
-      <a href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
-      <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@PYREcoin</a>
-      <a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>$PYRE on X</a>
-      <a href="https://pump.fun/coin/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">pump.fun</a>
-      <a href="https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">Jupiter</a>
-      <a href="https://dexscreener.com/solana/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">DexScreener</a>
-      <a href="#rules">Rules</a>
-      <a href="#disclaimer">Disclaimer</a>
-      <a href="#colophon">Colophon</a>
+  <!-- COMBINED CTA + FOOTER — the "Throw it on the pyre" CTA closes
+       the page. The smaller link/note ribbon sits beneath as a
+       single semantic <footer>. -->
+  <div class="full-divider"></div>
+  <footer class="cta-block" id="burn">
+    <div class="cta-label">Ready to be seen?</div>
+    <div class="cta-title">Throw It On The Pyre</div>
+    <p class="cta-sub">
+      Burn $PYRE. Own the leaderboard. Get seen by every degen in this (unfortunate) timeline.<br>
+      No subscription. No renewal. No vesting. No cliff. No one to email.<br>
+      Just <em class="ling" style="color:var(--ember2);font-style:italic;">πυρά</em>.
+    </p>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="openBurnModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Burn $PYRE</button>
+      <button class="btn-ghost" onclick="window.open('https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>$PYRE on X</button>
+      <button class="btn-ghost" onclick="window.open('https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump','_blank','noopener')">Buy $PYRE on Jupiter</button>
+      <button class="btn-ghost" onclick="window.open('https://github.com/PyreCoin/PyreCoin','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</button>
     </div>
+
+    <div class="cta-divider"></div>
+
+    <div class="footer-cols">
+      <div class="footer-col">
+        <div class="footer-col-title">Markets</div>
+        <ul>
+          <li><a href="https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">Jupiter</a></li>
+          <li><a href="https://pump.fun/coin/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">pump.fun</a></li>
+          <li><a href="https://dexscreener.com/solana/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump" target="_blank" rel="noopener noreferrer">DexScreener</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">The Project</div>
+        <ul>
+          <li><a href="#rules">Rules</a></li>
+          <li><a href="#disclaimer">Disclaimer</a></li>
+          <li><a href="#colophon">Colophon</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <div class="footer-col-title">Community</div>
+        <ul>
+          <li><a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a></li>
+          <li><a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer">$PYRE on X</a></li>
+          <li><a href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+
     <div class="footer-note">$PYRE is a memecoin · digital collectible · not a security · not financial advice · burn responsibly</div>
   </footer>
 
@@ -399,7 +562,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260509-16"></script>
+<script type="module" src="js/main.js?v=20260509-26"></script>
 
 </body>
 </html>

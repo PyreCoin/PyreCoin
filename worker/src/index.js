@@ -1,16 +1,21 @@
-// Cloudflare Worker — RPC proxy for pyrecoin.com.
+// Cloudflare Worker — three jobs:
 //
-// The browser-side burn modal needs to call Solana mainnet RPC
-// (getAccountInfo on the user's PYRE token account, getLatestBlockhash,
-// etc.). Solana Foundation's public mainnet endpoint started returning
-// 403 to browser-origin calls in 2026-05; the only reliable free
-// alternatives require an API key.
+//   1. POST /            → Solana RPC proxy (Helius), browser-only.
+//   2. GET  /price-history → GeckoTerminal hourly OHLCV for the PYRE
+//                            pool, cached 5 min via Cache API.
+//   3. GET  /analytics   → Cloudflare GraphQL Web Analytics
+//                          (hourly visits + top countries),
+//                          cached 5 min via Cache API.
 //
-// This worker holds the Helius key in an encrypted env binding
-// (HELIUS_KEY, set via `wrangler secret put`) and only proxies POSTs
-// from allowlisted origins. Result: the key stays server-side, third
-// parties scraping page source can't use the endpoint, and we keep
-// the cron's Helius key (Key A) on its own quota.
+// Plus the existing scheduled handler that pokes GitHub
+// workflow_dispatch every 5 min to drive the ingest cron.
+//
+// Why route everything through one worker instead of multiple:
+//   - free-tier Workers cap at 100K req/day across the account
+//     anyway, so one worker is no more expensive than three;
+//   - the Origin allowlist + secret bindings live in one place;
+//   - end users only see one third-party hostname (rpc.pyrecoin.com)
+//     in network requests, which keeps the colophon honest.
 
 const ALLOWED_ORIGINS = new Set([
   'https://pyrecoin.com',
@@ -20,21 +25,18 @@ const ALLOWED_ORIGINS = new Set([
 
 const HELIUS_BASE = 'https://mainnet.helius-rpc.com/?api-key=';
 
+// Cache TTL for the GET endpoints. Both the GeckoTerminal API
+// (30 req/min public limit) and the CF GraphQL Analytics API
+// (similar low limit on the Free plan) appreciate this. With a
+// 5-minute cache, even thousands of pageviews/hour resolve to ~12
+// upstream calls/hour per endpoint.
+const ENDPOINT_CACHE_TTL = 300;
+
 // ── PER-IP RATE LIMIT ─────────────────────────────────────────────
-// The Origin allowlist above is enforced by browsers (CORS), but
-// non-browser clients (curl, scripts) can spoof Origin headers
-// freely. This rate limit is the actual abuse cap: caps requests per
-// source IP so a harvested worker URL can't be used to drain Helius
-// quota at any meaningful rate.
-//
-// In-memory map per worker instance. Cloudflare runs many independent
-// instances across datacenters, so the effective ceiling is
-// (RATE_LIMIT_MAX × instance count) per IP — but no single connection
-// from one IP exceeds the per-instance cap, which is what matters.
-//
-// 60 req/min/IP gives a legitimate visitor headroom (~12 burn-modal
-// opens per minute, where each open does ~5 RPC calls) while making
-// scripted abuse impractical.
+// CORS gates browsers; rate limit gates everything else. 60 req/min/IP
+// caps non-browser abuse without crowding legitimate visitors. The
+// limit applies across all paths — a script flooding /price-history
+// also burns from the same bucket as /rpc.
 
 const RATE_LIMIT_MAX = 60;
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -52,8 +54,6 @@ function rateLimitOk(ip) {
   const bucket = (ipBuckets.get(ip) || []).filter(t => t > cutoff);
   bucket.push(now);
   ipBuckets.set(ip, bucket);
-  // Bounded GC: when the map gets large, drop entries with no recent
-  // activity. Cheap because most entries will be expired already.
   if (ipBuckets.size > 2000) {
     for (const [k, v] of ipBuckets) {
       if (v.every(t => t < cutoff)) ipBuckets.delete(k);
@@ -65,23 +65,198 @@ function rateLimitOk(ip) {
 function corsHeaders(origin) {
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin',
   };
 }
 
-// ── INGEST CRON TRIGGER ──────────────────────────────────────────
-// GH Actions free-tier `schedule:` cron is best-effort: during high
-// load it routinely delays 1–3 hours per run, which makes the
-// burn-to-leaderboard latency unbearable for a memecoin. CF Worker
-// cron is reliable, so the source of truth for "trigger ingest" lives
-// here. Each tick POSTs to GitHub's workflow_dispatch endpoint, which
-// queues an Ingest run. The GH cron in ingest.yml stays as a backup.
+function jsonResponse(body, init = {}, origin = null) {
+  const headers = new Headers(init.headers || {});
+  headers.set('Content-Type', 'application/json');
+  if (origin) {
+    for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
+  }
+  return new Response(JSON.stringify(body), { status: init.status || 200, headers });
+}
+
+// Apply CORS headers to a previously-built (or cached) Response. We
+// do this at serve time rather than baking CORS into the cached body
+// so a cache hit from one allowlisted origin doesn't poison the
+// cached entry for a different allowlisted origin.
+function withCors(response, origin) {
+  const headers = new Headers(response.headers);
+  for (const [k, v] of Object.entries(corsHeaders(origin))) headers.set(k, v);
+  return new Response(response.body, { status: response.status, headers });
+}
+
+// ── PRICE HISTORY (GeckoTerminal) ────────────────────────────────
+// Hourly OHLCV for the PYRE/SOL pool on pump-fun. The pool address
+// is stable for the life of the token but kept in env (PYRE_POOL,
+// declared in wrangler.toml [vars]) so we can swap it without a code
+// change if pump.fun ever migrates the pool to PumpSwap/Raydium.
+
+async function fetchGeckoTerminalOhlcv(env) {
+  const pool = env.PYRE_POOL || '6qtLrqwJu132JtMWTRzVymZJPkczbifzN9ejq4Lg5u2P';
+  const url = `https://api.geckoterminal.com/api/v2/networks/solana/pools/${pool}/ohlcv/hour?aggregate=1&limit=240&currency=usd`;
+  const r = await fetch(url, {
+    headers: { 'Accept': 'application/json;version=20230302' },
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => '');
+    throw new Error(`geckoterminal ${r.status}: ${txt.slice(0, 200)}`);
+  }
+  const data = await r.json();
+  const rows = data?.data?.attributes?.ohlcv_list;
+  if (!Array.isArray(rows)) {
+    throw new Error('geckoterminal: no ohlcv_list in response');
+  }
+  // Pass through verbatim: [tsSeconds, open, high, low, close, vol_usd].
+  // The frontend tolerates either order; GT returns newest-first.
+  return { ohlcv: rows, source: 'geckoterminal', pool };
+}
+
+async function handlePriceHistory(request, env, ctx, origin) {
+  const cache = caches.default;
+  // Cache key is method + URL; the URL already encodes any query
+  // params (e.g. ?hours=240) so different ranges cache separately.
+  const cacheKey = new Request(request.url, { method: 'GET' });
+  let response = await cache.match(cacheKey);
+  if (response) {
+    return withCors(response, origin);
+  }
+  let payload;
+  try {
+    payload = await fetchGeckoTerminalOhlcv(env);
+  } catch (err) {
+    return jsonResponse({ error: 'price-history upstream failed', detail: err.message }, { status: 502 }, origin);
+  }
+  response = new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': `public, s-maxage=${ENDPOINT_CACHE_TTL}, max-age=${ENDPOINT_CACHE_TTL}`,
+    },
+  });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  return withCors(response, origin);
+}
+
+// ── ANALYTICS (CF GraphQL Web Analytics) ─────────────────────────
+// Single GraphQL query with two aliased datasets:
+//   - `hourly`    → 240 hourly visit-count buckets
+//   - `countries` → top 50 countries by visit count
 //
-// Requires GITHUB_PAT (fine-grained, repo-scoped, Actions RW):
-//   wrangler secret put GITHUB_PAT
+// Returns an empty payload with note='not configured' if the env vars
+// aren't set yet. The frontend renders an empty-state placeholder in
+// that case rather than failing hard.
+
+const CF_GRAPHQL_URL = 'https://api.cloudflare.com/client/v4/graphql';
+
+const ANALYTICS_QUERY = `
+query GetAnalytics($accountTag: String!, $siteTag: String!, $datetimeStart: Time!) {
+  viewer {
+    accounts(filter: { accountTag: $accountTag }) {
+      hourly: rumPageloadEventsAdaptiveGroups(
+        limit: 240
+        filter: { siteTag: $siteTag, datetime_geq: $datetimeStart }
+        orderBy: [datetimeHour_DESC]
+      ) {
+        count
+        dimensions {
+          datetimeHour
+        }
+      }
+      countries: rumPageloadEventsAdaptiveGroups(
+        limit: 50
+        filter: { siteTag: $siteTag, datetime_geq: $datetimeStart }
+        orderBy: [count_DESC]
+      ) {
+        count
+        dimensions {
+          countryName
+        }
+      }
+    }
+  }
+}
+`;
+
+async function fetchCfAnalytics(env) {
+  const token = env.CF_ANALYTICS_TOKEN;
+  const accountTag = env.CF_ACCOUNT_ID;
+  const siteTag = env.CF_SITE_TAG;
+  if (!token || !accountTag || !siteTag) {
+    return {
+      hourlyVisits: [],
+      topCountries: [],
+      note: 'CF_ANALYTICS_TOKEN / CF_ACCOUNT_ID / CF_SITE_TAG not set; analytics will appear once configured',
+    };
+  }
+  const datetimeStart = new Date(Date.now() - 240 * 3_600_000).toISOString();
+  const r = await fetch(CF_GRAPHQL_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: ANALYTICS_QUERY,
+      variables: { accountTag, siteTag, datetimeStart },
+    }),
+  });
+  if (!r.ok) {
+    const txt = await r.text().catch(() => '');
+    throw new Error(`cf graphql ${r.status}: ${txt.slice(0, 300)}`);
+  }
+  const json = await r.json();
+  if (Array.isArray(json.errors) && json.errors.length) {
+    // Surface the first error message — usually a permission scope
+    // issue (token missing Account.Account Analytics: Read) or an
+    // invalid siteTag.
+    throw new Error(`cf graphql errors: ${json.errors[0]?.message || 'unknown'}`);
+  }
+  const acct = json?.data?.viewer?.accounts?.[0];
+  const hourlyRaw = acct?.hourly || [];
+  const countriesRaw = acct?.countries || [];
+  return {
+    hourlyVisits: hourlyRaw.map(g => ({
+      tsSeconds: Math.floor(Date.parse(g?.dimensions?.datetimeHour) / 1000),
+      count: g?.count || 0,
+    })).filter(e => isFinite(e.tsSeconds)),
+    topCountries: countriesRaw.map(g => ({
+      label: g?.dimensions?.countryName || 'Unknown',
+      value: g?.count || 0,
+    })).filter(e => e.value > 0),
+  };
+}
+
+async function handleAnalytics(request, env, ctx, origin) {
+  const cache = caches.default;
+  const cacheKey = new Request(request.url, { method: 'GET' });
+  let response = await cache.match(cacheKey);
+  if (response) {
+    return withCors(response, origin);
+  }
+  let payload;
+  try {
+    payload = await fetchCfAnalytics(env);
+  } catch (err) {
+    return jsonResponse({ error: 'analytics upstream failed', detail: err.message }, { status: 502 }, origin);
+  }
+  response = new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': `public, s-maxage=${ENDPOINT_CACHE_TTL}, max-age=${ENDPOINT_CACHE_TTL}`,
+    },
+  });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  return withCors(response, origin);
+}
+
+// ── INGEST CRON TRIGGER (unchanged from prior version) ───────────
 
 const INGEST_REPO = 'PyreCoin/PyreCoin';
 const INGEST_WORKFLOW = 'ingest.yml';
@@ -114,46 +289,51 @@ async function dispatchIngest(env) {
   }
 }
 
+// ── MAIN ENTRY ───────────────────────────────────────────────────
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || '';
     const allowed = ALLOWED_ORIGINS.has(origin);
+    const url = new URL(request.url);
 
-    // CORS preflight. Only respond with allow-headers if origin is on
-    // the allowlist; otherwise fail closed.
+    // CORS preflight. Origin allowlist is enforced even on preflight
+    // — a non-allowlisted page can't even discover what methods the
+    // worker accepts.
     if (request.method === 'OPTIONS') {
       if (!allowed) return new Response(null, { status: 403 });
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
 
     if (!allowed) {
-      return new Response(JSON.stringify({ error: 'forbidden origin' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'forbidden origin' }, { status: 403 });
+    }
+
+    const ip = clientIp(request);
+    if (!rateLimitOk(ip)) {
+      return jsonResponse({ error: 'rate limited' }, {
+        status: 429,
+        headers: { 'Retry-After': '60' },
+      }, origin);
+    }
+
+    if (request.method === 'GET') {
+      if (url.pathname === '/price-history') {
+        return handlePriceHistory(request, env, ctx, origin);
+      }
+      if (url.pathname === '/analytics') {
+        return handleAnalytics(request, env, ctx, origin);
+      }
+      return jsonResponse({ error: 'not found' }, { status: 404 }, origin);
     }
 
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
 
+    // Default POST behavior = Helius RPC proxy.
     if (!env.HELIUS_KEY) {
-      return new Response(JSON.stringify({ error: 'misconfigured: HELIUS_KEY not set' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const ip = clientIp(request);
-    if (!rateLimitOk(ip)) {
-      return new Response(JSON.stringify({ error: 'rate limited' }), {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': '60',
-          ...corsHeaders(origin),
-        },
-      });
+      return jsonResponse({ error: 'misconfigured: HELIUS_KEY not set' }, { status: 500 }, origin);
     }
 
     const body = await request.text();
@@ -165,10 +345,7 @@ export default {
         body,
       });
     } catch (err) {
-      return new Response(JSON.stringify({ error: 'upstream fetch failed' }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-      });
+      return jsonResponse({ error: 'upstream fetch failed' }, { status: 502 }, origin);
     }
 
     const text = await upstream.text();
@@ -181,8 +358,6 @@ export default {
     });
   },
 
-  // CF Worker cron tick. Fires per the schedule in wrangler.toml.
-  // Each tick pokes GH workflow_dispatch to queue an ingest run.
   async scheduled(controller, env, ctx) {
     ctx.waitUntil(dispatchIngest(env));
   },

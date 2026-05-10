@@ -15,17 +15,31 @@ routes = [
   { pattern = "rpc.pyrecoin.com", custom_domain = true }
 ]
 
-# HELIUS_KEY is an encrypted secret, set via:
-#   wrangler secret put HELIUS_KEY
-# (don't add it here — secrets in wrangler.toml end up in plaintext
-# in the deployed worker bundle).
+# Public, non-secret config goes here in [vars]; encrypted secrets
+# go through `wrangler secret put`.
+[vars]
+# GeckoTerminal pool address for PYRE/SOL on pump-fun. Stable for the
+# life of the token. If pump.fun ever migrates the pool to PumpSwap or
+# Raydium, swap this value and redeploy — no code change needed.
+PYRE_POOL = "6qtLrqwJu132JtMWTRzVymZJPkczbifzN9ejq4Lg5u2P"
+
+# Secrets (set via `wrangler secret put NAME`, then paste at the prompt
+# — see CLAUDE.md §7.12; do NOT paste secret values as command args).
 #
-# GITHUB_PAT (also a secret) drives the cron-trigger handler below.
-# Set via:
-#   wrangler secret put GITHUB_PAT
-# Use a fine-grained PAT scoped to the PyreCoin repo with
-# Actions: Read & Write only. 90-day expiration is the GitHub max —
-# set a calendar reminder to rotate.
+# Required for /rpc proxy + /scheduled ingest:
+#   HELIUS_KEY   → Helius RPC API key (browser proxy traffic)
+#   GITHUB_PAT   → fine-grained PAT, repo-scoped to PyreCoin/PyreCoin,
+#                  Actions: Read & Write. 90-day max expiration —
+#                  calendar a rotation reminder.
+#
+# Required for /analytics endpoint (CF Web Analytics → "By the Numbers"
+# visitor histogram + top-countries chart). When unset, /analytics
+# returns an empty payload and the frontend renders an empty-state
+# placeholder — the rest of the page works fine.
+#   CF_ANALYTICS_TOKEN → CF API token, scoped: Account · Account Analytics: Read
+#   CF_ACCOUNT_ID      → CF account ID (zone overview right sidebar)
+#   CF_SITE_TAG        → CF Web Analytics "Site tag" — same value
+#                        pasted into index.html data-cf-beacon token
 
 # ── INGEST CRON ───────────────────────────────────────────────────
 # Fires the scheduled handler in src/index.js every 5 minutes; that
