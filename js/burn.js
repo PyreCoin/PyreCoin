@@ -144,13 +144,21 @@ function detectProvider() {
 
 async function refreshWalletState() {
   const provider = detectProvider();
+  // The wallet-row strip carries the "Wallet: <addr>" / "Wallet: not
+  // connected" status line. When NO provider is detected at all, the
+  // big orange "Install a Solana wallet" submit button is the only
+  // call to action that matters — the redundant status line eats
+  // valuable modal real estate, so we hide the entire row.
+  const walletRow = $('walletStatus')?.parentElement;
   if (!provider) {
-    $('walletStatus').innerHTML = 'Wallet: <span style="color:var(--text2)">none detected</span>';
+    if (walletRow) walletRow.style.display = 'none';
+    $('walletStatus').innerHTML = '';
     $('walletBalance').textContent = '';
     $('burnSubmit').textContent = 'Install a Solana wallet';
     $('burnSubmit').disabled = true;
     return;
   }
+  if (walletRow) walletRow.style.display = '';
   burnState.provider = provider;
   if (provider.publicKey) {
     burnState.publicKey = provider.publicKey;
