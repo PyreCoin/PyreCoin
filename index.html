@@ -15,18 +15,15 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260510-1">
+<link rel="stylesheet" href="style.css?v=20260510-2">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
-     kind). The token is per-site; replace REPLACE_WITH_BEACON_TOKEN
-     with the value from Cloudflare → Web Analytics → site → "Site
-     tag". The same token doubles as the `siteTag` filter in the CF
-     GraphQL Analytics API, which the worker uses to populate the
-     visitors histogram + top-countries chart on the BY THE NUMBERS
-     section. Until a real token is pasted here, the beacon will
-     silently no-op (CF discards data for unknown tokens), and the
-     analytics charts will render an empty state. -->
+     kind). The token below is per-site; pull it from Cloudflare →
+     Web Analytics → site → "Site tag" if you ever rotate it. The same
+     token doubles as the `siteTag` filter in the CF GraphQL Analytics
+     API the worker uses to populate the visitors histogram + top-
+     countries chart in the BY THE NUMBERS section. -->
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "c6a043e568344861ba0df024a4894e30"}'></script>
 </head>
 <body>
@@ -44,7 +41,7 @@
     <a class="nav-logo" href="#" aria-label="Top of page">
       <span class="nav-logo-default">PYRE</span>
       <span class="nav-logo-hover ling" aria-hidden="true">πυρά</span>
-      <span class="nav-logo-tooltip" role="tooltip"><span class="ling" style="color:var(--ember2);">πυρά</span> <span class="ling" style="color:var(--text3);font-style:italic;">(purá)</span> — Ancient Greek for any meaningful fire: funeral pyre, altar-fire, hearth. The root of this project's name.</span>
+      <span class="nav-logo-tooltip" role="tooltip"><span class="ling tone-ember">πυρά</span> <span class="ling tone-faint">(purá)</span> — Ancient Greek for any meaningful fire: funeral pyre, altar-fire, hearth. The root of this project's name.</span>
     </a>
     <div class="nav-links">
       <a href="#how">How it works</a>
@@ -84,10 +81,10 @@
   </section>
 
   <!-- HOW IT WORKS — reframed as a Solana social experiment in writing
-       things onto the blockchain on purpose. Two steps: burn, exist
-       on-chain forever. The "buy first" framing is gone — buying is a
-       side note below the steps, not the entry point. The heat-math
-       callout still grounds the decay formula in concrete examples. -->
+       things onto the blockchain on purpose. Two cards: burn, then
+       land on the leaderboard. The "buy first" framing is gone —
+       buying is a side note below the cards, not the entry point. The
+       heat-math callout grounds the decay formula in concrete examples. -->
   <div class="full-divider"></div>
   <section class="section how-section" id="how">
     <div class="section-header">
@@ -100,21 +97,21 @@
       <em>on purpose</em>. You burn some $PYRE, attach a URL plus a
       280-character message, and Solana logs the receipt forever. If your
       burn is big or fresh enough, your message lands on the public
-      leaderboard above. Either way, the chain remembers. Two steps:
+      leaderboard above. Either way, the chain remembers.
     </p>
 
     <div class="how-grid how-grid-2">
       <a class="how-card" href="#" onclick="event.preventDefault();openBurnModal();return false;">
         <div class="how-num">01</div>
         <div class="how-title">Burn PYRE</div>
-        <div class="how-body">Pick a URL. Type a message. Sign. Tokens burn. Message lives on Solana forever.</div>
+        <div class="how-body">Pick a URL. Type a message. Sign. The tokens are gone — the supply itself moves down.</div>
         <div class="how-link">→ open the burn modal</div>
       </a>
 
       <a class="how-card" href="#leaderboard">
         <div class="how-num">02</div>
         <div class="how-title">Be blockchain famous</div>
-        <div class="how-body">Top 16 burns hit the leaderboard. Bigger and fresher climb higher. Either way, your message lives on Solana forever.</div>
+        <div class="how-body">Top 16 burns hit the leaderboard. Bigger and fresher climb higher; older slots cool to the backburner.</div>
         <div class="how-link">→ see the live ranks</div>
       </a>
     </div>
@@ -390,7 +387,7 @@
       </div>
 
       <div class="sidebar-fact">
-        <b>etymological footnote</b> — Proto-Indo-European apparently kept two distinct roots for "fire": <span class="ling" style="color:var(--ember2);">*péh₂wr̥</span> (inanimate, fire-as-substance — the kind you handle, store, transfer, and burn) and <span class="ling" style="color:var(--ember2);">*h₁n̥gʷnis</span> (animate, fire-as-living-force — the kind that arrives, consumes, and decides). English took the first. We are working with the substance.
+        <b>etymological footnote</b> — Proto-Indo-European apparently kept two distinct roots for "fire": <span class="ling tone-ember">*péh₂wr̥</span> (inanimate, fire-as-substance — the kind you handle, store, transfer, and burn) and <span class="ling tone-ember">*h₁n̥gʷnis</span> (animate, fire-as-living-force — the kind that arrives, consumes, and decides). English took the first. We are working with the substance.
       </div>
     </article>
 
@@ -545,7 +542,7 @@
     <p class="cta-sub">
       Burn $PYRE. Own the leaderboard. Get seen by every degen in this (unfortunate) timeline.<br>
       No subscription. No renewal. No vesting. No cliff. No one to email.<br>
-      Just <em class="ling" style="color:var(--ember2);font-style:italic;">πυρά</em>.
+      Just <em class="ling tone-ember">πυρά</em>.
     </p>
     <div class="btn-row">
       <button class="btn-primary" onclick="openBurnModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Burn $PYRE</button>
@@ -586,7 +583,16 @@
       </div>
     </div>
 
-    <div class="footer-note">$PYRE is a memecoin · digital collectible · not a security · not financial advice · burn responsibly</div>
+    <!-- Closing line. The compliance load (memecoin / digital collectible /
+         not a security / not financial advice) is carried explicitly by the
+         <section id="disclaimer"> block above; this footer ribbon used to
+         re-state it as boilerplate. Replaced with a literary closer that
+         matches the page's register and the project's "remembered forever
+         vs. inevitably forgotten" tension. -->
+    <div class="footer-quote">
+      <span class="footer-quote-text">Soon you will have forgotten everything; soon everything will have forgotten you.</span>
+      <span class="footer-quote-cite">— Marcus Aurelius, <em>Meditations</em> VII.21</span>
+    </div>
   </footer>
 
 </div><!-- /page -->
@@ -597,7 +603,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260510-1"></script>
+<script type="module" src="js/main.js?v=20260510-2"></script>
 
 </body>
 </html>

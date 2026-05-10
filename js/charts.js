@@ -22,6 +22,8 @@
 // throw; bad input renders an empty-state placeholder so a single
 // flaky data source never tanks the section.
 
+import { escapeHtml } from './utils.js';
+
 const COLOR = {
   emberStroke: '#ff6622',
   emberFill:   '#ff6622',
@@ -34,13 +36,9 @@ const COLOR = {
 
 // ── helpers ──────────────────────────────────────────────────────
 
-function escapeAttr(s){
-  return String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
 function emptyState(container, msg){
   if (!container) return;
-  container.innerHTML = `<div class="chart-panel-empty">${escapeAttr(msg)}</div>`;
+  container.innerHTML = `<div class="chart-panel-empty">${escapeHtml(msg)}</div>`;
 }
 
 // Stable unique id per renderer call so multiple gradient defs on
@@ -167,7 +165,7 @@ export function histogramBars(container, buckets, opts = {}){
     const v = (max * (lines - i)) / lines;
     const y = TOP_PAD + (i / lines) * innerH;
     grids.push(`<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="${COLOR.axis}" stroke-width="0.5" stroke-dasharray="2,3"/>`);
-    grids.push(`<text x="6" y="${y - 2}" font-family="DM Mono, monospace" font-size="9" fill="${COLOR.text}" text-anchor="start">${escapeAttr(fmtY(v))}</text>`);
+    grids.push(`<text x="6" y="${y - 2}" font-family="DM Mono, monospace" font-size="9" fill="${COLOR.text}" text-anchor="start">${escapeHtml(fmtY(v))}</text>`);
   }
 
   const gid = uid('hist-grad');
@@ -176,7 +174,7 @@ export function histogramBars(container, buckets, opts = {}){
     const h = (v / max) * innerH;
     const x = SIDE_PAD + i * slotW + (slotW - barW) / 2;
     const y = TOP_PAD + (innerH - h);
-    return `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barW.toFixed(2)}" height="${h.toFixed(2)}" fill="url(#${gid})" rx="0.5"><title>${escapeAttr(tipFn(i, v))}</title></rect>`;
+    return `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barW.toFixed(2)}" height="${h.toFixed(2)}" fill="url(#${gid})" rx="0.5"><title>${escapeHtml(tipFn(i, v))}</title></rect>`;
   }).join('');
 
   container.innerHTML = `
@@ -257,7 +255,7 @@ export function candlestick(container, ohlcv, opts = {}){
     const p = lo + range * (gridLines - i) / gridLines;
     const y = TOP_PAD + (i / gridLines) * innerH;
     grids.push(`<line x1="${LEFT_PAD}" x2="${LEFT_PAD + innerW}" y1="${y}" y2="${y}" stroke="${COLOR.axis}" stroke-width="0.5" stroke-dasharray="2,3"/>`);
-    grids.push(`<text x="${LEFT_PAD + innerW + 4}" y="${y + 3}" font-family="DM Mono, monospace" font-size="9" fill="${COLOR.text}" text-anchor="start">$${escapeAttr(fmtPrice(p))}</text>`);
+    grids.push(`<text x="${LEFT_PAD + innerW + 4}" y="${y + 3}" font-family="DM Mono, monospace" font-size="9" fill="${COLOR.text}" text-anchor="start">$${escapeHtml(fmtPrice(p))}</text>`);
   }
 
   const candles = rows.map((r, i) => {
@@ -277,7 +275,7 @@ export function candlestick(container, ohlcv, opts = {}){
     return `<g>
       <rect x="${(x - wickW/2).toFixed(2)}" y="${yHi.toFixed(2)}" width="${wickW.toFixed(2)}" height="${(yLo - yHi).toFixed(2)}" fill="${color}"/>
       <rect x="${bx.toFixed(2)}" y="${yT.toFixed(2)}" width="${bodyW.toFixed(2)}" height="${Math.max(0.6, yB - yT).toFixed(2)}" fill="${color}" fill-opacity="${up ? 0.85 : 0.85}" stroke="${color}" stroke-width="0.4"/>
-      <title>${escapeAttr(tip)}</title>
+      <title>${escapeHtml(tip)}</title>
     </g>`;
   }).join('');
 
@@ -322,9 +320,9 @@ export function horizontalBars(container, items, opts = {}){
     const pct = total > 0 ? (it.value / total * 100) : 0;
     const pctTxt = pct >= 10 ? pct.toFixed(0) + '%' : pct.toFixed(1) + '%';
     return `<g>
-      <text x="0" y="${y + ROW_H/2 + 4}" font-family="DM Mono, monospace" font-size="11" fill="rgba(255,220,170,0.85)" text-anchor="start">${escapeAttr(it.label)}</text>
+      <text x="0" y="${y + ROW_H/2 + 4}" font-family="DM Mono, monospace" font-size="11" fill="rgba(255,220,170,0.85)" text-anchor="start">${escapeHtml(it.label)}</text>
       <rect x="${BAR_X}" y="${y + 3}" width="${w.toFixed(2)}" height="${ROW_H - 6}" fill="url(#${gid})" rx="1"/>
-      <text x="${W - PAD}" y="${y + ROW_H/2 + 4}" font-family="DM Mono, monospace" font-size="11" fill="${COLOR.emberSoft}" text-anchor="end">${escapeAttr(pctTxt)}</text>
+      <text x="${W - PAD}" y="${y + ROW_H/2 + 4}" font-family="DM Mono, monospace" font-size="11" fill="${COLOR.emberSoft}" text-anchor="end">${escapeHtml(pctTxt)}</text>
     </g>`;
   }).join('');
 

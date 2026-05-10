@@ -25,15 +25,3 @@ const _ESC = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
 export function escapeHtml(s){
   return String(s ?? '').replace(/[&<>"']/g, c => _ESC[c]);
 }
-
-export function shortTx(s){
-  if(!s) return '';
-  if(s.length <= 14) return s; // already short or demo placeholder
-  return s.slice(0,6)+'…'+s.slice(-4);
-}
-
-export function absTime(iso){
-  const d = new Date(iso);
-  const pad = n => String(n).padStart(2,'0');
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
-}

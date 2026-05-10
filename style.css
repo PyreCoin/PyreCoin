@@ -16,6 +16,12 @@
   --border2: rgba(255,100,30,0.08);
   --glass: rgba(0,0,0,0.72);
   --glass2: rgba(0,0,0,0.55);
+  /* Serif stack for IPA, polytonic Greek, and PIE combining marks. DM
+     Sans / DM Mono lack glyph coverage; Noto Serif renders combining
+     marks (péh₂wr̥) and polytonic Greek (πῦρ, πυρά) cleanly. Reused by
+     .ling, .nav-logo-hover, .dict-ipa, .dict-pron-row, .etym-form,
+     .cognates-grid, and .encyc-cols .gk. */
+  --serif: 'Noto Serif', 'Charis SIL', Cambria, Georgia, serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -76,7 +82,7 @@ nav{
 .nav-logo-default{display:inline-block;}
 .nav-logo-hover{
   display:none;
-  font-family:'Noto Serif','Charis SIL',Cambria,Georgia,serif;
+  font-family:var(--serif);
   font-size:34px;
   letter-spacing:1px;
   font-style:italic;
@@ -241,16 +247,6 @@ nav{
     opacity:0.85;
   }
 }
-.nav-badge{
-  font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:1px;
-  padding:5px 14px;border:0.5px solid rgba(255,80,20,0.4);
-  border-radius:2px;color:var(--ember);
-  transition:all .2s;cursor:pointer;background:transparent;
-  white-space:nowrap;flex-shrink:0;
-}
-.nav-badge:hover{background:rgba(255,60,0,0.12);border-color:var(--ember);}
-
 /* Responsive nav: progressively shed nav links + reduce padding so
    the page never crushes the wordmark or stacks the CTA awkwardly. */
 @media(max-width:980px){
@@ -606,27 +602,6 @@ nav{
 .section-header{
   display:flex;align-items:baseline;gap:16px;margin-bottom:40px;
 }
-/* Optional one-line subtitle that sits between the section header
-   and the section's body. Used by the leaderboard ("Fifteen Other
-   Flames") and backburner sections. */
-.section-blurb{
-  font-size:14px;color:var(--text2);
-  line-height:1.7;font-weight:300;
-  max-width:680px;margin:-18px 0 32px;
-  letter-spacing:0.2px;
-}
-/* Panel variant: used by the leaderboard section, which sits directly
-   below the hero where the fire canvas's bottom-mask is still partly
-   visible. Without a backdrop the dim section-title text becomes
-   unreadable against the fade. */
-.section-header-panel{
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  border:0.5px solid var(--border);
-  border-radius:3px;
-  padding:14px 18px;
-}
 .section-title{
   font-family:'Bebas Neue',sans-serif;
   font-size:44px;letter-spacing:3px;
@@ -945,12 +920,6 @@ nav{
   border-color:rgba(255,100,30,0.35);
 }
 .how-card:active{transform:translateY(0);}
-.how-card-static{cursor:default;}
-.how-card-static:hover{
-  background:rgba(0,0,0,0.55);
-  transform:none;
-  border-color:var(--border);
-}
 .how-num{
   font-family:'Bebas Neue',sans-serif;
   font-size:88px;color:rgba(255,80,20,0.18);
@@ -1147,7 +1116,8 @@ nav{
 
 /* ── FOOTER RIBBON ──
    3-column link grid (Markets / The Project / Community) beneath the
-   page-closing CTA buttons. Lives inside the <footer class="cta-block">. */
+   page-closing CTA buttons, then a single literary closing line. Lives
+   inside the <footer class="cta-block">. */
 .cta-block .footer-cols{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -1179,14 +1149,31 @@ nav{
   display:inline-block;
 }
 .cta-block .footer-col a:hover{color:var(--ember);}
-.cta-block .footer-note{
-  font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:1.2px;line-height:1.7;
-  color:rgba(255,140,60,0.4);
-  max-width:560px;margin:0 auto;
-  padding-top:18px;
+/* Closing literary line — a quotation, not a disclaimer (the heavy
+   compliance text lives in <section id="disclaimer">). Italic body in
+   the page's serif stack, attribution in DM Mono so it reads as a
+   citation rather than a continuation. */
+.cta-block .footer-quote{
+  max-width:620px;margin:0 auto;
+  padding-top:22px;
   border-top:0.5px dashed rgba(255,100,30,0.12);
   text-align:center;
+  display:flex;flex-direction:column;gap:8px;
+}
+.cta-block .footer-quote-text{
+  font-family:var(--serif);
+  font-size:14px;line-height:1.65;
+  color:var(--text2);font-style:italic;
+  letter-spacing:0.2px;
+}
+.cta-block .footer-quote-cite{
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:1.2px;
+  color:rgba(255,140,60,0.45);
+  text-transform:lowercase;
+}
+.cta-block .footer-quote-cite em{
+  font-style:italic;color:var(--ember2);
 }
 
 @media(max-width:720px){
@@ -1196,17 +1183,6 @@ nav{
     max-width:280px;
   }
 }
-
-/* ── UPDATE BADGE ── */
-.update-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:4px 10px;border:0.5px solid rgba(255,80,20,0.2);
-  border-radius:2px;background:rgba(0,0,0,0.4);
-  font-family:'DM Mono',monospace;font-size:9px;
-  letter-spacing:1.5px;color:var(--text3);margin-left:12px;
-}
-.update-dot{width:4px;height:4px;border-radius:50%;background:#ff4400;animation:blink 2s infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
 /* ── DIVIDER ── */
 .full-divider{height:0.5px;background:var(--border);margin:0;}
@@ -1352,9 +1328,14 @@ nav{
    and polytonic Greek (πῦρ, πυρά) cleanly. The `.ling` utility is
    used for inline spans inside body copy. */
 .ling {
-  font-family: 'Noto Serif', 'Charis SIL', Cambria, Georgia, serif;
+  font-family: var(--serif);
   font-feature-settings: "kern" 1;
 }
+
+/* Inline-style rescue utilities — replace `style="color:var(--ember2)"`
+   and friends sprinkled across the markup so HTML stays semantic. */
+.tone-ember{color:var(--ember2);}
+.tone-faint{color:var(--text3);font-style:italic;}
 
 /* ── ETYMOLOGY / DICTIONARY SECTION ── */
 .etym-wrap{
@@ -1406,13 +1387,13 @@ nav{
   color:rgba(26,5,0,0.55);letter-spacing:1px;
 }
 .dict-ipa{
-  font-family:'Noto Serif','Charis SIL',Cambria,Georgia,serif;
+  font-family:var(--serif);
   font-size:15px;color:rgba(26,5,0,0.7);letter-spacing:0.3px;
 }
 .dict-ipa span{color:#cc2800;}
 .dict-pron-row{
   display:flex;flex-wrap:wrap;gap:18px;
-  font-family:'Noto Serif','Charis SIL',Cambria,Georgia,serif;
+  font-family:var(--serif);
   font-size:13px;
   color:rgba(26,5,0,0.7);
   margin-bottom:22px;
@@ -1477,7 +1458,7 @@ nav{
   color:var(--text3);text-transform:uppercase;line-height:1.6;
 }
 .etym-form{
-  font-family:'Noto Serif','Charis SIL',Cambria,Georgia,serif;
+  font-family:var(--serif);
   font-size:14px;color:var(--text);line-height:1.55;
 }
 .etym-form b{color:var(--ember2);font-weight:500;}
@@ -1498,7 +1479,7 @@ nav{
 }
 .cognates-grid{
   display:grid;grid-template-columns:repeat(2,1fr);gap:6px 18px;
-  font-family:'Noto Serif','Charis SIL',Cambria,Georgia,serif;
+  font-family:var(--serif);
   font-size:13px;
   color:var(--text2);
 }
@@ -1539,7 +1520,7 @@ nav{
 }
 .encyc-cols strong{color:var(--text);font-weight:500;}
 .encyc-cols em{color:var(--ember2);font-style:italic;}
-.encyc-cols .gk{font-family:'Noto Serif','Charis SIL',Cambria,Georgia,serif;color:var(--ember2);font-style:italic;}
+.encyc-cols .gk{font-family:var(--serif);color:var(--ember2);font-style:italic;}
 
 .sidebar-fact{
   margin-top:22px;
