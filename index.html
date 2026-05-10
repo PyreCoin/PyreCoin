@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260510-5">
+<link rel="stylesheet" href="style.css?v=20260510-6">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -92,12 +92,12 @@
       <div class="section-line"></div>
     </div>
 
-    <p class="how-intro">
-      PYRE is a Solana experiment in writing things onto the blockchain
-      <em>on purpose</em>. You burn some $PYRE, attach a URL plus a
-      280-character message, and Solana logs the receipt forever. If your
-      burn is big or fresh enough, your message lands on the public
-      leaderboard above. Either way, the chain remembers.
+    <p class="section-intro">
+      A Solana experiment in writing things onto the blockchain
+      <em>on purpose</em>. Burn some $PYRE, attach a URL plus a
+      280-character message; the chain keeps the receipt forever. Burn
+      enough or fresh enough and your message lands on the leaderboard
+      above too.
     </p>
 
     <!-- Both cards are static containers. Only card 01's link line
@@ -165,7 +165,13 @@
       <div class="section-title">By the Numbers</div>
       <div class="section-line"></div>
     </div>
-    <!-- Eight stat cards, each its own full-width row. Layout inside
+    <p class="section-intro">
+      Live, on-chain, refreshed every thirty seconds. Numbers come
+      straight from Solana (supply, burns), Jupiter (price), and
+      Cloudflare's cookieless beacon (visitors). Nothing is curated,
+      smoothed, or <em>vibe-adjusted</em>.
+    </p>
+    <!-- Nine stat cards, each its own full-width row. Layout inside
          each card: label + big number + (optional change line) + blurb
          on the left; large sparkline on the right. The blurbs are the
          "what is this and why does it matter" copy — same shape across
@@ -466,7 +472,7 @@
       <li><strong>You are responsible for your wallet, your clicks, your choices, and your fire-starter habits.</strong> If you can't afford to burn it, don't burn it.</li>
     </ul>
     <p class="disclaimer-tldr">
-      TL;DR — the pyre burns. Sometimes the pyre is out. We are not the fire department.
+      TL;DR — the pyre burns. Sometimes the pyre is out. There is no fire department.
     </p>
   </section>
 
@@ -616,7 +622,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260510-5"></script>
+<script type="module" src="js/main.js?v=20260510-6"></script>
 
 </body>
 </html>

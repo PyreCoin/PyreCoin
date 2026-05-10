@@ -181,71 +181,109 @@ nav{
    Wired by main.js's IntersectionObserver: when a section enters the
    viewport's active band, the matching nav link gets `.is-on-fire`
    and the fire visually transfers from the pyre (behind the nav) to
-   the link itself. */
+   the link itself.
+
+   Layered to look like *actual* fire, not just an orange glow:
+     - Text:    hot-core white, with stacked shadows that fade outward
+                from yellow → orange → red → deep-red. The shadow
+                offsets are vertically biased UP (heat rises) instead
+                of being symmetric.
+     - ::before flame BODY behind the text. Radial gradient masked
+                into a teardrop shape via asymmetric border-radius +
+                a heavy blur to soften the edges. Breathes via rapid
+                scale/translate keyframes.
+     - ::after  rising TONGUES above the link. Three offset radial
+                hot-spots that translate up + fade out, simulating
+                the flame licks that detach and rise.
+   All three layers run on independent fast/irregular timings so
+   nothing reads as periodic — that's the difference between "fire"
+   and "blink." Steps timing on the body keeps the flame chunky
+   instead of buttery, which is closer to how a candle actually
+   moves at this scale. */
 .nav-links a.is-on-fire{
-  color:var(--ember);
+  color:#fffaf0;
   text-shadow:
-    0 0 8px rgba(255,140,30,0.95),
-    0 0 18px rgba(255,80,0,0.6),
-    0 -3px 14px rgba(255,60,0,0.5);
-  animation:nav-flicker 1.6s ease-in-out infinite;
+    0 0 2px #fff0c0,
+    0 -1px 4px #ffd966,
+    0 -2px 7px #ffa835,
+    0 -5px 12px #ff5500,
+    0 -8px 20px #cc2200,
+    0 -12px 30px rgba(204,34,0,0.45);
+  animation:nav-flicker 220ms step-end infinite;
+  z-index:1;
 }
+/* Flame body — teardrop-shaped radial gradient sitting behind the
+   text. Asymmetric border-radius gives the rounded-bottom / pointier-
+   top silhouette of a flame without resorting to clip-paths. */
 .nav-links a.is-on-fire::before{
   content:'';
   position:absolute;
-  left:-10px;right:-10px;top:-6px;bottom:-10px;
-  background:radial-gradient(ellipse at 50% 100%,
-    rgba(255,80,0,0.55) 0%,
-    rgba(255,140,30,0.28) 35%,
-    transparent 75%);
-  filter:blur(10px);
-  animation:nav-flames 1.8s ease-in-out infinite;
+  left:-8px;right:-8px;top:-10px;bottom:-6px;
+  background:radial-gradient(ellipse 75% 100% at 50% 100%,
+    rgba(255,235,140,0.85) 0%,
+    rgba(255,165,40,0.70) 22%,
+    rgba(255,80,10,0.50) 50%,
+    rgba(180,30,0,0.25) 75%,
+    transparent 100%);
+  filter:blur(4px);
+  border-radius:50% 50% 30% 30% / 70% 70% 40% 40%;
+  transform-origin:50% 100%;
   pointer-events:none;
   z-index:-1;
+  animation:nav-flame-body 260ms step-end infinite;
 }
+/* Rising tongues — three offset hot-spots above the link that
+   translate upward and fade, looking like detached licks of flame. */
+.nav-links a.is-on-fire::after{
+  content:'';
+  position:absolute;
+  left:-6px;right:-6px;
+  bottom:60%;
+  height:18px;
+  background:
+    radial-gradient(circle 4px at 22% 100%, #ffe080 0%, rgba(255,150,40,0.6) 40%, transparent 70%),
+    radial-gradient(circle 5px at 50% 100%, #ffb850 0%, rgba(255,90,20,0.6) 40%, transparent 70%),
+    radial-gradient(circle 4px at 78% 100%, #ff9035 0%, rgba(255,60,10,0.6) 40%, transparent 70%);
+  filter:blur(2px);
+  pointer-events:none;
+  z-index:-1;
+  animation:nav-flame-tongues 380ms linear infinite;
+  opacity:0.9;
+}
+/* Sub-frame text-shadow jitter. step-end at ~30ms-per-step gives the
+   discrete strobe a real flame has at this size, instead of a smooth
+   ease that reads as "pulsing." */
 @keyframes nav-flicker{
-  0%,100%{
-    text-shadow:
-      0 0 8px rgba(255,140,30,0.95),
-      0 0 18px rgba(255,80,0,0.6),
-      0 -3px 14px rgba(255,60,0,0.5);
-  }
-  18%{
-    text-shadow:
-      0 0 6px rgba(255,120,30,0.8),
-      0 0 14px rgba(255,70,0,0.5),
-      0 -3px 11px rgba(255,50,0,0.4);
-  }
-  47%{
-    text-shadow:
-      0 0 13px rgba(255,180,50,1),
-      0 0 26px rgba(255,100,0,0.75),
-      0 -6px 18px rgba(255,80,0,0.6);
-  }
-  73%{
-    text-shadow:
-      0 0 7px rgba(255,130,30,0.88),
-      0 0 16px rgba(255,75,0,0.55),
-      0 -3px 12px rgba(255,55,0,0.42);
-  }
+  0%   { text-shadow: 0 0 2px #fff0c0, 0 -1px 4px #ffd966, 0 -2px 7px #ffa835, 0 -5px 12px #ff5500, 0 -8px 20px #cc2200, 0 -12px 30px rgba(204,34,0,0.45); }
+  14%  { text-shadow: 0 0 1px #fff0c0, 0 -2px 5px #ffd966, 0 -4px 9px #ffa835, 0 -7px 14px #ff5500, 0 -10px 22px #cc2200, 0 -13px 32px rgba(204,34,0,0.5); }
+  29%  { text-shadow: 0 0 3px #fff0c0, 0 -1px 3px #ffd966, 0 -2px 6px #ffa835, 0 -4px 10px #ff5500, 0 -7px 17px #cc2200, 0 -10px 26px rgba(204,34,0,0.4); }
+  43%  { text-shadow: 0 0 2px #fff0c0, 0 -2px 5px #ffd966, 0 -3px 8px #ffa835, 0 -6px 13px #ff5500, 0 -9px 21px #cc2200, 0 -12px 31px rgba(204,34,0,0.55); }
+  57%  { text-shadow: 0 0 1px #fff0c0, 0 -1px 4px #ffd966, 0 -3px 7px #ffa835, 0 -5px 11px #ff5500, 0 -8px 18px #cc2200, 0 -11px 28px rgba(204,34,0,0.45); }
+  71%  { text-shadow: 0 0 3px #fff0c0, 0 -2px 6px #ffd966, 0 -4px 10px #ffa835, 0 -6px 14px #ff5500, 0 -10px 23px #cc2200, 0 -13px 33px rgba(204,34,0,0.5); }
+  86%  { text-shadow: 0 0 2px #fff0c0, 0 -1px 4px #ffd966, 0 -3px 7px #ffa835, 0 -5px 12px #ff5500, 0 -9px 20px #cc2200, 0 -11px 29px rgba(204,34,0,0.48); }
+  100% { text-shadow: 0 0 2px #fff0c0, 0 -1px 4px #ffd966, 0 -2px 7px #ffa835, 0 -5px 12px #ff5500, 0 -8px 20px #cc2200, 0 -12px 30px rgba(204,34,0,0.45); }
 }
-@keyframes nav-flames{
-  0%,100%{
-    transform:translateY(0) scaleY(1) scaleX(1);
-    opacity:0.7;
-  }
-  35%{
-    transform:translateY(-1px) scaleY(1.18) scaleX(0.96);
-    opacity:0.92;
-  }
-  60%{
-    transform:translateY(-2px) scaleY(1.08) scaleX(1.04);
-    opacity:1;
-  }
-  82%{
-    transform:translateY(-1px) scaleY(1.12) scaleX(0.98);
-    opacity:0.85;
-  }
+@keyframes nav-flame-body{
+  0%   { transform:translateY(0) scaleX(1.00) scaleY(1.00); opacity:0.85; }
+  16%  { transform:translateY(-1px) scaleX(0.93) scaleY(1.14); opacity:0.95; }
+  31%  { transform:translateY(-2px) scaleX(1.04) scaleY(1.06); opacity:0.88; }
+  47%  { transform:translateY(-1px) scaleX(0.97) scaleY(1.18); opacity:1.00; }
+  63%  { transform:translateY(-2px) scaleX(1.06) scaleY(1.04); opacity:0.92; }
+  79%  { transform:translateY(-1px) scaleX(0.95) scaleY(1.10); opacity:0.96; }
+  100% { transform:translateY(0) scaleX(1.00) scaleY(1.00); opacity:0.85; }
+}
+@keyframes nav-flame-tongues{
+  0%   { transform:translateY(6px) scaleY(0.55); opacity:0.0; }
+  20%  { transform:translateY(2px) scaleY(0.85); opacity:0.7; }
+  55%  { transform:translateY(-6px) scaleY(1.35); opacity:1.0; }
+  80%  { transform:translateY(-12px) scaleY(0.9); opacity:0.4; }
+  100% { transform:translateY(-18px) scaleY(0.5); opacity:0.0; }
+}
+/* Respect reduced-motion: kill the strobe but keep the heat color. */
+@media (prefers-reduced-motion: reduce){
+  .nav-links a.is-on-fire,
+  .nav-links a.is-on-fire::before,
+  .nav-links a.is-on-fire::after{ animation:none; }
 }
 /* Responsive nav: progressively shed nav links + reduce padding so
    the page never crushes the wordmark or stacks the CTA awkwardly. */
@@ -855,9 +893,10 @@ nav{
   .how-grid-2{grid-template-columns:1fr;}
 }
 
-/* Intro paragraph above the two how-cards — frames PYRE as a Solana
-   social experiment in writing onto the blockchain on purpose. */
-.how-intro{
+/* Generic intro paragraph that sits between a section's <header>
+   and its body. Currently used by both "How it works" and "By the
+   Numbers" so both sections read with the same visual rhythm. */
+.section-intro{
   font-family:'DM Sans',sans-serif;
   font-size:15.5px;
   font-weight:300;
@@ -867,7 +906,7 @@ nav{
   margin:0 0 32px;
   max-width:72ch;
 }
-.how-intro em{
+.section-intro em{
   color:var(--ember2);
   font-style:italic;
 }
