@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260510-3">
+<link rel="stylesheet" href="style.css?v=20260510-4">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -100,20 +100,23 @@
       leaderboard above. Either way, the chain remembers.
     </p>
 
+    <!-- Both cards are static containers. Only card 01's link line
+         opens the burn modal; the card itself isn't a hit-target.
+         Card 02 has no link at all — the leaderboard sits at the top
+         of the page, the user just scrolled past it. -->
     <div class="how-grid how-grid-2">
-      <a class="how-card" href="#" onclick="event.preventDefault();openBurnModal();return false;">
+      <div class="how-card how-card-static">
         <div class="how-num">01</div>
         <div class="how-title">Burn PYRE</div>
         <div class="how-body">Pick a URL. Type a message. Sign. The tokens are gone — the supply itself moves down.</div>
-        <div class="how-link">→ open the burn modal</div>
-      </a>
+        <a class="how-link" href="#" onclick="event.preventDefault();openBurnModal();return false;">→ open the burn modal</a>
+      </div>
 
-      <a class="how-card" href="#leaderboard">
+      <div class="how-card how-card-static">
         <div class="how-num">02</div>
         <div class="how-title">Be blockchain famous</div>
         <div class="how-body">Top 16 burns hit the leaderboard. Bigger and fresher climb higher; older slots cool to the backburner.</div>
-        <div class="how-link">→ see the live ranks</div>
-      </a>
+      </div>
     </div>
 
     <p class="how-aside">
@@ -603,7 +606,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260510-3"></script>
+<script type="module" src="js/main.js?v=20260510-4"></script>
 
 </body>
 </html>

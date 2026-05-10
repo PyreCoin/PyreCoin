@@ -920,6 +920,16 @@ nav{
   border-color:rgba(255,100,30,0.35);
 }
 .how-card:active{transform:translateY(0);}
+/* Static variant: container is non-interactive, only the inner
+   .how-link (if present) is the hit target. Cancels the hover lift
+   and the pointer cursor inherited from .how-card. */
+.how-card-static,
+.how-card-static:hover{
+  background:rgba(0,0,0,0.55);
+  transform:none;
+  border-color:var(--border);
+  cursor:default;
+}
 .how-num{
   font-family:'Bebas Neue',sans-serif;
   font-size:88px;color:rgba(255,80,20,0.18);
@@ -943,6 +953,8 @@ nav{
   padding:2px 7px;border-radius:2px;
   word-break:break-all;
 }
+/* The link line is the actual interactive target (the card itself
+   is now static). Hover styles apply to the link directly. */
 .how-link{
   display:inline-block;
   margin-top:22px;
@@ -950,10 +962,13 @@ nav{
   font-size:10.5px;letter-spacing:2px;
   color:var(--ember2);
   text-transform:uppercase;
+  text-decoration:none;
   border-bottom:0.5px dotted rgba(255,180,80,0.5);
   align-self:flex-start;
+  cursor:pointer;
   transition:color .2s,border-color .2s;
 }
+.how-link:hover,
 .how-card:hover .how-link{
   color:var(--ember);
   border-color:var(--ember);
