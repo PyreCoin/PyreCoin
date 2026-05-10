@@ -384,8 +384,15 @@ export async function updateStats(){
     const vis24Buckets = hourlyVisitsBuckets(analytics, 24, nowMs);
     const vis7dBuckets = hourlyVisitsBuckets(analytics, 168, nowMs);
     const sum = arr => arr.reduce((s, v) => s + (v || 0), 0);
-    $('s-vis24').textContent = sum(vis24Buckets).toLocaleString();
-    $('s-vis7d').textContent = sum(vis7dBuckets).toLocaleString();
+    // CF's rumPageloadEventsAdaptiveGroups rounds per-bucket counts to
+    // the nearest 10 for privacy at small N — so summed totals here are
+    // approximations of the precise unrounded number CF's dashboard
+    // shows internally. The '~' prefix signals that to the reader; the
+    // stat-blurbs beneath each card explain why. Drop the prefix if we
+    // ever migrate to an unrounded source (own beacon, etc.).
+    const fmtVis = v => v > 0 ? '~' + v.toLocaleString() : v.toLocaleString();
+    $('s-vis24').textContent = fmtVis(sum(vis24Buckets));
+    $('s-vis7d').textContent = fmtVis(sum(vis7dBuckets));
   } else {
     $('s-vis24').textContent = '—';
     $('s-vis7d').textContent = '—';

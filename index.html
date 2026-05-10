@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260510-7">
+<link rel="stylesheet" href="style.css?v=20260510-8">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -234,14 +234,14 @@
       <div class="stat">
         <div class="stat-lbl">Visitors Today</div>
         <div class="stat-val" id="s-vis24">—</div>
-        <div class="stat-blurb">Page views in the last twenty-four hours, counted cookielessly via Cloudflare Web Analytics — no cookies, no fingerprinting, no IP harvest. The number of literal eyeballs your slot can land in front of inside a single rotation of the planet. The spikes in the sparkline are usually a tweet.</div>
+        <div class="stat-blurb">Page views in the last twenty-four hours, counted cookielessly via Cloudflare Web Analytics — no cookies, no fingerprinting, no IP harvest. The leading <code>~</code> is honest: Cloudflare's GraphQL endpoint rounds hourly counts to the nearest ten for privacy when traffic is small, so the number you see is an approximation until the fire grows large enough that the rounding noise becomes negligible. The number of literal eyeballs your slot can land in front of inside a single rotation of the planet. The spikes in the sparkline are usually a tweet.</div>
         <div class="stat-spark" id="sp-vis24"></div>
       </div>
 
       <div class="stat">
         <div class="stat-lbl">Visitors 7d</div>
         <div class="stat-val" id="s-vis7d">—</div>
-        <div class="stat-blurb">Trailing-week page views. The reach a slot accumulates if it holds the top ranks long enough to outlast a few news cycles before heat decay slides it down to the backburner. Sparkline shows daily totals over ten days — useful for noticing whether the project is being watched or merely existed.</div>
+        <div class="stat-blurb">Trailing-week page views — same Cloudflare privacy-rounding caveat as the card above, hence the <code>~</code>. The reach a slot accumulates if it holds the top ranks long enough to outlast a few news cycles before heat decay slides it down to the backburner. Sparkline shows daily totals over ten days — useful for noticing whether the project is being watched or merely existed.</div>
         <div class="stat-spark" id="sp-vis7d"></div>
       </div>
     </div>
@@ -599,6 +599,7 @@
           <li><a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer">$PYRE on X</a></li>
           <li><a href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer">GitHub</a></li>
           <li><a href="https://t.me/pyrecoin" target="_blank" rel="noopener noreferrer">Telegram</a></li>
+          <li><a href="https://bsky.app/profile/pyrecoin.com" target="_blank" rel="noopener noreferrer">Bluesky</a></li>
         </ul>
       </div>
     </div>
@@ -623,7 +624,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260510-7"></script>
+<script type="module" src="js/main.js?v=20260510-8"></script>
 
 </body>
 </html>
