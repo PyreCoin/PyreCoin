@@ -25,33 +25,44 @@
 // re-fetch.
 const TTL_MS = 10_000;
 
-let _entries   = [];
-let _lastFetch = 0;
-let _inflight  = null;
+// State lives on globalThis, NOT in module-level `let`s.
+//
+// Why: main.js loads this module via dynamic `import('./data.js?v=…')`
+// (with cache-bust query) while leaderboard.js + stats.js use static
+// `import … from './data.js'` (no query — static imports can't take a
+// dynamic specifier). The browser ESM cache keys by the specifier
+// string verbatim, so the two specifiers resolve to TWO independent
+// module instances. With per-module `let _entries`, main.js's
+// refreshEntries populated one instance, the renderers read the other,
+// the renderers always saw [], and the leaderboard rendered "PYRE IS
+// COLD" forever even though stats' on-chain numbers showed activity.
+// Hoisting state to globalThis collapses both instances onto one
+// shared object — fetched once, read by both.
+const _state = (globalThis.__pyreData ||= { entries: [], lastFetch: 0, inflight: null });
 
 export async function refreshEntries() {
-  if (Date.now() - _lastFetch < TTL_MS && _entries.length > 0) return _entries;
+  if (Date.now() - _state.lastFetch < TTL_MS && _state.entries.length > 0) return _state.entries;
   // Coalesce concurrent callers onto a single in-flight request so
   // back-to-back consumers in the same tick don't double-fire the
   // network call before TTL is set.
-  if (_inflight) return _inflight;
-  _inflight = (async () => {
+  if (_state.inflight) return _state.inflight;
+  _state.inflight = (async () => {
     try {
       const res = await fetch('./leaderboard.json', { cache: 'no-cache' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      if (data && Array.isArray(data.entries)) _entries = data.entries;
-      _lastFetch = Date.now();
+      if (data && Array.isArray(data.entries)) _state.entries = data.entries;
+      _state.lastFetch = Date.now();
     } catch (_) {
       // Keep stale entries on failure rather than blanking the UI.
     } finally {
-      _inflight = null;
+      _state.inflight = null;
     }
-    return _entries;
+    return _state.entries;
   })();
-  return _inflight;
+  return _state.inflight;
 }
 
 export function getEntries() {
-  return _entries;
+  return _state.entries;
 }
