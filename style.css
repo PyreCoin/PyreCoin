@@ -1280,10 +1280,19 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .burn-modal-close:hover{color:var(--ember);}
 .burn-modal-title{
   font-family:'Bebas Neue',sans-serif;
-  font-size:32px;letter-spacing:2px;color:#fff;
-  margin-bottom:22px;
+  font-size:28px;letter-spacing:2px;color:#fff;
+  margin-bottom:14px;
 }
-.burn-form-row{margin-bottom:16px;}
+.form-note{
+  font-family:'DM Mono',monospace;
+  font-size:9px;letter-spacing:1px;
+  color:var(--text3);
+  text-transform:uppercase;
+  margin-bottom:14px;
+  padding-bottom:10px;
+  border-bottom:0.5px dashed var(--border2);
+}
+.burn-form-row{margin-bottom:12px;}
 .burn-form-row label{
   display:block;
   font-family:'DM Mono',monospace;
@@ -1317,19 +1326,15 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
    refreshBurnHint() on modal open. Hidden when empty (e.g. before
    the leaderboard module has attached to window). */
 .burn-hint{
-  margin-top:8px;
+  margin-top:6px;
   font-family:'DM Mono',monospace;
   font-size:10px;
-  letter-spacing:0.5px;
-  color:var(--ember2);
-  background:rgba(255,100,30,0.06);
-  border-left:2px solid rgba(255,100,30,0.4);
-  padding:7px 10px;
-  border-radius:0 2px 2px 0;
-  line-height:1.55;
+  letter-spacing:0.3px;
+  color:var(--text2);
+  line-height:1.5;
 }
 .burn-hint:empty{display:none;}
-.burn-hint strong{color:var(--ember);font-weight:500;}
+.burn-hint strong{color:var(--ember2);font-weight:500;}
 .burn-status{
   margin-top:18px;padding:12px 14px;
   border-radius:2px;
@@ -1362,11 +1367,12 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   opacity:0.5;cursor:not-allowed;box-shadow:none;
 }
 .burn-wallet-row{
-  display:flex;justify-content:space-between;
+  display:flex;justify-content:space-between;align-items:center;
+  gap:8px;flex-wrap:wrap;
   font-family:'DM Mono',monospace;
   font-size:10px;color:var(--text3);
   letter-spacing:1px;
-  margin-bottom:18px;padding-bottom:12px;
+  margin-bottom:14px;padding-bottom:10px;
   border-bottom:0.5px solid var(--border);
 }
 .burn-wallet-row .connected{color:var(--ember2);}

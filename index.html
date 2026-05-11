@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260511-12">
+<link rel="stylesheet" href="style.css?v=20260511-13">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -577,27 +577,25 @@
       </div>
 
       <form onsubmit="event.preventDefault();submitBurn();">
+        <div class="form-note">All fields optional · at least one required</div>
         <div class="burn-form-row">
-          <label for="burnMsg">Message <span class="opt">(optional)</span></label>
+          <label for="burnMsg">Message</label>
           <input id="burnMsg" type="text" maxlength="280" placeholder="Say something the chain will keep forever." autocomplete="off">
-          <div class="helper"><span id="msgCount">0</span> / 280 chars</div>
+          <div class="helper"><span id="msgCount">0</span> / 280</div>
         </div>
         <div class="burn-form-row">
-          <label for="burnUrl">URL <span class="opt">(optional)</span></label>
+          <label for="burnUrl">URL</label>
           <input id="burnUrl" type="text" maxlength="200" placeholder="yoursite.xyz" autocomplete="off">
-          <div class="helper">https:// is added automatically · max 200 chars</div>
         </div>
         <div class="burn-form-row">
-          <label for="burnX">X handle <span class="opt">(optional)</span></label>
+          <label for="burnX">X handle</label>
           <input id="burnX" type="text" maxlength="16" placeholder="@yourhandle" autocomplete="off">
-          <div class="helper">1–15 letters / numbers / underscores. We'll link it to x.com.</div>
         </div>
         <div class="burn-form-row">
-          <label for="burnAmount">$PYRE to burn <span class="opt">(0 = inscribe only)</span></label>
+          <label for="burnAmount">$PYRE to burn</label>
           <input id="burnAmount" type="number" min="0" step="any" placeholder="0">
-          <div class="helper">Any amount &gt; 0 destroys $PYRE at the protocol layer (no refund) and lands you on the leaderboard.</div>
+          <div class="burn-hint" id="burnCost"></div>
           <div class="burn-hint" id="burnHint"></div>
-          <div class="burn-hint burn-cost" id="burnCost"></div>
         </div>
         <div class="burn-status" id="burnStatus"></div>
         <button type="submit" class="burn-modal-submit" id="burnSubmit">Connect wallet</button>
@@ -695,7 +693,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260511-12"></script>
+<script type="module" src="js/main.js?v=20260511-13"></script>
 
 </body>
 </html>
