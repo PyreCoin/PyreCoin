@@ -1374,6 +1374,15 @@ nav{
   border-bottom:0.5px solid var(--border);
 }
 .burn-wallet-row .connected{color:var(--ember2);}
+.burn-wallet-row .wallet-name{color:var(--text3);margin-left:4px;}
+.burn-wallet-row .wallet-picker{
+  font-family:'DM Mono',monospace;
+  font-size:10px;color:var(--ember2);
+  background:transparent;border:0.5px solid var(--border);
+  border-radius:3px;padding:1px 3px;margin-left:2px;
+  letter-spacing:0.5px;cursor:pointer;
+}
+.burn-wallet-row .wallet-picker:focus{outline:none;border-color:var(--ember2);}
 
 /* ── LINGUISTIC FONT (IPA, polytonic Greek, PIE combining marks) ── */
 /* DM Mono / DM Sans don't ship full IPA/PIE/Greek glyph coverage,

@@ -23,6 +23,12 @@ import {
   createBurnCheckedInstruction, getAssociatedTokenAddressSync, getAccount,
   TOKEN_2022_PROGRAM_ID
 } from 'https://esm.sh/@solana/spl-token@0.4.8';
+// Solana Wallet Standard discovery — picks up Jupiter Mobile/Web, Glow,
+// Magic Eden, OKX, Coinbase, Trust, Bitget, and modern Phantom/Solflare/
+// Backpack via the standard's `register` event protocol instead of the
+// legacy `window.solana` injection. Wrapped in try/catch at call-site so
+// a CDN blip leaves the legacy window-global path working.
+import { getWallets } from 'https://esm.sh/@wallet-standard/app@1.1.0';
 
 import {
   PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, isPlaceholder
@@ -131,18 +137,173 @@ document.addEventListener('input', e => {
 })();
 
 // ─── WALLET DETECTION ────────────────────────────────────────────────
-function detectProvider() {
-  // Phantom, Solflare, Backpack all inject into window.solana.
-  // Solflare also injects window.solflare; Backpack injects window.backpack.
-  if (window.solana && window.solana.isPhantom) return window.solana;
-  if (window.phantom?.solana) return window.phantom.solana;
-  if (window.solflare && window.solflare.isSolflare) return window.solflare;
-  if (window.backpack) return window.backpack;
-  if (window.solana) return window.solana; // generic fallback
+// Two-layer detection: Solana Wallet Standard first (Jupiter, Glow,
+// Magic Eden, modern Phantom/Solflare/Backpack/etc.), then legacy
+// window.solana / window.solflare / window.backpack injection as a
+// fallback for older wallets that haven't migrated to the standard.
+//
+// Standard wallets are wrapped in an adapter object that exposes the
+// same { publicKey, isConnected, connect, signTransaction } API as the
+// legacy Phantom-style provider, so the rest of this file is unchanged.
+
+const _standardRegistry = {
+  inited: false,
+  wallets: [],        // adapted Solana wallets discovered via Wallet Standard
+  selectedName: null, // user's wallet-picker choice (persisted in localStorage)
+};
+
+// localStorage key for the user's wallet pick. Survives reloads so a
+// user who explicitly chose "Jupiter" doesn't get bounced back to
+// Phantom on the next visit.
+const WALLET_PICK_KEY = 'pyre.walletPick';
+
+function isSolanaStandardWallet(w) {
+  // Solana support is signalled by either the chains list or by the
+  // presence of solana:* features. We accept either — some wallets
+  // (e.g. multi-chain ones) leave `chains` empty until connected.
+  const isSolanaChain = (c) => typeof c === 'string' && c.startsWith('solana:');
+  if (Array.isArray(w.chains) && w.chains.some(isSolanaChain)) return true;
+  const f = w.features;
+  if (f && (f['solana:signTransaction'] || f['solana:signAndSendTransaction'])) return true;
+  return false;
+}
+
+function adaptStandardWallet(w) {
+  // Wraps a Wallet-Standard wallet to look like a legacy Phantom-style
+  // provider. The legacy API the rest of burn.js uses:
+  //   provider.publicKey                   → PublicKey | null
+  //   provider.isConnected                 → boolean
+  //   provider.connect()                   → Promise<void>
+  //   provider.signTransaction(tx)         → Promise<Transaction>
+  return {
+    _isStandard: true,
+    _wallet: w,
+    name: w.name,
+    icon: w.icon,
+    get publicKey() {
+      const acct = w.accounts?.[0];
+      try { return acct ? new PublicKey(acct.address) : null; }
+      catch { return null; }
+    },
+    get isConnected() {
+      return Array.isArray(w.accounts) && w.accounts.length > 0;
+    },
+    async connect() {
+      const feat = w.features?.['standard:connect'];
+      if (!feat) throw new Error(`${w.name} does not expose standard:connect`);
+      await feat.connect();
+    },
+    async signTransaction(tx) {
+      const feat = w.features?.['solana:signTransaction'];
+      if (!feat) throw new Error(`${w.name} does not expose solana:signTransaction`);
+      const acct = w.accounts?.[0];
+      if (!acct) throw new Error(`No connected account on ${w.name} — connect first`);
+      // Wallet Standard wants the wire bytes (unsigned), not a Transaction
+      // object. requireAllSignatures/verifySignatures false because the
+      // user's signature is exactly what we're asking the wallet to add.
+      const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
+      const results = await feat.signTransaction({
+        transaction: serialized,
+        account: acct,
+        chain: 'solana:mainnet',
+      });
+      const signedBytes = results?.[0]?.signedTransaction;
+      if (!signedBytes) throw new Error(`${w.name} returned no signed transaction`);
+      return Transaction.from(signedBytes);
+    },
+  };
+}
+
+function initStandardRegistry() {
+  if (_standardRegistry.inited) return;
+  _standardRegistry.inited = true;
+  try {
+    const api = getWallets();
+    const refresh = () => {
+      _standardRegistry.wallets = api.get()
+        .filter(isSolanaStandardWallet)
+        .map(adaptStandardWallet);
+      // Late wallet registration is the common case (extensions inject
+      // after our module loads). Re-render the modal if it's open so
+      // the user doesn't have to close and reopen to see the new wallet.
+      if ($('burnModal')?.classList.contains('open')) {
+        refreshWalletState();
+      }
+    };
+    refresh();
+    api.on('register', refresh);
+    api.on('unregister', refresh);
+    try {
+      _standardRegistry.selectedName = localStorage.getItem(WALLET_PICK_KEY);
+    } catch { /* localStorage disabled — fine, we just won't persist */ }
+  } catch (e) {
+    console.warn('Wallet Standard init failed; falling back to window globals only:', e);
+  }
+}
+initStandardRegistry();
+
+function detectLegacyProvider() {
+  // Pre-Wallet-Standard injection points. Kept for older wallet versions.
+  if (window.solana && window.solana.isPhantom) return Object.assign(window.solana, { name: window.solana.name || 'Phantom' });
+  if (window.phantom?.solana) return Object.assign(window.phantom.solana, { name: 'Phantom' });
+  if (window.solflare && window.solflare.isSolflare) return Object.assign(window.solflare, { name: 'Solflare' });
+  if (window.backpack) return Object.assign(window.backpack, { name: 'Backpack' });
+  if (window.solana) return Object.assign(window.solana, { name: window.solana.name || 'Solana wallet' });
   return null;
 }
 
+function detectAllProviders() {
+  // Standard wallets first (they're the modern path); then legacy
+  // injection, deduped by name so a wallet that supports both paths
+  // doesn't appear twice in the picker.
+  const out = [..._standardRegistry.wallets];
+  const haveNames = new Set(out.map(w => (w.name || '').toLowerCase()));
+  const legacy = detectLegacyProvider();
+  if (legacy && !haveNames.has((legacy.name || '').toLowerCase())) {
+    out.push(legacy);
+  }
+  return out;
+}
+
+function detectProvider() {
+  const all = detectAllProviders();
+  if (all.length === 0) return null;
+  if (_standardRegistry.selectedName) {
+    const picked = all.find(w => (w.name || '').toLowerCase() === _standardRegistry.selectedName.toLowerCase());
+    if (picked) return picked;
+  }
+  return all[0];
+}
+
+window.__pyrePickWallet = function pickWallet(name) {
+  _standardRegistry.selectedName = name || null;
+  try {
+    if (name) localStorage.setItem(WALLET_PICK_KEY, name);
+    else localStorage.removeItem(WALLET_PICK_KEY);
+  } catch { /* localStorage disabled — keep in-memory pick only */ }
+  refreshWalletState();
+};
+
+function renderWalletPickerLine(all, active) {
+  // When more than one wallet is available, render a small switcher
+  // line so the user can pick between e.g. Phantom and Jupiter. Single-
+  // wallet case shows just the active wallet's name (no need to switch).
+  if (!all || all.length <= 1) {
+    return active?.name ? `<span class="wallet-name">via ${escapeHtml(active.name)}</span>` : '';
+  }
+  const opts = all.map(w => {
+    const n = escapeHtml(w.name || 'wallet');
+    const sel = (active && (w.name || '').toLowerCase() === (active.name || '').toLowerCase()) ? ' selected' : '';
+    return `<option value="${n}"${sel}>${n}</option>`;
+  }).join('');
+  return `<span class="wallet-name">via </span>` +
+         `<select class="wallet-picker" ` +
+         `onchange="window.__pyrePickWallet(this.value)" ` +
+         `aria-label="Choose wallet">${opts}</select>`;
+}
+
 async function refreshWalletState() {
+  const all = detectAllProviders();
   const provider = detectProvider();
   // The wallet-row strip carries the "Wallet: <addr>" / "Wallet: not
   // connected" status line. When NO provider is detected at all, the
@@ -160,14 +321,17 @@ async function refreshWalletState() {
   }
   if (walletRow) walletRow.style.display = '';
   burnState.provider = provider;
+  const pickerHtml = renderWalletPickerLine(all, provider);
   if (provider.publicKey) {
     burnState.publicKey = provider.publicKey;
-    $('walletStatus').innerHTML = 'Wallet: <span class="connected">' + shortAddr(provider.publicKey.toString()) + '</span>';
+    $('walletStatus').innerHTML =
+      'Wallet: <span class="connected">' + shortAddr(provider.publicKey.toString()) + '</span> ' + pickerHtml;
     $('burnSubmit').textContent = 'Burn $PYRE';
     $('burnSubmit').disabled = false;
     await refreshBalance();
   } else {
-    $('walletStatus').innerHTML = 'Wallet: <span style="color:var(--text2)">not connected</span>';
+    $('walletStatus').innerHTML =
+      'Wallet: <span style="color:var(--text2)">not connected</span> ' + pickerHtml;
     $('walletBalance').textContent = '';
     $('burnSubmit').textContent = 'Connect wallet & burn';
     $('burnSubmit').disabled = false;
@@ -320,7 +484,13 @@ window.submitBurn = async function submitBurn() {
 
   const provider = detectProvider();
   if (!provider) {
-    setStatus('No Solana wallet found. Install <a href="https://phantom.app" target="_blank">Phantom</a> or <a href="https://solflare.com" target="_blank">Solflare</a>.', 'error');
+    setStatus('No Solana wallet found. Install one — ' +
+      '<a href="https://phantom.app" target="_blank" rel="noopener noreferrer">Phantom</a>, ' +
+      '<a href="https://jup.ag/wallet" target="_blank" rel="noopener noreferrer">Jupiter</a>, ' +
+      '<a href="https://solflare.com" target="_blank" rel="noopener noreferrer">Solflare</a>, ' +
+      '<a href="https://backpack.app" target="_blank" rel="noopener noreferrer">Backpack</a>, ' +
+      'or any other Solana wallet that supports the Wallet Standard.',
+      'error');
     return;
   }
 
@@ -386,8 +556,8 @@ window.submitBurn = async function submitBurn() {
     // signTransaction + our sendRawTransaction(maxRetries:10) re-submits
     // the same signed tx until it lands; the chain de-dupes by signature
     // so retries are safe (no double-burn risk).
-    if (!provider.signTransaction) {
-      throw new Error('Your wallet does not expose signTransaction. Use Phantom, Solflare, or Backpack.');
+    if (typeof provider.signTransaction !== 'function') {
+      throw new Error('Your wallet does not expose signTransaction. Try Phantom, Jupiter, Solflare, or Backpack.');
     }
     const signedTx = await provider.signTransaction(tx);
     const signature = await conn.sendRawTransaction(signedTx.serialize(), {
