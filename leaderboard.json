@@ -15,8 +15,24 @@
       "amount": 3,
       "ts": "2026-05-11T06:10:00.000Z",
       "tx": "3EDK8mLSmDoWxr5NPgzSEYphtsB8R98ABjqpQiy1TdZgfFs3AfrcEU1FLABenJSa3GioYgUGp1VvX7BiFB5MLU9m"
+    },
+    {
+      "wallet": "FwEku4QC7C3JVc1pA1dpGDvtDy5mhrLJYuvqjsXEAsqL",
+      "url": "x.com/marvofweb3",
+      "msg": "Make Nigeria Great",
+      "amount": 3,
+      "ts": "2026-05-11T08:16:47.000Z",
+      "tx": "2ff245TnBjMtWxa8DxpuQLenHieH6okk5HV38wmq3Tt64esmY3p5AnC4p51X99zZNH1uCQLGkwevWwwMMkpu1CmV"
+    },
+    {
+      "wallet": "FwEku4QC7C3JVc1pA1dpGDvtDy5mhrLJYuvqjsXEAsqL",
+      "url": "duolingo.com",
+      "msg": "Building Pyrecoin",
+      "amount": 1,
+      "ts": "2026-05-11T08:17:45.000Z",
+      "tx": "pmJXHMwdnGMWBPsJpoubLutWptYd5xa9RyLSxPpPDfqgowipjtmzQMuZ3HH5PA4mBDSyWbeH35GB7JWtaNSC2Wc"
     }
   ],
-  "updated": "2026-05-11T06:10:17.184Z",
+  "updated": "2026-05-11T08:20:22.062Z",
   "updatedBy": "ingest-bot"
 }
