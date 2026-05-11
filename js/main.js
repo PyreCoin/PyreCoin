@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260511-17';
+const V = '20260511-18';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick handlers never call undefined functions while modules

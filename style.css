@@ -1309,6 +1309,40 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   text-transform:none;
   font-variant-numeric:tabular-nums;
 }
+/* Inline X logo, sized to sit visually next to label text. fill set
+   here (not currentColor) because the label is uppercase-spaced and
+   the logo would otherwise look weak/blended. */
+.x-inline{
+  width:11px;height:11px;
+  fill:var(--text2);
+  vertical-align:-1px;
+  margin-right:2px;
+}
+/* Question-mark hint icon — hover reveals the native browser tooltip
+   from the title attribute. Subtle until hovered. */
+.hint{
+  display:inline-flex;
+  align-items:center;justify-content:center;
+  width:13px;height:13px;
+  border-radius:50%;
+  background:rgba(255,140,60,0.08);
+  border:0.5px solid rgba(255,140,60,0.3);
+  color:var(--text2);
+  font-family:'DM Sans',sans-serif;
+  font-size:9px;
+  font-weight:500;
+  letter-spacing:0;
+  text-transform:none;
+  cursor:help;
+  margin-left:4px;
+  vertical-align:0;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.hint:hover{
+  color:var(--text);
+  border-color:var(--ember2);
+  background:rgba(255,140,60,0.22);
+}
 .burn-form-row input{
   width:100%;
   background:rgba(255,255,255,0.04);
