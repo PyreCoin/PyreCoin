@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260511-21';
+const V = '20260511-22';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick handlers never call undefined functions while modules
@@ -141,6 +141,38 @@ FIRE_SECTIONS.forEach(id => {
       ticking = true;
     }
   }, { passive: true });
+})();
+
+// ── LIVE INSCRIPTION COST in the top CTA ─────────────────────────
+// Pulls the SOL/USD price from Jupiter (free public endpoint) and
+// computes the exact dollar cost of one inscription tx: base fee +
+// priority fee + 1-lamport beacon transfer = 15,001 lamports. Shown
+// in the headline sub-line as social proof: "this really is pennies."
+// Refreshes every 60s to track SOL price drift.
+(function liveCostTicker(){
+  const el = document.getElementById('cta-cost');
+  if (!el) return;
+  const SOL_MINT = 'So11111111111111111111111111111111111111112';
+  const URL = 'https://api.jup.ag/price/v3?ids=' + SOL_MINT;
+  const LAMPORTS = 15_001; // base(5000) + priority(10000) + beacon(1)
+  function fmt(usd){
+    if (usd >= 1)      return '$' + usd.toFixed(2);
+    if (usd >= 0.01)   return '$' + usd.toFixed(3);
+    if (usd >= 0.0001) return '$' + usd.toFixed(5);
+    return '$' + usd.toFixed(7);
+  }
+  async function tick(){
+    try {
+      const res = await fetch(URL, { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const p = data?.[SOL_MINT]?.usdPrice;
+      if (typeof p !== 'number' || !isFinite(p) || p <= 0) return;
+      el.textContent = fmt((LAMPORTS / 1e9) * p);
+    } catch (_) { /* leave the placeholder text if fetch fails */ }
+  }
+  tick();
+  setInterval(tick, 60_000);
 })();
 
 // ── TYPEWRITER in the top CTA headline ───────────────────────────

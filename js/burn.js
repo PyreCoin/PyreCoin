@@ -198,8 +198,14 @@ async function refreshCostEstimate(){
   const solUsd = await fetchSolPriceUsd();
   if (solUsd == null) return;
   const usd = solAmount * solUsd;
-  // Sub-cent costs round to "<$0.01" rather than printing $0.00.
-  const usdStr = usd < 0.01 ? '<$0.01' : '$' + usd.toFixed(usd < 1 ? 3 : 2);
+  // Show enough decimals that the figure isn't misleading at sub-cent
+  // scale — the precision IS the point. Five decimals captures the
+  // typical 0.000015 SOL × ~$100 ≈ $0.00150 case cleanly.
+  let usdStr;
+  if      (usd >= 1)     usdStr = '$' + usd.toFixed(2);
+  else if (usd >= 0.01)  usdStr = '$' + usd.toFixed(3);
+  else if (usd >= 0.0001) usdStr = '$' + usd.toFixed(5);
+  else                    usdStr = '$' + usd.toFixed(7);
   el.innerHTML = `cost · <strong>${solStr} SOL</strong> · <strong>${usdStr}</strong>` +
     (isBurn ? ` + ${escapeHtml(String(amt))} $PYRE burned` : '');
 }
