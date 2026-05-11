@@ -379,19 +379,36 @@ async function refreshWalletState() {
   const pickerHtml = renderWalletPickerLine(all, provider);
   if (provider.publicKey) {
     burnState.publicKey = provider.publicKey;
+    const addr = provider.publicKey.toString();
     $('walletStatus').innerHTML =
-      'Wallet: <span class="connected">' + shortAddr(provider.publicKey.toString()) + '</span> ' + pickerHtml;
+      `<span class="wallet-badge"><span class="wallet-addr" title="${escapeHtml(addr)}">${escapeHtml(shortAddr(addr))}</span> ${pickerHtml}` +
+      `<button type="button" class="wallet-disconnect" onclick="window.__pyreDisconnectWallet()" aria-label="Disconnect wallet" title="Disconnect">×</button></span>`;
     $('burnSubmit').textContent = _submitLabel();
     $('burnSubmit').disabled = false;
     await refreshBalance();
   } else {
     $('walletStatus').innerHTML =
-      'Wallet: <span style="color:var(--text2)">not connected</span> ' + pickerHtml;
+      '<span class="wallet-badge"><span style="color:var(--text2)">not connected</span> ' + pickerHtml + '</span>';
     $('walletBalance').textContent = '';
     $('burnSubmit').textContent = 'Connect wallet';
     $('burnSubmit').disabled = false;
   }
 }
+
+window.__pyreDisconnectWallet = async function disconnectWallet(){
+  const p = burnState.provider;
+  if (p && typeof p.disconnect === 'function') {
+    try { await p.disconnect(); } catch (_) { /* some wallets throw on already-disconnected; ignore */ }
+  }
+  // Wallet Standard wallets disconnect via the feature endpoint.
+  if (p?._isStandard) {
+    const feat = p._wallet?.features?.['standard:disconnect'];
+    if (feat) { try { await feat.disconnect(); } catch (_) {} }
+  }
+  burnState.publicKey = null;
+  burnState.balance = null;
+  refreshWalletState();
+};
 
 function _submitLabel(){
   const amt = parseFloat($('burnAmount')?.value);

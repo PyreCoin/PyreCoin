@@ -1380,6 +1380,40 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .burn-wallet-row .wallet-picker:focus{outline:none;border-color:var(--ember2);}
 
+/* Wallet badge — one cohesive pill: address (with full-addr tooltip),
+   wallet name / picker, and a × disconnect button. Replaces the prior
+   "Wallet: ..." label which stole real estate without earning it. */
+.wallet-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 4px 3px 8px;
+  border:0.5px solid var(--border);
+  border-radius:99px;
+  background:rgba(0,0,0,0.4);
+  transition:border-color .2s;
+}
+.wallet-badge:hover{border-color:rgba(255,140,60,0.4);}
+.wallet-addr{
+  color:var(--ember2);
+  cursor:help;
+  letter-spacing:0.5px;
+}
+.wallet-disconnect{
+  background:transparent;
+  border:none;
+  color:var(--text3);
+  font-size:14px;line-height:1;
+  width:18px;height:18px;
+  padding:0;margin-left:2px;
+  cursor:pointer;
+  border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:color .15s,background .15s;
+}
+.wallet-disconnect:hover{
+  color:var(--text);
+  background:rgba(255,80,40,0.25);
+}
+
 /* ── BUY MODAL (Jupiter Plugin v1 embed) ─────────────────────────── */
 /* Re-uses .burn-modal-* for the backdrop/panel/close button. These
    styles are buy-only additions: the panel needs more width to fit
