@@ -1393,6 +1393,26 @@ nav{
   max-width:520px;
   padding:30px 26px 22px;
 }
+/* Jupiter Plugin v1 theme overrides. The Plugin exposes six CSS
+   variables on :root (per developers.jup.ag/docs/tool-kits/plugin/
+   customization) that accept RGB triplets. We map them onto our
+   fire palette so the embedded widget reads as part of pyrecoin
+   instead of as a Jupiter ad bolted onto the page.
+   - primary       → ember orange (the prominent action-button bg)
+   - background    → our deep-fire bg (#0a0300 ≈ rgb(10,3,0))
+   - primaryText   → off-white text (matches --text)
+   - warning       → amber (kept visible — real warnings should not
+                     blend in with the surrounding palette)
+   - interactive   → ember (token-pill chips, dropdowns, arrows)
+   - module        → slightly lighter than bg, for the inner panels */
+:root{
+  --jupiter-plugin-primary:      255, 102, 34;   /* --ember */
+  --jupiter-plugin-background:   10, 3, 0;       /* deep-fire bg */
+  --jupiter-plugin-primaryText:  255, 248, 240;  /* --text */
+  --jupiter-plugin-warning:      255, 170, 51;   /* --ember2 */
+  --jupiter-plugin-interactive:  255, 102, 34;   /* --ember */
+  --jupiter-plugin-module:       18, 6, 2;       /* one notch above bg */
+}
 .buy-modal-sub{
   font-family:'DM Sans',sans-serif;
   font-size:13px;line-height:1.55;
