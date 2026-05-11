@@ -361,36 +361,30 @@ function renderWalletPickerLine(all, active) {
 async function refreshWalletState() {
   const all = detectAllProviders();
   const provider = detectProvider();
-  // The wallet-row strip carries the "Wallet: <addr>" / "Wallet: not
-  // connected" status line. When NO provider is detected at all, the
-  // big orange "Install a Solana wallet" submit button is the only
-  // call to action that matters — the redundant status line eats
-  // valuable modal real estate, so we hide the entire row.
-  const walletRow = $('walletStatus')?.parentElement;
+  const navSlot = $('navWallet');
+
   if (!provider) {
-    if (walletRow) walletRow.style.display = 'none';
-    $('walletStatus').innerHTML = '';
-    $('walletBalance').textContent = '';
+    if (navSlot) navSlot.innerHTML = '';
     $('burnSubmit').textContent = 'Install a Solana wallet';
     $('burnSubmit').disabled = true;
     return;
   }
-  if (walletRow) walletRow.style.display = '';
   burnState.provider = provider;
-  const pickerHtml = renderWalletPickerLine(all, provider);
   if (provider.publicKey) {
     burnState.publicKey = provider.publicKey;
     const addr = provider.publicKey.toString();
-    $('walletStatus').innerHTML =
-      `<span class="wallet-badge"><span class="wallet-addr" title="${escapeHtml(addr)}">${escapeHtml(shortAddr(addr))}</span> ${pickerHtml}` +
-      `<button type="button" class="wallet-disconnect" onclick="window.__pyreDisconnectWallet()" aria-label="Disconnect wallet" title="Disconnect">×</button></span>`;
+    const pickerHtml = renderWalletPickerLine(all, provider);
+    if (navSlot) {
+      navSlot.innerHTML =
+        `<span class="wallet-badge"><span class="wallet-addr" title="${escapeHtml(addr)}">${escapeHtml(shortAddr(addr))}</span> ${pickerHtml}` +
+        `<button type="button" class="wallet-disconnect" onclick="window.__pyreDisconnectWallet()" aria-label="Disconnect wallet" title="Disconnect">×</button></span>`;
+    }
     $('burnSubmit').textContent = _submitLabel();
     $('burnSubmit').disabled = false;
-    await refreshBalance();
   } else {
-    $('walletStatus').innerHTML =
-      '<span class="wallet-badge"><span style="color:var(--text2)">not connected</span> ' + pickerHtml + '</span>';
-    $('walletBalance').textContent = '';
+    // Provider detected but no key — clear the nav slot; the modal's
+    // submit button doubles as the connect trigger ("Connect wallet").
+    if (navSlot) navSlot.innerHTML = '';
     $('burnSubmit').textContent = 'Connect wallet';
     $('burnSubmit').disabled = false;
   }
@@ -435,19 +429,15 @@ async function refreshBalance() {
       const mintInfo = await conn.getParsedAccountInfo(mint);
       burnState.decimals = mintInfo.value.data.parsed.info.decimals;
     }
-    const ui = Number(acct.amount) / 10 ** burnState.decimals;
-    burnState.balance = ui;
-    $('walletBalance').textContent = fmt(ui) + ' $PYRE';
+    burnState.balance = Number(acct.amount) / 10 ** burnState.decimals;
   } catch (e) {
     // Distinguish 'no token account' (= balance is genuinely 0) from
-    // RPC/network failure (= balance unknown). The submitBurn check
-    // below relies on the distinction: amt > 0 burn against unknown
-    // balance MUST be refused, not silently accepted.
+    // RPC/network failure (= balance unknown). submitBurn's pre-flight
+    // check relies on the distinction: a burn against an unknown
+    // balance MUST be refused, not silently sent.
     if (e?.name === 'TokenAccountNotFoundError') {
-      $('walletBalance').textContent = '0 $PYRE';
       burnState.balance = 0;
     } else {
-      $('walletBalance').textContent = 'balance unknown';
       burnState.balance = null;
     }
   }
@@ -738,13 +728,15 @@ window.submitBurn = async function submitBurn() {
   }
 };
 
-// Try to detect existing connection on load (auto-connected wallets)
-window.addEventListener('load', () => {
-  setTimeout(refreshWalletState, 800);
-});
+// Detect existing connection on load — populates the navbar #navWallet
+// slot if Phantom/Solflare/etc. auto-connect to a previously-approved
+// site. burn.js is lazy-loaded so `load` may already have fired by the
+// time we get here; fire one immediately AND once via setTimeout to
+// catch slow wallet-extension injection (Phantom can take 1–2s).
+refreshWalletState();
+setTimeout(refreshWalletState, 800);
+setTimeout(refreshWalletState, 2000);
 
-// If main.js's bootstrap stub already opened the modal before this module
-// finished loading, finish the wiring now (populate wallet status + balance).
-if ($('burnModal') && $('burnModal').classList.contains('open')) {
-  refreshWalletState();
-}
+// If main.js's bootstrap stub already opened the modal before this
+// module finished loading, the modal is open; refreshWalletState above
+// already covered it.

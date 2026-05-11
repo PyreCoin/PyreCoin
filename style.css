@@ -54,6 +54,14 @@ nav{
   backdrop-filter:blur(20px);
   position:sticky;top:0;z-index:100;
   gap:18px;
+  transition:transform .25s ease-out;
+  will-change:transform;
+}
+/* "Smart nav": main.js toggles this class when the user scrolls down
+   past the threshold, restoring it the moment they scroll up. The nav
+   itself stays in the document flow so anchor offsets are unaffected. */
+nav.nav--hidden{
+  transform:translateY(-100%);
 }
 .nav-logo{
   position:relative;          /* anchor for the absolute-positioned tooltip below */
@@ -166,7 +174,12 @@ nav{
   .nav-logo-tooltip{display:none !important;}
   .nav-logo:hover .nav-logo-default{display:inline-block !important;}
 }
-.nav-links{display:flex;gap:28px;align-items:center;flex-wrap:nowrap;}
+.nav-links{display:flex;gap:18px;align-items:center;flex-wrap:nowrap;}
+/* Wallet status slot in the navbar — filled by burn.js when a wallet
+   is detected and connected. Empty by default; :empty rule keeps it
+   from taking flex gap when nothing's there. */
+.nav-wallet{display:inline-flex;align-items:center;}
+.nav-wallet:empty{display:none;}
 .nav-links a{
   position:relative;
   font-size:11px;font-weight:700;letter-spacing:2.5px;
@@ -1409,43 +1422,38 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .burn-modal-submit:disabled{
   opacity:0.5;cursor:not-allowed;box-shadow:none;
 }
-.burn-wallet-row{
-  display:flex;justify-content:space-between;align-items:center;
-  gap:8px;flex-wrap:wrap;
-  font-family:'DM Mono',monospace;
-  font-size:10px;color:var(--text3);
-  letter-spacing:1px;
-  margin-bottom:14px;padding-bottom:10px;
-  border-bottom:0.5px solid var(--border);
-}
-.burn-wallet-row .connected{color:var(--ember2);}
-.burn-wallet-row .wallet-name{color:var(--text3);margin-left:4px;}
-.burn-wallet-row .wallet-picker{
-  font-family:'DM Mono',monospace;
-  font-size:10px;color:var(--ember2);
-  background:transparent;border:0.5px solid var(--border);
-  border-radius:3px;padding:1px 3px;margin-left:2px;
-  letter-spacing:0.5px;cursor:pointer;
-}
-.burn-wallet-row .wallet-picker:focus{outline:none;border-color:var(--ember2);}
-
-/* Wallet badge — one cohesive pill: address (with full-addr tooltip),
-   wallet name / picker, and a × disconnect button. Replaces the prior
-   "Wallet: ..." label which stole real estate without earning it. */
+/* Wallet badge — single rounded pill that lives in the navbar:
+   shortened address (full address on hover via title), wallet picker
+   (when multiple wallets are detected) or just the wallet name, and a
+   × disconnect button. Renders inside #navWallet only when a wallet
+   is actually connected. */
 .wallet-badge{
   display:inline-flex;align-items:center;gap:6px;
-  padding:3px 4px 3px 8px;
+  padding:3px 4px 3px 10px;
   border:0.5px solid var(--border);
   border-radius:99px;
   background:rgba(0,0,0,0.4);
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  color:var(--text3);
+  letter-spacing:0.5px;
   transition:border-color .2s;
 }
 .wallet-badge:hover{border-color:rgba(255,140,60,0.4);}
 .wallet-addr{
   color:var(--ember2);
   cursor:help;
-  letter-spacing:0.5px;
+  white-space:nowrap;
 }
+.wallet-name{color:var(--text3);}
+.wallet-picker{
+  font-family:'DM Mono',monospace;
+  font-size:10px;color:var(--ember2);
+  background:transparent;border:0.5px solid var(--border);
+  border-radius:3px;padding:1px 3px;
+  letter-spacing:0.5px;cursor:pointer;
+}
+.wallet-picker:focus{outline:none;border-color:var(--ember2);}
 .wallet-disconnect{
   background:transparent;
   border:none;
@@ -1461,6 +1469,15 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .wallet-disconnect:hover{
   color:var(--text);
   background:rgba(255,80,40,0.25);
+}
+/* Compact the wallet badge on narrow viewports — keep the shortened
+   address (the meaningful bit) and the disconnect button; drop the
+   "via Phantom" / picker text that just confirms what the user already
+   chose. */
+@media(max-width:720px){
+  .wallet-badge .wallet-name,
+  .wallet-badge .wallet-picker{display:none;}
+  .wallet-badge{padding-right:2px;}
 }
 
 /* ── BUY MODAL (Jupiter Plugin v1 embed) ─────────────────────────── */

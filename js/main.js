@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260511-18';
+const V = '20260511-20';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick handlers never call undefined functions while modules
@@ -28,8 +28,6 @@ const V = '20260511-18';
 function _bootstrapOpen(){
   document.getElementById('burnModal').classList.add('open');
   document.body.style.overflow = 'hidden';
-  const ws = document.getElementById('walletStatus');
-  if (ws) ws.innerHTML = '<span style="color:var(--text2)">loading wallet libraries…</span>';
 }
 window.openWriteModal    = _bootstrapOpen;
 window.openInscribeModal = _bootstrapOpen;
@@ -113,6 +111,37 @@ FIRE_SECTIONS.forEach(id => {
   const el = document.getElementById(id);
   if (el) fireObserver.observe(el);
 });
+
+// ── SMART NAV ── hide nav when scrolling down, reveal on scroll up.
+// Above the threshold the nav stays visible; the threshold avoids the
+// jitter that comes from elastic-scroll/momentum at the top of the page.
+(function smartNav(){
+  const nav = document.querySelector('nav');
+  if (!nav) return;
+  const THRESHOLD = 80;
+  const DELTA = 6; // ignore micro-scrolls
+  let lastY = window.scrollY;
+  let ticking = false;
+  function update(){
+    const y = window.scrollY;
+    const diff = y - lastY;
+    if (y < THRESHOLD){
+      nav.classList.remove('nav--hidden');
+    } else if (diff > DELTA){
+      nav.classList.add('nav--hidden');
+    } else if (diff < -DELTA){
+      nav.classList.remove('nav--hidden');
+    }
+    lastY = y;
+    ticking = false;
+  }
+  window.addEventListener('scroll', () => {
+    if (!ticking){
+      requestAnimationFrame(update);
+      ticking = true;
+    }
+  }, { passive: true });
+})();
 
 // ── TYPEWRITER in the top CTA headline ───────────────────────────
 // "Burn your ____ into the blockchain." — cycles a noun in the blank
