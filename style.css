@@ -1384,6 +1384,44 @@ nav{
 }
 .burn-wallet-row .wallet-picker:focus{outline:none;border-color:var(--ember2);}
 
+/* ── BUY MODAL (Jupiter Plugin v1 embed) ─────────────────────────── */
+/* Re-uses .burn-modal-* for the backdrop/panel/close button. These
+   styles are buy-only additions: the panel needs more width to fit
+   the Plugin's swap UI comfortably, plus the sub-line + the target
+   container + the foot caveat. */
+.burn-modal.buy-modal-panel{
+  max-width:520px;
+  padding:30px 26px 22px;
+}
+.buy-modal-sub{
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;line-height:1.55;
+  color:var(--text2);
+  margin:0 0 18px;
+}
+.buy-modal-sub strong{color:var(--ember2);font-weight:600;}
+.jupiter-target{
+  min-height:520px;
+  background:#06010a;
+  border:0.5px solid rgba(255,100,30,0.18);
+  border-radius:6px;
+  overflow:hidden;
+}
+.buy-modal-foot{
+  font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:0.5px;
+  color:var(--text3);
+  text-align:center;
+  margin:14px 0 0;
+}
+.buy-modal-foot a{color:var(--ember2);text-decoration:none;border-bottom:0.5px dotted var(--ember2);}
+.buy-modal-foot a:hover{color:var(--ember);border-bottom-color:var(--ember);}
+@media(max-width:560px){
+  .burn-modal.buy-modal-panel{padding:24px 18px 18px;}
+  .jupiter-target{min-height:480px;}
+  .buy-modal-sub{font-size:12px;}
+}
+
 /* ── LINGUISTIC FONT (IPA, polytonic Greek, PIE combining marks) ── */
 /* DM Mono / DM Sans don't ship full IPA/PIE/Greek glyph coverage,
    which produces per-character font fallback. Noto Serif has full

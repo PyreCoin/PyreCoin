@@ -36,7 +36,13 @@ const _bigChartsMod = await import(`./big-charts.js?v=${V}`);
 const { sparkline }       = _chartsMod;
 const { renderBigCharts } = _bigChartsMod;
 
-const JUP_PRICE_URL  = 'https://lite-api.jup.ag/price/v3?ids=';
+// Migrated 2026-05-11 from lite-api.jup.ag → api.jup.ag. lite-api was
+// scheduled for a 2026-01-31 sunset (postponed indefinitely while
+// Jupiter rolls out paid tiers on api.jup.ag), but the canonical host
+// going forward is api.jup.ag and the path is identical. Keyless usage
+// is 0.5 RPS — comfortably above our once-per-30s tick. If we ever
+// outgrow that, sign up at portal.jup.ag and pass `x-api-key` header.
+const JUP_PRICE_URL  = 'https://api.jup.ag/price/v3?ids=';
 // The worker's public origin. Same host as RPC_URL but rewritten to
 // our two new GET endpoints. RPC_URL is `https://rpc.pyrecoin.com/`
 // in prod and pointed at a placeholder pre-launch — we resolve the
