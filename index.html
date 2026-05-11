@@ -11,11 +11,11 @@
      before serving — see project policy §7.1. -->
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta http-equiv="Pragma" content="no-cache">
-<title>PYRE — Burn to Be Seen</title>
-<meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
+<title>PYRE — Write on Solana. Burn to be seen.</title>
+<meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260511-22">
+<link rel="stylesheet" href="style.css?v=20260511-23">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -139,33 +139,34 @@
 
     <p class="section-intro">
       A Solana experiment in writing things onto the blockchain
-      <em>on purpose</em>. Burn some $PYRE, attach a URL plus a
-      280-character message; the chain keeps the receipt forever. Burn
-      enough or fresh enough and your message lands on the leaderboard
-      above too.
+      <em>on purpose</em>. Anyone can inscribe a message — plus an
+      optional URL and X handle — for a fraction of a cent in SOL.
+      The chain keeps the receipt; every major Solana explorer
+      mirrors it. Burn some $PYRE alongside your inscription to
+      climb the heat-ranked leaderboard above.
     </p>
 
-    <!-- Both cards are static containers. Only card 01's link line
-         opens the burn modal; the card itself isn't a hit-target.
-         Card 02 has no link at all — the leaderboard sits at the top
-         of the page, the user just scrolled past it. -->
+    <!-- Two static cards: free inscription path on the left, burn-for-
+         leaderboard tier on the right. Only card 01's link line opens
+         the write modal; the leaderboard above is the destination of
+         card 02 so it doesn't need its own link. -->
     <div class="how-grid how-grid-2">
       <div class="how-card how-card-static">
         <div class="how-num">01</div>
-        <div class="how-title">Burn PYRE</div>
-        <div class="how-body">Pick a URL. Type a message. Sign. The tokens are gone — the supply itself moves down.</div>
+        <div class="how-title">Inscribe</div>
+        <div class="how-body">Type whatever — a message, a URL, an X handle. Sign with any Solana wallet. Costs a fraction of a cent in SOL. The chain keeps the receipt forever.</div>
         <a class="how-link" href="#" onclick="event.preventDefault();openWriteModal();return false;">→ open the write modal</a>
       </div>
 
       <div class="how-card how-card-static">
         <div class="how-num">02</div>
-        <div class="how-title">Be blockchain famous</div>
-        <div class="how-body">Top 16 burns hit the leaderboard. Bigger and fresher climb higher; older slots cool to the backburner.</div>
+        <div class="how-title">Burn $PYRE to climb</div>
+        <div class="how-body">Add a $PYRE burn to your inscription. The tokens are gone — the mint's supply actually drops — and your slot lands on the leaderboard above, ranked by heat. Bigger or fresher burns climb higher; older slots cool to the backburner.</div>
       </div>
     </div>
 
     <p class="how-aside">
-      Don't have any $PYRE? Try begging <a href="https://x.com/AlphaCove" target="_blank" rel="noopener noreferrer">@AlphaCove</a> on X — or you can always <a href="#" onclick="event.preventDefault();openBuyModal();return false;">buy some via Jupiter</a>.
+      Want a leaderboard slot? You'll need some $PYRE first — try begging <a href="https://x.com/AlphaCove" target="_blank" rel="noopener noreferrer">@AlphaCove</a> on X, or <a href="#" onclick="event.preventDefault();openBuyModal();return false;">buy some via Jupiter</a>. Just inscribing? No $PYRE required.
     </p>
 
     <div class="heat-math">
@@ -480,8 +481,8 @@
     <div class="rules-grid">
       <div>
         <div class="rules-col-title">✓ &nbsp;What flies</div>
-        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Any legal product, project, or community</strong> — crypto, SaaS, art, music, memes, whatever. If it's legal, it's burnable.</div></div>
-        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Every burn is its own slot.</strong> Each burn carries its own URL, its own message, its own timestamp, and its own on-chain receipt. The same wallet can hold many slots at once.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Any legal product, project, or community</strong> — crypto, SaaS, art, music, memes, manifestos, whatever. If it's legal, it gets a slot or a wall entry.</div></div>
+        <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Every transaction is its own entry.</strong> Each one carries its own URL, message, X handle, timestamp, and on-chain receipt. The same wallet can hold many at once.</div></div>
         <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Burn as many times as you want.</strong> Heat per slot decays like a Reddit "hot" feed: <code style="font-family:'DM Mono',monospace;font-size:11px;color:var(--ember);">amount ÷ (hours_since + 2)<sup>1.5</sup></code>. Bigger and fresher both climb.</div></div>
         <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Change your pitch anytime.</strong> Just burn again with a new memo — that's a new slot. The old one keeps decaying until it slides to the backburner.</div></div>
         <div class="rule"><div class="rule-icon ok">✓</div><div class="rule-text"><strong>Fresh burns climb fast.</strong> A 10K burn from the last hour can outrank a 100K burn from yesterday. The pyre rewards recency — that's the quid pro quo.</div></div>
@@ -510,7 +511,7 @@
     </p>
     <ul>
       <li><strong>The page is provided "AS IS"</strong>, with no warranty of any kind, express or implied — including merchantability, fitness for a particular purpose, or non-infringement. No guarantee of uptime, accuracy, availability, or that anything will work at all.</li>
-      <li><strong>Burning $PYRE may not result in a leaderboard slot.</strong> Your transaction may fail to confirm. The indexer may miss it. The moderation filter may quarantine it. The page may not rebuild. The DNS may have evaporated. The pyre may be out.</li>
+      <li><strong>Inscribing — or burning $PYRE — may not result in your message appearing on the page.</strong> Your transaction may fail to confirm. The indexer may miss it. The moderation filter may quarantine it. The page may not rebuild. The DNS may have evaporated. The pyre may be out.</li>
       <li><strong>If something breaks,</strong> you can holler at <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a> on X. We may or may not respond. We may or may not be busy lighting other things on fire. There is no support obligation, no SLA, no helpdesk, no escalation path, no "manager."</li>
       <li><strong>$PYRE is a digital collectible.</strong> Not a security. Not an investment contract. Not a yield product. Not financial advice. Not a promise of anything. There is no team roadmap, no future-utility commitment, no guarantee of price, value, or relevance — past, present, or future.</li>
       <li><strong>Liability is yours, exclusively.</strong> We are not liable for any direct, indirect, incidental, consequential, special, punitive, or "I burned a small fortune in $PYRE and nothing happened" damages. By burning, you accept this. By visiting the page, you accept this. By having heard about the page from a friend, you probably accept this.</li>
@@ -631,7 +632,7 @@
     <div class="cta-label">Ready to be seen?</div>
     <div class="cta-title">Throw It On The Pyre</div>
     <p class="cta-sub">
-      Burn $PYRE. Own the leaderboard. Get seen by every degen in this (unfortunate) timeline.<br>
+      Write to the chain for pennies. Burn $PYRE to own the leaderboard. Get seen by every degen in this (unfortunate) timeline.<br>
       No subscription. No renewal. No vesting. No cliff. No one to email.<br>
       Just <em class="ling tone-ember">πυρά</em>.
     </p>
@@ -696,7 +697,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260511-22"></script>
+<script type="module" src="js/main.js?v=20260511-23"></script>
 
 </body>
 </html>
