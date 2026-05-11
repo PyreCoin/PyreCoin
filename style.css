@@ -1294,11 +1294,20 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .burn-form-row{margin-bottom:12px;}
 .burn-form-row label{
-  display:block;
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:8px;
   font-family:'DM Mono',monospace;
   font-size:9px;letter-spacing:2px;
   color:var(--text3);text-transform:uppercase;
   margin-bottom:6px;
+}
+.burn-form-row label .label-meta{
+  font-size:9px;letter-spacing:0.5px;
+  color:var(--text3);
+  text-transform:none;
+  font-variant-numeric:tabular-nums;
 }
 .burn-form-row input{
   width:100%;
@@ -1766,6 +1775,19 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   flex-shrink:0;
   vertical-align:-2px;
   fill:currentColor;
+}
+/* Stroked icons (Lucide-style line art). The blanket `.icon{fill:currentColor}`
+   rule wins over inline `fill="none"` attributes due to CSS specificity, which
+   merges separate strokes into a single filled blob — fine for the flame
+   (single closed path) but turns the notebook-pen's binder + page + pen into
+   one shape. Apply `.icon-stroked` alongside `.icon` to opt into proper
+   stroke rendering. */
+.icon-stroked{
+  fill:none !important;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
 }
 .btn-primary .icon,.btn-ghost .icon{
   width:14px;height:14px;margin-right:8px;
