@@ -20,18 +20,20 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260511-14';
+const V = '20260511-15';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
-// inline onclick="openBurnModal()" / form onsubmit never call
-// undefined functions while modules load. burn.js overwrites all
-// three on load.
-window.openBurnModal = function(){
+// inline onclick handlers never call undefined functions while modules
+// load. burn.js overwrites these on load.
+function _bootstrapOpen(){
   document.getElementById('burnModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   const ws = document.getElementById('walletStatus');
-  if (ws) ws.innerHTML = 'Wallet: <span style="color:var(--text2)">loading wallet libraries…</span>';
-};
+  if (ws) ws.innerHTML = '<span style="color:var(--text2)">loading wallet libraries…</span>';
+}
+window.openWriteModal    = _bootstrapOpen;
+window.openInscribeModal = _bootstrapOpen;
+window.openBurnModal     = _bootstrapOpen;
 window.closeBurnModal = function(){
   document.getElementById('burnModal').classList.remove('open');
   document.body.style.overflow = '';
@@ -111,3 +113,47 @@ FIRE_SECTIONS.forEach(id => {
   const el = document.getElementById(id);
   if (el) fireObserver.observe(el);
 });
+
+// ── TYPEWRITER in the top CTA headline ───────────────────────────
+// "Burn your ____ into the blockchain." — cycles a noun in the blank
+// with a blinking cursor. Order shuffled per page-load so repeat
+// visitors don't always see the same opener. Words are deliberately
+// cultural / personal — no investment-sounding "alpha", "signals",
+// "calls", etc. (compliance §1: digital-collectible framing).
+const TYPED_WORDS = [
+  'dreams', 'hopes', 'fears', 'love letters', 'regrets',
+  'secrets', 'confessions', 'manifestos', 'prayers',
+  'shower thoughts', 'bad jokes', 'shitposts', 'vendettas',
+  'protest signs', 'last words',
+];
+function runTypewriter(){
+  const el = document.getElementById('typed-word');
+  if (!el) return;
+  let wordIdx = Math.floor(Math.random() * TYPED_WORDS.length);
+  let letterIdx = 0;
+  let mode = 'typing'; // typing | pausing | erasing
+  function step(){
+    const word = TYPED_WORDS[wordIdx];
+    if (mode === 'typing'){
+      letterIdx++;
+      el.textContent = word.slice(0, letterIdx);
+      if (letterIdx >= word.length){ mode = 'pausing'; setTimeout(step, 1800); return; }
+      setTimeout(step, 70 + Math.random() * 60);
+    } else if (mode === 'pausing'){
+      mode = 'erasing';
+      setTimeout(step, 80);
+    } else {
+      letterIdx--;
+      el.textContent = word.slice(0, letterIdx);
+      if (letterIdx <= 0){
+        wordIdx = (wordIdx + 1) % TYPED_WORDS.length;
+        mode = 'typing';
+        setTimeout(step, 280);
+        return;
+      }
+      setTimeout(step, 35);
+    }
+  }
+  step();
+}
+runTypewriter();

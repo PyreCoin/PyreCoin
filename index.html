@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260511-14">
+<link rel="stylesheet" href="style.css?v=20260511-15">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -48,31 +48,27 @@
       <a href="#metrics">Numbers</a>
       <a href="#etymology">Etymology</a>
       <a href="#rules">Rules</a>
-      <button class="btn-primary" onclick="openBurnModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Burn $PYRE</button>
+      <button class="btn-primary" onclick="openWriteModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Write on Solana</button>
     </div>
   </nav>
 
-  <!-- TOP CTA — explains what pyrecoin.com really is. Two actions:
-       Inscribe (just SOL, ~fraction of a cent) and Burn $PYRE (lands
-       on the leaderboard below). Both open the same unified modal
-       with different default PYRE amounts (0 vs blank). Compact
-       hero box, intentionally above the leaderboard so first-time
-       visitors understand the service before they see the rankings. -->
+  <!-- TOP CTA — single dramatic CTA. Headline runs a typewriter cycle
+       over a noun ("dreams" / "hopes" / "fears" / "shitposts" / …) so
+       the page feels alive on first paint. One button opens the
+       unified Write modal; that modal handles both pure-SOL
+       inscription and burn+inscribe via the $PYRE amount field. -->
   <section class="top-cta">
-    <h1 class="top-cta-title">Write words on Solana — forever.</h1>
+    <h1 class="top-cta-title">
+      Burn your <span id="typed-word" class="typed-word"></span><span class="typed-cursor">|</span><br>
+      into the blockchain.
+    </h1>
     <p class="top-cta-sub">
-      Pennies in SOL. No account. No login.<br>
-      The chain keeps your message; every explorer indexes it.<br>
-      Burn $PYRE for a slot on the leaderboard below.
+      Pennies in SOL · Burn $PYRE to land on the leaderboard.
     </p>
     <div class="top-cta-btns">
-      <button class="btn-primary btn-inscribe" onclick="openInscribeModal()">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        Inscribe
-      </button>
-      <button class="btn-primary btn-burn-cta" onclick="openBurnModal()">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
-        Burn $PYRE
+      <button class="btn-primary" onclick="openWriteModal()">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>
+        Write on Solana
       </button>
     </div>
   </section>
@@ -154,7 +150,7 @@
         <div class="how-num">01</div>
         <div class="how-title">Burn PYRE</div>
         <div class="how-body">Pick a URL. Type a message. Sign. The tokens are gone — the supply itself moves down.</div>
-        <a class="how-link" href="#" onclick="event.preventDefault();openBurnModal();return false;">→ open the burn modal</a>
+        <a class="how-link" href="#" onclick="event.preventDefault();openWriteModal();return false;">→ open the write modal</a>
       </div>
 
       <div class="how-card how-card-static">
@@ -633,7 +629,7 @@
       Just <em class="ling tone-ember">πυρά</em>.
     </p>
     <div class="btn-row">
-      <button class="btn-primary" onclick="openBurnModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Burn $PYRE</button>
+      <button class="btn-primary" onclick="openWriteModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Write on Solana</button>
       <button class="btn-ghost" onclick="window.open('https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>$PYRE on X</button>
       <button class="btn-primary" onclick="openBuyModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Buy $PYRE</button>
       <button class="btn-ghost" onclick="window.open('https://github.com/PyreCoin/PyreCoin','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</button>
@@ -693,7 +689,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260511-14"></script>
+<script type="module" src="js/main.js?v=20260511-15"></script>
 
 </body>
 </html>

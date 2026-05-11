@@ -1985,12 +1985,32 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .top-cta-title{
   font-family:'Bebas Neue',sans-serif;
-  font-size:34px;
+  font-size:42px;
+  line-height:1.05;
   letter-spacing:1.5px;
   color:var(--ember);
   text-shadow:0 0 22px rgba(255,100,20,0.45);
   margin-bottom:14px;
   font-weight:400;
+}
+/* Typewriter span — the cycled noun in the headline. min-width avoids
+   layout shimmer between "fears" (3 chars) and "shower thoughts" (15+). */
+.typed-word{
+  display:inline-block;
+  min-width:0;
+  color:#fff;
+  text-shadow:0 0 24px rgba(255,180,80,0.6);
+}
+.typed-cursor{
+  display:inline-block;
+  margin-left:1px;
+  color:var(--ember);
+  font-weight:400;
+  animation:typed-blink 1s step-end infinite;
+}
+@keyframes typed-blink{
+  0%, 50%   { opacity:1; }
+  50.01%, 100% { opacity:0; }
 }
 .top-cta-sub{
   font-family:'DM Sans',sans-serif;
@@ -2018,13 +2038,13 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 
 @media(max-width:560px){
   .top-cta{margin:20px 12px 6px;padding:22px 18px 18px;}
-  .top-cta-title{font-size:26px;letter-spacing:1px;}
+  .top-cta-title{font-size:32px;letter-spacing:1px;}
   .top-cta-sub{font-size:12.5px;line-height:1.65;}
   .top-cta-btns{gap:8px;}
 }
 @media(max-width:380px){
   .top-cta{margin:14px 8px 4px;padding:18px 12px 14px;}
-  .top-cta-title{font-size:22px;}
+  .top-cta-title{font-size:26px;}
   .top-cta-sub{font-size:11.5px;}
 }
 

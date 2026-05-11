@@ -80,26 +80,27 @@ function stopWalletDetectPoller(){
   if (_walletDetectPoller){ clearInterval(_walletDetectPoller); _walletDetectPoller = null; }
 }
 
-// Two entry points into the same unified modal — only the default
-// PYRE amount and the modal title differ. "Inscribe" sets amount to 0
-// (pure-SOL inscription); "Burn" leaves it blank for the user to fill.
-window.openInscribeModal = function() { _openModal('inscribe'); };
-window.openBurnModal     = function() { _openModal('burn'); };
+// Single entry point. The modal lets the user decide between pure
+// inscription and burn+inscribe via the $PYRE amount field — there's
+// no point in shipping different doorways to the same room. The
+// `openInscribeModal` / `openBurnModal` names remain as aliases for
+// older inline onclicks in case any survived, but all current CTAs
+// use `openWriteModal`.
+window.openWriteModal    = function() { _openModal(); };
+window.openInscribeModal = window.openWriteModal;
+window.openBurnModal     = window.openWriteModal;
 
-function _openModal(mode){
+function _openModal(){
   const modal = $('burnModal');
   if (!modal) return;
   modal.classList.add('open');
-  modal.dataset.mode = mode;
   document.body.style.overflow = 'hidden';
 
-  // Default PYRE amount: 0 for inscribe (input shows '0' as a hint
-  // that a burn is optional), blank for burn (user must enter > 0).
+  // PYRE amount defaults to blank; the input's placeholder shows "0",
+  // making the inscribe path the visual default while still inviting
+  // the user to type a real burn amount.
   const amtInput = $('burnAmount');
-  if (amtInput) {
-    if (mode === 'inscribe') amtInput.value = '0';
-    else amtInput.value = '';
-  }
+  if (amtInput) amtInput.value = '';
 
   refreshWalletState();
   refreshBurnHint();
