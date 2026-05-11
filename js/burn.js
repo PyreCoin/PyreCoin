@@ -419,7 +419,7 @@ async function refreshBalance() {
     }
     const ui = Number(acct.amount) / 10 ** burnState.decimals;
     burnState.balance = ui;
-    $('walletBalance').textContent = ui.toLocaleString(undefined,{maximumFractionDigits:2}) + ' $PYRE';
+    $('walletBalance').textContent = fmt(ui) + ' $PYRE';
   } catch (e) {
     // Distinguish 'no token account' (= balance is genuinely 0) from
     // RPC/network failure (= balance unknown). The submitBurn check
