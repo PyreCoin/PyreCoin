@@ -1,17 +1,22 @@
-// Deterministic moderation filter for ingested $PYRE burn memos.
+// Deterministic moderation filter for ingested $PYRE memos.
+//
+// Inputs from parseMemo(): any subset of { url, x, msg }, all optional.
+// A memo with no fields at all is rejected here (the ingest treats truly
+// memoless burns separately — see solana.mjs / ingest.mjs); but a memo
+// that parsed cleanly to an empty object never happens (parseMemo
+// returns null in that case).
 //
 // Pipeline (each step short-circuits on failure):
-//   1. Normalize: NFKC + strip control / RTL / zero-width chars
-//   2. Length caps
-//   3. Hostname rules: HTTPS-only, no IP literals, no link shorteners,
-//      no homograph abuse (mixed scripts in hostname)
-//   4. Profanity (via `obscenity`, which handles leetspeak + confusables)
+//   1. Normalize each present field: NFKC + strip control/RTL/zero-width
+//   2. Length caps on url/msg; format check on x handle
+//   3. Pipe-character guard (the parser splits on `|`)
+//   4. URL: HTTPS-only, no IP literals, no shorteners, no homograph abuse
+//   5. Profanity scan (via `obscenity`, handles leetspeak + confusables)
+//      on every present field
 //
-// Returns { ok: true, normalized: { url, msg } }
-//      or { ok: false, reason: string }
-//
-// Rules are intentionally conservative. False positives go to pending.json
-// and can be reviewed manually — but the live page only ever sees passes.
+// Returns { ok: true, normalized: { url, x, msg } } where any field the
+// memo omitted is the empty string.  Or { ok: false, reason: string }
+// for the moderation log.
 
 import {
   RegExpMatcher,
@@ -21,6 +26,10 @@ import {
 
 const URL_MAX = 200;
 const MSG_MAX = 280;
+
+// Twitter / X handle: alphanumeric + underscore, 1–15 chars. We strip
+// the leading @ in parseMemo so we only see the bare handle here.
+const X_HANDLE_RE = /^[A-Za-z0-9_]{1,15}$/;
 
 const SHORTENER_HOSTS = new Set([
   'bit.ly', 't.co', 'tinyurl.com', 'ow.ly', 'is.gd', 'buff.ly', 'goo.gl',
@@ -47,13 +56,6 @@ function isIpLiteral(host) {
   return false;
 }
 
-// Detect hostname mixing scripts in a way commonly used for homograph attacks.
-// `new URL()` auto-Punycode-encodes non-ASCII hostnames, so we get the encoded
-// form here. We reject:
-//   - any non-[a-z0-9.-] character (defense-in-depth)
-//   - any label starting with `xn--` (Punycode internationalized domain name)
-// Strict-but-predictable for v0. Future versions can decode and accept
-// single-script Unicode labels.
 function looksLikeHomograph(host) {
   if (!/^[a-z0-9.\-]+$/.test(host)) return true;
   return host.split('.').some(label => label.startsWith('xn--'));
@@ -75,7 +77,6 @@ function checkUrl(input) {
   if (looksLikeHomograph(host)) return { ok: false, reason: 'url_non_ascii_host' };
   if (SHORTENER_HOSTS.has(host)) return { ok: false, reason: 'url_shortener' };
 
-  // canonicalize: strip trailing slash on bare hosts; preserve everything else
   const canonical = parsed.host + (parsed.pathname === '/' ? '' : parsed.pathname) +
                     parsed.search + parsed.hash;
   return { ok: true, canonical };
@@ -85,27 +86,35 @@ function checkProfanity(s) {
   return !profanityMatcher.hasMatch(s);
 }
 
-export function filterMemo({ url, msg }) {
-  const u = normalize(url);
-  const m = normalize(msg);
+export function filterMemo(input = {}) {
+  const u  = normalize(input.url || '');
+  const m  = normalize(input.msg || '');
+  const xh = normalize(input.x   || '');
 
-  if (!u) return { ok: false, reason: 'url_empty' };
-  if (!m) return { ok: false, reason: 'msg_empty' };
-  if (u.length > URL_MAX) return { ok: false, reason: 'url_too_long' };
-  if (m.length > MSG_MAX) return { ok: false, reason: 'msg_too_long' };
+  if (!u && !m && !xh) return { ok: false, reason: 'all_empty' };
 
-  // The memo parser (scripts/lib/parse.mjs) splits on '|', so any
-  // pipe in the URL would silently break parsing and the burn would
-  // be quarantined with no leaderboard slot. Reject explicitly here
-  // so the moderation log captures a clear reason.
-  if (u.includes('|')) return { ok: false, reason: 'url_pipe' };
-  if (m.includes('|')) return { ok: false, reason: 'msg_pipe' };
+  if (u.length  > URL_MAX) return { ok: false, reason: 'url_too_long' };
+  if (m.length  > MSG_MAX) return { ok: false, reason: 'msg_too_long' };
 
-  const urlCheck = checkUrl(u);
-  if (!urlCheck.ok) return urlCheck;
+  // The memo parser splits on '|', so any pipe in a field silently breaks
+  // parsing. Reject explicitly here so the moderation log captures a
+  // clear reason instead of an ambiguous parse failure.
+  if (u.includes('|'))  return { ok: false, reason: 'url_pipe' };
+  if (m.includes('|'))  return { ok: false, reason: 'msg_pipe' };
+  if (xh.includes('|')) return { ok: false, reason: 'x_pipe' };
 
-  if (!checkProfanity(m)) return { ok: false, reason: 'msg_profanity' };
-  if (!checkProfanity(u)) return { ok: false, reason: 'url_profanity' };
+  if (xh && !X_HANDLE_RE.test(xh)) return { ok: false, reason: 'x_invalid' };
 
-  return { ok: true, normalized: { url: urlCheck.canonical, msg: m } };
+  let urlCanonical = '';
+  if (u) {
+    const urlCheck = checkUrl(u);
+    if (!urlCheck.ok) return urlCheck;
+    urlCanonical = urlCheck.canonical;
+  }
+
+  if (m  && !checkProfanity(m))  return { ok: false, reason: 'msg_profanity' };
+  if (u  && !checkProfanity(u))  return { ok: false, reason: 'url_profanity' };
+  if (xh && !checkProfanity(xh)) return { ok: false, reason: 'x_profanity' };
+
+  return { ok: true, normalized: { url: urlCanonical, msg: m, x: xh } };
 }

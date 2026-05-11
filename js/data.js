@@ -1,68 +1,52 @@
 // ─── SHARED DATA LAYER ───────────────────────────────────────────────
-// Single source of truth for `leaderboard.json`. Both the leaderboard
-// renderer and the stats panel read from here, so each 30-second tick
-// pulls the file once instead of twice.
-//
-// Before this module existed, leaderboard.js and stats.js each did
-// their own fetch on init / refresh. Worse, leaderboard.js only fetched
-// ONCE at module load and never re-fetched, so new burns surfaced in
-// the stats cards but didn't appear on the live board until the user
-// reloaded the page. Fixing both bugs here.
-//
-// API:
-//   refreshEntries()  → async, fetches if cache is older than TTL,
-//                       returns the (possibly cached) array
-//   getEntries()      → sync, returns the last cached array (or [])
+// Single source of truth for leaderboard.json + inscriptions.json.
+// All renderers (leaderboard, inscription wall, stats) read from here so
+// each tick pulls each file at most once.
 //
 // Failure mode: a failed fetch leaves the previous cache in place. The
-// only way to get an empty array out of getEntries() is for the very
-// first fetch to fail before any successful one — same behavior the
-// old per-module fetchers exhibited.
+// only way to get an empty array out of getEntries() / getInscriptions()
+// is for the very first fetch to fail before any successful one.
 //
-// 10 second TTL: comfortably below the 30 s render cadence, so the
-// in-tick second consumer (stats after leaderboard, or vice versa)
-// always shares a single network round-trip; but new ticks always
-// re-fetch.
+// 10 second TTL: comfortably below the 30 s render cadence, so all
+// consumers in the same tick share a single network round-trip; but new
+// ticks always re-fetch.
 const TTL_MS = 10_000;
 
-// State lives on globalThis, NOT in module-level `let`s.
-//
-// Why: main.js loads this module via dynamic `import('./data.js?v=…')`
-// (with cache-bust query) while leaderboard.js + stats.js use static
-// `import … from './data.js'` (no query — static imports can't take a
-// dynamic specifier). The browser ESM cache keys by the specifier
-// string verbatim, so the two specifiers resolve to TWO independent
-// module instances. With per-module `let _entries`, main.js's
-// refreshEntries populated one instance, the renderers read the other,
-// the renderers always saw [], and the leaderboard rendered "PYRE IS
-// COLD" forever even though stats' on-chain numbers showed activity.
-// Hoisting state to globalThis collapses both instances onto one
-// shared object — fetched once, read by both.
-const _state = (globalThis.__pyreData ||= { entries: [], lastFetch: 0, inflight: null });
+// State lives on globalThis (see prior note in this file — the dynamic-
+// import-with-?v= specifier resolves to a different module instance than
+// static imports of the same path, so module-level `let` is per-specifier
+// and silently splits state).
+const _state = (globalThis.__pyreData ||= {
+  entries:      [], lastFetch:      0, inflight:      null,
+  inscriptions: [], lastFetchIns:   0, inflightIns:   null,
+});
 
-export async function refreshEntries() {
-  if (Date.now() - _state.lastFetch < TTL_MS && _state.entries.length > 0) return _state.entries;
-  // Coalesce concurrent callers onto a single in-flight request so
-  // back-to-back consumers in the same tick don't double-fire the
-  // network call before TTL is set.
-  if (_state.inflight) return _state.inflight;
-  _state.inflight = (async () => {
+async function _fetchOnce(file, cacheKey, lastFetchKey, inflightKey, listKey) {
+  if (Date.now() - _state[lastFetchKey] < TTL_MS && _state[listKey].length > 0) return _state[listKey];
+  if (_state[inflightKey]) return _state[inflightKey];
+  _state[inflightKey] = (async () => {
     try {
-      const res = await fetch('./leaderboard.json', { cache: 'no-cache' });
+      const res = await fetch(file, { cache: 'no-cache' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      if (data && Array.isArray(data.entries)) _state.entries = data.entries;
-      _state.lastFetch = Date.now();
+      if (data && Array.isArray(data.entries)) _state[listKey] = data.entries;
+      _state[lastFetchKey] = Date.now();
     } catch (_) {
-      // Keep stale entries on failure rather than blanking the UI.
+      // Keep stale list on failure rather than blanking the UI.
     } finally {
-      _state.inflight = null;
+      _state[inflightKey] = null;
     }
-    return _state.entries;
+    return _state[listKey];
   })();
-  return _state.inflight;
+  return _state[inflightKey];
 }
 
-export function getEntries() {
-  return _state.entries;
+export async function refreshEntries() {
+  return _fetchOnce('./leaderboard.json', 'lb', 'lastFetch', 'inflight', 'entries');
 }
+export function getEntries() { return _state.entries; }
+
+export async function refreshInscriptions() {
+  return _fetchOnce('./inscriptions.json', 'ins', 'lastFetchIns', 'inflightIns', 'inscriptions');
+}
+export function getInscriptions() { return _state.inscriptions; }

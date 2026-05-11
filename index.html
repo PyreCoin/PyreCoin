@@ -15,7 +15,7 @@
 <meta name="description" content="Burn $PYRE tokens to claim your spot on the leaderboard. Every burn is deflationary.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260511-9">
+<link rel="stylesheet" href="style.css?v=20260511-10">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -52,13 +52,58 @@
     </div>
   </nav>
 
+  <!-- TOP CTA — explains what pyrecoin.com really is. Two actions:
+       Inscribe (just SOL, ~fraction of a cent) and Burn $PYRE (lands
+       on the leaderboard below). Both open the same unified modal
+       with different default PYRE amounts (0 vs blank). Compact
+       hero box, intentionally above the leaderboard so first-time
+       visitors understand the service before they see the rankings. -->
+  <section class="top-cta">
+    <h1 class="top-cta-title">Write words on Solana — forever.</h1>
+    <p class="top-cta-sub">
+      Pennies in SOL. No account. No login.<br>
+      The chain keeps your message; every explorer indexes it.<br>
+      Burn $PYRE for a slot on the leaderboard below.
+    </p>
+    <div class="top-cta-btns">
+      <button class="btn-primary btn-inscribe" onclick="openInscribeModal()">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+        Inscribe
+      </button>
+      <button class="btn-primary btn-burn-cta" onclick="openBurnModal()">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+        Burn $PYRE
+      </button>
+    </div>
+  </section>
+
   <!-- HERO — the leaderboard floats here directly on the fire shader.
-       16 uniform rows, each [amount | message | url]. Same wallet can
-       appear multiple times. URLs found inside message text are
-       auto-linked. Populated by leaderboard.js → renderLeaderboard. -->
+       16 uniform rows, each rendered by leaderboard.js as a badge-bottom
+       slot (message on top, badges at the bottom). Same wallet can
+       appear multiple times. -->
   <section class="hero" id="leaderboard">
     <div class="leaderboard hero-board" id="lb-container">
       <!-- 16 rows -->
+    </div>
+  </section>
+
+  <!-- INSCRIPTION WALL — chronological feed of memo-only inscriptions
+       (no PYRE burned). Last 50, newest first. Renders the same badge
+       style as the leaderboard but minus 🔥 amount and ❤️‍🔥 heat. -->
+  <div class="full-divider"></div>
+  <section class="section wall-section" id="inscription-wall">
+    <div class="section-header">
+      <div class="section-title">Inscription Wall</div>
+      <div class="section-line"></div>
+    </div>
+    <p class="wall-blurb">
+      Anyone can inscribe a message on Solana for a fraction of a cent in SOL —
+      no $PYRE required, no account, no login. The chain keeps the receipt;
+      Solscan, Solana Explorer, and other indexers mirror it forever.
+      Last 50 inscriptions through pyrecoin.com:
+    </p>
+    <div class="wall-list" id="wall-container">
+      <!-- populated by inscription-wall.js -->
     </div>
   </section>
 
@@ -516,11 +561,15 @@
     </p>
   </section>
 
-  <!-- BURN MODAL -->
+  <!-- UNIFIED INSCRIBE / BURN MODAL.
+       All four fields below are optional, but at least one of (msg,
+       URL, X handle, PYRE > 0) must be filled. PYRE = 0 means pure
+       inscription (just SOL fees + 1-lamport beacon marker). PYRE > 0
+       triggers a Token-2022 BurnChecked alongside the memo. -->
   <div class="burn-modal-backdrop" id="burnModal">
     <div class="burn-modal" role="dialog" aria-modal="true" aria-labelledby="burnTitle">
       <button class="burn-modal-close" onclick="closeBurnModal()" aria-label="Close">×</button>
-      <div class="burn-modal-title" id="burnTitle">Throw it on the pyre</div>
+      <div class="burn-modal-title" id="burnTitle">Write to Solana</div>
 
       <div class="burn-wallet-row">
         <span id="walletStatus">Wallet: <span style="color:var(--text2)">not connected</span></span>
@@ -529,24 +578,29 @@
 
       <form onsubmit="event.preventDefault();submitBurn();">
         <div class="burn-form-row">
-          <label for="burnUrl">Your URL</label>
-          <input id="burnUrl" type="text" maxlength="200" placeholder="yoursite.xyz" required autocomplete="off">
-          <div class="helper">https:// is added automatically · max 200 chars</div>
-        </div>
-        <div class="burn-form-row">
-          <label for="burnMsg">Your message</label>
-          <input id="burnMsg" type="text" maxlength="280" placeholder="Daily alpha calls. Real signals." required autocomplete="off">
+          <label for="burnMsg">Message <span class="opt">(optional)</span></label>
+          <input id="burnMsg" type="text" maxlength="280" placeholder="Say something the chain will keep forever." autocomplete="off">
           <div class="helper"><span id="msgCount">0</span> / 280 chars · displayed publicly</div>
         </div>
         <div class="burn-form-row">
-          <label for="burnAmount">Amount of $PYRE to burn</label>
-          <input id="burnAmount" type="number" min="1" step="any" placeholder="10000" required>
-          <div class="helper">This amount is permanently destroyed. There is no refund.</div>
-          <!-- "min to take #1" hint, populated by burn.js on modal open -->
+          <label for="burnUrl">URL <span class="opt">(optional)</span></label>
+          <input id="burnUrl" type="text" maxlength="200" placeholder="yoursite.xyz" autocomplete="off">
+          <div class="helper">https:// is added automatically · max 200 chars</div>
+        </div>
+        <div class="burn-form-row">
+          <label for="burnX">X handle <span class="opt">(optional)</span></label>
+          <input id="burnX" type="text" maxlength="16" placeholder="@yourhandle" autocomplete="off">
+          <div class="helper">1–15 letters / numbers / underscores. We'll link it to x.com.</div>
+        </div>
+        <div class="burn-form-row">
+          <label for="burnAmount">$PYRE to burn <span class="opt">(0 = inscribe only)</span></label>
+          <input id="burnAmount" type="number" min="0" step="any" placeholder="0">
+          <div class="helper">Any amount &gt; 0 destroys $PYRE at the protocol layer (no refund) and lands you on the leaderboard.</div>
           <div class="burn-hint" id="burnHint"></div>
+          <div class="burn-hint burn-cost" id="burnCost"></div>
         </div>
         <div class="burn-status" id="burnStatus"></div>
-        <button type="submit" class="burn-modal-submit" id="burnSubmit">Connect wallet &amp; burn</button>
+        <button type="submit" class="burn-modal-submit" id="burnSubmit">Connect wallet</button>
       </form>
     </div>
   </div>
@@ -641,7 +695,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260511-9"></script>
+<script type="module" src="js/main.js?v=20260511-10"></script>
 
 </body>
 </html>

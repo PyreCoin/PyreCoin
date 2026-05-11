@@ -46,6 +46,14 @@ export const RPC_URL       = _cfg.rpcUrl;
 // destination address is involved. Memo Program is unchanged.
 export const MEMO_PROGRAM_ID_STR = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
 
+// Inscription beacon. PDA derived from "pyrecoin:inscriptions:v1"
+// against the PYRE mint — off-curve, no private key exists for it.
+// Free-SOL inscriptions transfer 1 lamport here + a Memo Program
+// payload; the ingest cron lists getSignaturesForAddress(BEACON)
+// to find them. Anyone can replicate this shape from any wallet.
+// See scripts/lib/solana.mjs INSCRIPTION_BEACON for the same value.
+export const INSCRIPTION_BEACON_STR = '2yqR9bjy64UqnWYP4wTrpw8RwFqXGQnkhzQRSp11MmDi';
+
 // Pump.fun creates SPL tokens with a fixed 1B (uiAmount) initial supply.
 // We compute the "$PYRE Burned" stat as INITIAL_SUPPLY − getTokenSupply()
 // rather than summing leaderboard entries — supply is the chain's source

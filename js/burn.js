@@ -1,23 +1,27 @@
-// ─── BURN BUTTON ─────────────────────────────────────────────────────
-// Wallet integration via window.solana. Builds a Token-2022 BurnChecked
-// instruction + Memo Program instruction, signs through the user's wallet
-// (Phantom/Solflare/Backpack), and sends to mainnet.
+// ─── INSCRIBE / BURN ─────────────────────────────────────────────────
+// Unified write surface. One modal, one submit handler, two transaction
+// shapes:
 //
-// Why BurnChecked, not transfer-to-null: protocol-level burns actually
-// destroy tokens — the mint's total supply decreases by the burned
-// amount, every aggregator (Jupiter, DexScreener, Birdeye, Solscan)
-// reflects the reduction, and the deflationary claim becomes verifiable
-// from any indexer rather than only from our leaderboard. Transfer-to-
-// null would relocate the tokens to the system program's ATA but leave
-// supply unchanged.
+//   INSCRIBE  ($PYRE = 0): 1-lamport transfer to INSCRIPTION_BEACON +
+//             Memo Program payload. Permanent on chain, indexed by
+//             every Solana explorer. Costs ~5,000 lamport base fee +
+//             ~10,000 lamport priority fee ≈ $0.003 at SOL = $200.
 //
-// We import Solana libs directly from esm.sh as ES modules. This means
-// (a) no window globals to race against, (b) any function in this file
-// can use the imported symbols immediately because top-level await on
-// the imports has already resolved by the time the module body runs.
+//   BURN+INSCRIBE  ($PYRE > 0): Token-2022 BurnChecked + Memo Program
+//             payload. Destroys $PYRE at the protocol layer (mint
+//             supply decreases — verifiable on every aggregator).
+//             Costs the same SOL fees + the burned $PYRE. Lands on
+//             the leaderboard, ranked by time-decayed heat.
+//
+// The beacon address is a PDA derived from "pyrecoin:inscriptions:v1"
+// against the PYRE mint — off-curve, deterministic, no private key.
+// The 1 lamport accumulates there forever; anyone can replicate the
+// shape with their own wallet (no permission needed).
+//
+// Solana libs are imported directly from esm.sh as ES modules.
 
 import {
-  Connection, PublicKey, Transaction, TransactionInstruction
+  Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, ComputeBudgetProgram
 } from 'https://esm.sh/@solana/web3.js@1.95.4';
 import {
   createBurnCheckedInstruction, getAssociatedTokenAddressSync, getAccount,
@@ -31,9 +35,22 @@ import {
 import { getWallets } from 'https://esm.sh/@wallet-standard/app@1.1.0';
 
 import {
-  PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, isPlaceholder
+  PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR, isPlaceholder
 } from './config.js';
 import { $, shortAddr, escapeHtml, fmt } from './utils.js';
+
+// Twitter / X handle validation — mirrors the server-side rule in
+// scripts/lib/filter.mjs so the wallet prompt only fires for inputs
+// that will survive moderation.
+const X_HANDLE_RE = /^[A-Za-z0-9_]{1,15}$/;
+
+// Display-only cost estimate for the modal. Solana base fee is 5,000
+// lamports per signature; we tack on a small priority fee for fast
+// inclusion. Real fee is computed by the wallet at sign time.
+const PRIORITY_LAMPORTS = 10_000;
+const BASE_LAMPORTS     = 5_000;
+const INSCRIPTION_LAMPORTS = 1; // transferred to the beacon as a marker
+const TOTAL_LAMPORTS    = BASE_LAMPORTS + PRIORITY_LAMPORTS + INSCRIPTION_LAMPORTS;
 
 // ─── STATE ───────────────────────────────────────────────────────────
 const burnState = {
@@ -63,11 +80,30 @@ function stopWalletDetectPoller(){
   if (_walletDetectPoller){ clearInterval(_walletDetectPoller); _walletDetectPoller = null; }
 }
 
-window.openBurnModal = function() {
-  $('burnModal').classList.add('open');
+// Two entry points into the same unified modal — only the default
+// PYRE amount and the modal title differ. "Inscribe" sets amount to 0
+// (pure-SOL inscription); "Burn" leaves it blank for the user to fill.
+window.openInscribeModal = function() { _openModal('inscribe'); };
+window.openBurnModal     = function() { _openModal('burn'); };
+
+function _openModal(mode){
+  const modal = $('burnModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  modal.dataset.mode = mode;
   document.body.style.overflow = 'hidden';
+
+  // Default PYRE amount: 0 for inscribe (input shows '0' as a hint
+  // that a burn is optional), blank for burn (user must enter > 0).
+  const amtInput = $('burnAmount');
+  if (amtInput) {
+    if (mode === 'inscribe') amtInput.value = '0';
+    else amtInput.value = '';
+  }
+
   refreshWalletState();
   refreshBurnHint();
+  refreshCostEstimate();
   stopWalletDetectPoller();
   let retries = 8; // ~2s at 250ms intervals
   _walletDetectPoller = setInterval(() => {
@@ -76,7 +112,7 @@ window.openBurnModal = function() {
       refreshWalletState();
     }
   }, 250);
-};
+}
 
 // Populate the modal's "min burn to take #1" tip from the live
 // leaderboard module (attached to window by main.js to avoid a
@@ -105,10 +141,29 @@ window.closeBurnModal = function() {
   clearStatus();
 };
 
-// Live message char counter
+// Live message char counter + cost re-estimation
 document.addEventListener('input', e => {
-  if (e.target.id === 'burnMsg') $('msgCount').textContent = e.target.value.length;
+  if (e.target.id === 'burnMsg') {
+    const el = $('msgCount');
+    if (el) el.textContent = e.target.value.length;
+  }
+  if (e.target.id === 'burnAmount') refreshCostEstimate();
 });
+
+// Show the estimated SOL cost — base + priority + 1-lamport beacon
+// transfer if inscription mode (PYRE = 0). Burn mode pays the same SOL
+// fees, just without the beacon marker. The wallet computes the real
+// fee at sign time; this is just transparency.
+function refreshCostEstimate(){
+  const el = $('burnCost');
+  if (!el) return;
+  const amt = parseFloat($('burnAmount')?.value);
+  const isBurn = Number.isFinite(amt) && amt > 0;
+  const lamports = isBurn ? (BASE_LAMPORTS + PRIORITY_LAMPORTS) : TOTAL_LAMPORTS;
+  const sol = (lamports / 1e9).toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+  el.innerHTML = `cost · <strong>${sol} SOL</strong>` +
+    (isBurn ? ` + ${escapeHtml(String(amt))} $PYRE burned` : ' (just the SOL fee)');
+}
 
 // Click-outside-to-close — but only if the pointer goes DOWN and UP on
 // the backdrop itself. The previous inline `onclick` handler closed
@@ -326,16 +381,21 @@ async function refreshWalletState() {
     burnState.publicKey = provider.publicKey;
     $('walletStatus').innerHTML =
       'Wallet: <span class="connected">' + shortAddr(provider.publicKey.toString()) + '</span> ' + pickerHtml;
-    $('burnSubmit').textContent = 'Burn $PYRE';
+    $('burnSubmit').textContent = _submitLabel();
     $('burnSubmit').disabled = false;
     await refreshBalance();
   } else {
     $('walletStatus').innerHTML =
       'Wallet: <span style="color:var(--text2)">not connected</span> ' + pickerHtml;
     $('walletBalance').textContent = '';
-    $('burnSubmit').textContent = 'Connect wallet & burn';
+    $('burnSubmit').textContent = 'Connect wallet';
     $('burnSubmit').disabled = false;
   }
+}
+
+function _submitLabel(){
+  const amt = parseFloat($('burnAmount')?.value);
+  return (Number.isFinite(amt) && amt > 0) ? 'Burn $PYRE & inscribe' : 'Inscribe';
 }
 
 // pump.fun mints SPL tokens under the Token-2022 program (NOT the
@@ -422,7 +482,7 @@ async function pollForConfirmation(conn, signature, lastValidBlockHeight) {
 
     if (v?.err) {
       throw new Error(
-        'The chain rejected the burn — your tokens are safe and were not moved. ' +
+        'The chain rejected the transaction — nothing was moved. ' +
         'Reason: ' + JSON.stringify(v.err)
       );
     }
@@ -440,7 +500,7 @@ async function pollForConfirmation(conn, signature, lastValidBlockHeight) {
           throw new Error(
             'BLOCKHASH_EXPIRED: The transaction expired before landing on chain. ' +
             'This happens when the wallet-confirm step takes longer than ~60 seconds. ' +
-            'Your tokens are safe — no burn was executed.'
+            'Nothing was moved.'
           );
         }
       } catch (e) {
@@ -451,34 +511,54 @@ async function pollForConfirmation(conn, signature, lastValidBlockHeight) {
   }
   throw new Error(
     'TIMEOUT: The transaction did not confirm within 90 seconds. ' +
-    'It may still land — check the Solscan link. Your tokens are safe ' +
-    'unless Solscan shows the burn instruction confirmed in a block.'
+    'It may still land — check the Solscan link. Nothing was moved ' +
+    'unless Solscan shows the instruction confirmed in a block.'
   );
 }
 
-// ─── BURN SUBMISSION ─────────────────────────────────────────────────
+// ─── SUBMIT (INSCRIBE OR BURN+INSCRIBE) ──────────────────────────────
+// Unified handler. Reads four optional fields (msg, url, x handle,
+// PYRE amount). Builds either a memo-only inscription tx or a
+// burnChecked+memo tx, depending on whether PYRE amount > 0.
+//
+// Validation rules:
+//   - At least one of (msg, url, x, amount > 0) must be provided.
+//     Otherwise there's nothing to inscribe and no PYRE to burn.
+//   - URL (if provided): basic shape check; full moderation runs
+//     server-side on ingest.
+//   - X handle (if provided): 1–15 chars, alphanumeric + underscore
+//     (same rule as filterMemo on the server).
+//   - No `|` characters in any field (the memo parser uses `|` as
+//     the segment separator).
 window.submitBurn = async function submitBurn() {
   clearStatus();
   if (isPlaceholder()) {
-    setStatus('$PYRE has not launched yet. The burn button activates once the token mint is configured.', 'error');
+    setStatus('$PYRE has not launched yet. The inscribe/burn buttons activate once the token mint is configured.', 'error');
     return;
   }
 
-  const rawUrl = $('burnUrl').value;
-  const url = normalizeBurnUrl(rawUrl);
-  const msg = $('burnMsg').value.trim();
-  const amt = parseFloat($('burnAmount').value);
-
-  if (!url) {
+  // Read fields — all optional except the "at least one" rule below.
+  const rawUrl = $('burnUrl')?.value || '';
+  const url    = rawUrl.trim() ? normalizeBurnUrl(rawUrl) : '';
+  if (rawUrl.trim() && !url) {
     setStatus('That URL doesn\'t look right — try something like <code>yoursite.xyz</code> (no spaces, no <code>|</code>).', 'error');
     return;
   }
-  if (!msg || !amt || amt <= 0) {
-    setStatus('Fill the message and a positive amount.', 'error');
+  const msg = ($('burnMsg')?.value || '').trim();
+  let   xh  = ($('burnX')?.value   || '').trim().replace(/^@/, '');
+  const amt = parseFloat($('burnAmount')?.value);
+  const wantsBurn = Number.isFinite(amt) && amt > 0;
+
+  if (!msg && !url && !xh && !wantsBurn) {
+    setStatus('Add a message, a URL, an X handle, or set $PYRE > 0 — at least one.', 'error');
     return;
   }
-  if (msg.includes('|')) {
+  if (msg.includes('|') || (url && url.includes('|')) || xh.includes('|')) {
     setStatus('The <code>|</code> character is reserved (used as the memo separator). Pick another.', 'error');
+    return;
+  }
+  if (xh && !X_HANDLE_RE.test(xh)) {
+    setStatus('X handle should be 1–15 letters, numbers, or underscores. Drop the @ — we add it back.', 'error');
     return;
   }
 
@@ -501,42 +581,65 @@ window.submitBurn = async function submitBurn() {
     if (!provider.isConnected) await provider.connect();
     burnState.provider = provider;
     burnState.publicKey = provider.publicKey;
-    await refreshBalance();
-
-    if (burnState.balance === null) {
-      throw new Error('Couldn\'t verify your $PYRE balance (RPC failed). Try again in a moment.');
-    }
-    if (amt > burnState.balance) {
-      throw new Error('You only have ' + burnState.balance.toLocaleString() + ' $PYRE — not enough for this burn.');
+    if (wantsBurn) {
+      await refreshBalance();
+      if (burnState.balance === null) {
+        throw new Error('Couldn\'t verify your $PYRE balance (RPC failed). Try again in a moment.');
+      }
+      if (amt > burnState.balance) {
+        throw new Error('You only have ' + burnState.balance.toLocaleString() + ' $PYRE — not enough for this burn.');
+      }
     }
 
     setStatus('Building transaction…', 'info');
 
     const conn = new Connection(RPC_URL, 'confirmed');
-    const mint = new PublicKey(PYRE_MINT_STR);
     const sender = burnState.publicKey;
 
-    if (burnState.decimals === null) {
-      const mintInfo = await conn.getParsedAccountInfo(mint);
-      burnState.decimals = mintInfo.value.data.parsed.info.decimals;
+    // Build memo from non-empty fields, in canonical order url|x|msg.
+    const memoParts = [];
+    if (url) memoParts.push('url=' + url);
+    if (xh)  memoParts.push('x=' + xh);
+    if (msg) memoParts.push('msg=' + msg);
+    const memoText = memoParts.join(' | ');
+
+    const tx = new Transaction();
+
+    // Priority fee — small, optional, helps the tx land fast.
+    tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: PRIORITY_LAMPORTS * 1000 / 200 }));
+
+    if (wantsBurn) {
+      // Burn path: Token-2022 BurnChecked + memo. Mint supply
+      // decreases at the protocol layer.
+      const mint = new PublicKey(PYRE_MINT_STR);
+      if (burnState.decimals === null) {
+        const mintInfo = await conn.getParsedAccountInfo(mint);
+        burnState.decimals = mintInfo.value.data.parsed.info.decimals;
+      }
+      const senderAta = getAssociatedTokenAddressSync(mint, sender, false, TOKEN_PROGRAM);
+      const rawAmount = BigInt(Math.floor(amt * 10 ** burnState.decimals));
+      tx.add(createBurnCheckedInstruction(
+        senderAta, mint, sender, rawAmount, burnState.decimals, [], TOKEN_PROGRAM
+      ));
+    } else {
+      // Inscribe path: 1 lamport → beacon, marks this tx as a
+      // pyrecoin.com inscription. Anyone can replicate the shape;
+      // the beacon is a deterministic marker, not a permission gate.
+      tx.add(SystemProgram.transfer({
+        fromPubkey: sender,
+        toPubkey: new PublicKey(INSCRIPTION_BEACON_STR),
+        lamports: INSCRIPTION_LAMPORTS,
+      }));
     }
 
-    const senderAta = getAssociatedTokenAddressSync(mint, sender, false, TOKEN_PROGRAM);
-
-    // Native Token-2022 burn: destroys the tokens at the protocol layer.
-    // No destination ATA, no rent. Mint supply decreases by `rawAmount`.
-    const rawAmount = BigInt(Math.floor(amt * 10 ** burnState.decimals));
-    const tx = new Transaction();
-    tx.add(createBurnCheckedInstruction(
-      senderAta, mint, sender, rawAmount, burnState.decimals, [], TOKEN_PROGRAM
-    ));
-
-    const memoText = 'url=' + url + ' | msg=' + msg;
-    tx.add(new TransactionInstruction({
-      keys: [{ pubkey: sender, isSigner: true, isWritable: false }],
-      programId: new PublicKey(MEMO_PROGRAM_ID_STR),
-      data: new TextEncoder().encode(memoText),
-    }));
+    // Memo always last so explorers display it after the action.
+    if (memoText) {
+      tx.add(new TransactionInstruction({
+        keys: [{ pubkey: sender, isSigner: true, isWritable: false }],
+        programId: new PublicKey(MEMO_PROGRAM_ID_STR),
+        data: new TextEncoder().encode(memoText),
+      }));
+    }
 
     setStatus('Confirm in your wallet…', 'info');
 
@@ -576,24 +679,25 @@ window.submitBurn = async function submitBurn() {
     // a way that fires "Signature has expired" prematurely.
     await pollForConfirmation(conn, signature, lastValidBlockHeight);
 
-    setStatus('🔥 Burned. Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>' +
+    const successCopy = wantsBurn
+      ? '🔥 Burned. Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>'
+      : '✍️ Inscribed. Your message is on chain forever. It will appear on the Inscription Wall within ~10 minutes.<br>';
+    setStatus(successCopy +
       '<a href="https://solscan.io/tx/' + signature + '" target="_blank">View transaction ↗</a>', 'success');
-    await refreshBalance();
+    if (wantsBurn) await refreshBalance();
   } catch (err) {
     const m = err?.message || String(err);
     const ml = m.toLowerCase();
     let msg;
     if (ml.includes('user rejected') || ml.includes('user canceled') || ml.includes('user cancelled')) {
-      // User clicked Cancel in their wallet's confirm prompt.
-      msg = 'Transaction cancelled in wallet — <strong>your tokens were not touched.</strong>';
+      msg = 'Transaction cancelled in wallet — <strong>nothing was sent.</strong>';
     } else if (m.startsWith('BLOCKHASH_EXPIRED') || ml.includes('blockhash not found') || ml.includes('signature has expired') || ml.includes('block height exceeded')) {
       // The blockhash on the signed tx aged past its 150-slot validity
-      // window before the leader could include it. Common cause: the
-      // user took longer than ~60s to click Confirm in the wallet.
+      // window before the leader could include it.
       msg = 'The transaction expired before it could land on chain. ' +
             'This happens when the wallet-confirm step takes longer than ~60 seconds. ' +
-            '<strong>Your tokens are safe</strong> — no burn was executed. ' +
-            'Refresh the page and try again — Phantom will prompt faster the second time.';
+            '<strong>Nothing was moved.</strong> ' +
+            'Refresh the page and try again — your wallet will prompt faster the second time.';
     } else if (m.startsWith('TIMEOUT') || ml.includes('did not confirm within') || ml.includes('took longer than 90 seconds')) {
       // We waited 90s for the chain to confirm; nothing landed in that
       // window. The tx might still confirm — but the user shouldn't
@@ -607,8 +711,8 @@ window.submitBurn = async function submitBurn() {
       msg = escapeHtml(m);
     } else {
       // Unknown error before broadcast (network blip, RPC failure, etc.)
-      // The signature was never sent or never landed; tokens are safe.
-      msg = '<strong>Your tokens are safe.</strong> An error occurred before the burn could complete: ' + escapeHtml(m);
+      // The signature was never sent or never landed.
+      msg = '<strong>Nothing was moved.</strong> An error occurred before the transaction could complete: ' + escapeHtml(m);
     }
     setStatus(msg, 'error');
   } finally {

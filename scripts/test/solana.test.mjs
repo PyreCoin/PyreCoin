@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractBurn } from '../lib/solana.mjs';
+import { extractBurn, extractInscription } from '../lib/solana.mjs';
 
 const TOKEN_2022 = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
 const MEMO = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
@@ -52,7 +52,7 @@ function memoIx(text = 'url=foo.xyz | msg=hi') {
 
 test('extractBurn: burnChecked + memo for our mint → accepted', () => {
   const parsed = tx({ instructions: [burnCheckedIx({ uiAmount: 1234 }), memoIx()] });
-  const r = extractBurn(parsed, MINT);
+  const r = extractBurn(parsed, MINT, 6);
   assert.equal(r.amount, 1234);
   assert.equal(r.signer, AUTH);
   assert.equal(r.memo, 'url=foo.xyz | msg=hi');
@@ -61,27 +61,32 @@ test('extractBurn: burnChecked + memo for our mint → accepted', () => {
 
 test('extractBurn: burn for a different mint → null', () => {
   const parsed = tx({ instructions: [burnCheckedIx({ mint: OTHER_MINT }), memoIx()] });
-  assert.equal(extractBurn(parsed, MINT), null);
+  assert.equal(extractBurn(parsed, MINT, 6), null);
 });
 
 test('extractBurn: memo without burn → null', () => {
   const parsed = tx({ instructions: [memoIx()] });
-  assert.equal(extractBurn(parsed, MINT), null);
+  assert.equal(extractBurn(parsed, MINT, 6), null);
 });
 
-test('extractBurn: burn without memo → null', () => {
-  const parsed = tx({ instructions: [burnCheckedIx()] });
-  assert.equal(extractBurn(parsed, MINT), null);
+test('extractBurn: burn without memo → accepted (memo=null)', () => {
+  // Memo-less burns are now accepted — rendered with flavor text on
+  // the leaderboard. The dust-sweep case that motivated this lives
+  // here.
+  const parsed = tx({ instructions: [burnCheckedIx({ uiAmount: 695 })] });
+  const r = extractBurn(parsed, MINT, 6);
+  assert.equal(r.amount, 695);
+  assert.equal(r.memo, null);
 });
 
 test('extractBurn: failed tx → null', () => {
   const parsed = tx({ instructions: [burnCheckedIx(), memoIx()], err: { InstructionError: [0, 'Custom'] } });
-  assert.equal(extractBurn(parsed, MINT), null);
+  assert.equal(extractBurn(parsed, MINT, 6), null);
 });
 
 test('extractBurn: missing meta → null', () => {
-  assert.equal(extractBurn({ transaction: { signatures: ['x'], message: { instructions: [] } } }, MINT), null);
-  assert.equal(extractBurn(null, MINT), null);
+  assert.equal(extractBurn({ transaction: { signatures: ['x'], message: { instructions: [] } } }, MINT, 6), null);
+  assert.equal(extractBurn(null, MINT, 6), null);
 });
 
 test('extractBurn: CPI burn in inner instructions → counted', () => {
@@ -89,7 +94,7 @@ test('extractBurn: CPI burn in inner instructions → counted', () => {
     instructions: [memoIx()],
     inner: [burnCheckedIx({ uiAmount: 42 })],
   });
-  const r = extractBurn(parsed, MINT);
+  const r = extractBurn(parsed, MINT, 6);
   assert.equal(r.amount, 42);
   assert.equal(r.signer, AUTH);
 });
@@ -102,26 +107,27 @@ test('extractBurn: multiple burnChecked in one tx → summed', () => {
       memoIx(),
     ],
   });
-  const r = extractBurn(parsed, MINT);
+  const r = extractBurn(parsed, MINT, 6);
   assert.equal(r.amount, 350);
 });
 
-test('extractBurn: plain burn without tokenAmount → skipped', () => {
-  // Plain (unchecked) burn parses without a tokenAmount object. We
-  // refuse to misinterpret raw lamport-units as UI amounts, so this
-  // counts as "no burn detected" — a known minor cost; our website
-  // always sends burnChecked, and most CLI/SDK callers do too.
+test('extractBurn: plain burn (no tokenAmount) → counted via decimals', () => {
+  // Plain (unchecked) burn carries raw lamport amount, no tokenAmount
+  // object. With decimals supplied by the caller we can recover the UI
+  // units. The dust-sweeper case used plain burn — this is what made
+  // it look invisible before.
   const parsed = tx({
     instructions: [
       {
         programId: TOKEN_2022,
         program: 'spl-token-2022',
-        parsed: { type: 'burn', info: { account: 'a', mint: MINT, authority: AUTH, amount: '1000000' } },
+        parsed: { type: 'burn', info: { account: 'a', mint: MINT, authority: AUTH, amount: '695111601' } },
       },
-      memoIx(),
     ],
   });
-  assert.equal(extractBurn(parsed, MINT), null);
+  const r = extractBurn(parsed, MINT, 6);
+  assert.equal(r.amount, 695.111601);
+  assert.equal(r.memo, null);
 });
 
 test('extractBurn: programId as PublicKey-like object with toString → handled', () => {
@@ -133,6 +139,50 @@ test('extractBurn: programId as PublicKey-like object with toString → handled'
   const memo = memoIx();
   memo.programId = { toString: () => MEMO };
   const parsed = tx({ instructions: [ix, memo] });
-  const r = extractBurn(parsed, MINT);
+  const r = extractBurn(parsed, MINT, 6);
   assert.equal(r.amount, 1000);
+});
+
+// ─── extractInscription ──────────────────────────────────────────
+
+test('extractInscription: tx with memo + fee payer → accepted', () => {
+  const parsed = {
+    slot: 1,
+    blockTime: 1700000000,
+    meta: { err: null, innerInstructions: [] },
+    transaction: {
+      signatures: ['ins-sig-1'],
+      message: {
+        accountKeys: ['INSCRIBER_WALLET_111111111111111111111111'],
+        instructions: [memoIx('msg=hello world')],
+      },
+    },
+  };
+  const r = extractInscription(parsed);
+  assert.equal(r.memo, 'msg=hello world');
+  assert.equal(r.signer, 'INSCRIBER_WALLET_111111111111111111111111');
+  assert.equal(r.signature, 'ins-sig-1');
+});
+
+test('extractInscription: no memo → null', () => {
+  const parsed = {
+    slot: 1,
+    blockTime: 1700000000,
+    meta: { err: null, innerInstructions: [] },
+    transaction: {
+      signatures: ['ins-sig-2'],
+      message: { accountKeys: ['x'], instructions: [] },
+    },
+  };
+  assert.equal(extractInscription(parsed), null);
+});
+
+test('extractInscription: failed tx → null', () => {
+  const parsed = {
+    slot: 1,
+    blockTime: 1700000000,
+    meta: { err: { InstructionError: [0, 'Custom'] }, innerInstructions: [] },
+    transaction: { signatures: ['x'], message: { accountKeys: ['x'], instructions: [memoIx()] } },
+  };
+  assert.equal(extractInscription(parsed), null);
 });

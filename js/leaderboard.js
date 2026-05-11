@@ -1,19 +1,26 @@
-// Leaderboard data + rendering.
+// Leaderboard data + rendering — badge-bottom slot design.
 //
-// One unified list above the fold: 16 uniform rows, each
-//   [ amount on the left ][ message in the middle ][ url on the right ]
-// Same wallet can appear multiple times (per-burn entries).
-// URLs found INSIDE message text are auto-linked.
+// Each slot:
+//   ┌──────────────────────────────────────────────────────────────┐
+//   │  message text (or flavor quote for memo-less burns)          │
+//   │                                                              │
+//   │  🔥 1.2K $PYRE   ❤️‍🔥 4.7   ⏰ 2h ago   🌐 site   𝕏 @bob   👛 99j6…Pz8g │
+//   └──────────────────────────────────────────────────────────────┘
 //
-// Score (per burn):
-//     score = amount / (hours_since(ts) + 2)^GRAVITY
+// Top of slot — the message. Bottom row — small badges, every entry
+// has the first three (burn / heat / time); url/x are optional and only
+// render when present. Wallet shortcode is always shown; if an X handle
+// is provided we show both.
+//
+// Heat per entry:
+//   score = amount / (hours_since(ts) + 2)^GRAVITY
 //
 // Surfaces:
-//   #lb-container → top-16 rows (the hero)
-//   #bb-container → ranks 17+ (the backburner)
+//   #lb-container → top-16 (the hero)
+//   #bb-container → ranks 17+ (the backburner — same badge style, denser)
 
 import { isPlaceholder } from './config.js';
-import { fmt, hoursSince, relTime, escapeHtml } from './utils.js';
+import { fmt, hoursSince, relTime, utcTooltip, escapeHtml, shortAddr, hashString } from './utils.js';
 import { getEntries } from './data.js';
 
 const GRAVITY = 1.5;
@@ -42,14 +49,41 @@ export function liveEntryCount(){
   return getEntries().length;
 }
 
-// ── linkify ───────────────────────────────────────────────────────
-// Turns URLs found inside message text into clickable anchors. Runs on
-// already-HTML-escaped text — the regex excludes "&", ";", "<", ">",
-// "\"" so existing HTML entities (&lt; &amp; etc.) aren't pulled into
-// the match. Conservative TLD check (2-8 alpha chars) avoids
-// false-positives on things like "etc." or "e.g.".
-const URL_RE = /(?:https?:\/\/[^\s<>"&]+)|(?:\b[a-z0-9](?:[\w\-]*[a-z0-9])?(?:\.[a-z0-9](?:[\w\-]*[a-z0-9])?){1,3}(?:\/[^\s<>"&]*)?)/gi;
+// ── flavor quotes for memo-less burns ────────────────────────────
+// Pure burns (no url, no msg, no x) deserve a slot too. We pick a quote
+// deterministically from this pool by hashing the tx hash, so the same
+// burn always renders the same quote across reloads — but the pool can
+// evolve over time without rewriting leaderboard.json.
+const FLAVOR_POOL = [
+  'some people just want to watch $PYRE burn 🔥',
+  'silent flame. loud chain. 🔥',
+  'no words. just fire. 🔥',
+  'a wordless tribute 🪔',
+  'speaking with smoke signals 💨',
+  'pure heat, no message 🔥',
+  'shhh… listen to it crackle 🔥',
+  'anonymous offering to the pyre 🪔',
+  'all flame, no language 🔥',
+  'sometimes the burn IS the message 🔥',
+  'wordless, mintless, infinite 🔥',
+  'sent without a sermon 🔥',
+  'a burn without commentary 🔥',
+  'the chain doesn’t need your reasons 🔥',
+  'pure protocol. pure burn. 🔥',
+  '🔥 🤫',
+  'less talk. more fire. 🔥',
+  'the pyre understands 🔥',
+  '🔥 no notes 🔥',
+  'no caption, no asterisk, just ash 🔥',
+];
 
+function flavorFor(tx){
+  return FLAVOR_POOL[hashString(tx || '') % FLAVOR_POOL.length];
+}
+
+// Linkify URLs found in user message text (already HTML-escaped).
+// Conservative TLD check avoids false-positives on "etc." / "e.g.".
+const URL_RE = /(?:https?:\/\/[^\s<>"&]+)|(?:\b[a-z0-9](?:[\w\-]*[a-z0-9])?(?:\.[a-z0-9](?:[\w\-]*[a-z0-9])?){1,3}(?:\/[^\s<>"&]*)?)/gi;
 function linkifyMsg(escaped){
   return escaped.replace(URL_RE, (m) => {
     const beforeSlash = m.split('/')[0];
@@ -62,28 +96,84 @@ function linkifyMsg(escaped){
   });
 }
 
-// ── ember labels for backburner rows ─────────────────────────────
-function emberLabel(hoursOld){
-  if (hoursOld < 24)  return 'still warm';
-  if (hoursOld < 72)  return 'smouldering';
-  if (hoursOld < 168) return 'down to embers';
-  return 'ash';
+// ── SVG icons ────────────────────────────────────────────────────
+// X (Twitter) logo, monochrome. Sized via CSS.
+const X_SVG = '<svg class="badge-x-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
+
+// ── slot builders ────────────────────────────────────────────────
+
+// Build the badge row that hangs at the bottom of every leaderboard
+// slot. Returns an HTML string. Variant: 'hero' (top-16) or 'bb'
+// (backburner, denser).
+function badgeRow(entry, now, variant = 'hero'){
+  const tx = encodeURIComponent(entry.tx || '');
+  const amount = fmt(entry.amount || 0);
+  const score = scoreEntry(entry, now);
+  const heat = fmt(score);
+  const rel = escapeHtml(relTime(entry.ts, now));
+  const utc = escapeHtml(utcTooltip(entry.ts));
+  const wallet = entry.wallet || '';
+  const walletShort = shortAddr(wallet);
+  const url = entry.url || '';
+  const x = entry.x || '';
+
+  const burnBadge = entry.tx ? `
+    <a class="badge badge-burn" href="https://solscan.io/tx/${tx}" target="_blank" rel="noopener noreferrer"
+       title="Verify burn on Solscan ↗">
+      <span class="badge-icon">🔥</span><span class="badge-val">${escapeHtml(amount)}</span><span class="badge-unit">$PYRE</span>
+    </a>` : '';
+
+  const heatBadge = `
+    <span class="badge badge-heat" title="Live heat = amount ÷ (hours+2)^1.5">
+      <span class="badge-icon">❤️‍🔥</span><span class="badge-val">${escapeHtml(heat)}</span>
+    </span>`;
+
+  const timeBadge = `
+    <span class="badge badge-time" title="${utc}">
+      <span class="badge-icon">⏰</span><span class="badge-val">${rel}</span>
+    </span>`;
+
+  const urlBadge = url ? `
+    <a class="badge badge-url" href="https://${escapeHtml(url)}" target="_blank" rel="noopener noreferrer sponsored ugc"
+       title="${escapeHtml(url)}">
+      <span class="badge-icon">🌐</span><span class="badge-val">${escapeHtml(url)}</span>
+    </a>` : '';
+
+  const xBadge = x ? `
+    <a class="badge badge-x" href="https://x.com/${encodeURIComponent(x)}" target="_blank" rel="noopener noreferrer ugc"
+       title="@${escapeHtml(x)} on X">
+      ${X_SVG}<span class="badge-val">@${escapeHtml(x)}</span>
+    </a>` : '';
+
+  const walletBadge = wallet ? `
+    <a class="badge badge-wallet" href="https://solscan.io/account/${encodeURIComponent(wallet)}" target="_blank" rel="noopener noreferrer"
+       title="${escapeHtml(wallet)}">
+      <span class="badge-icon">👛</span><span class="badge-val">${escapeHtml(walletShort)}</span>
+    </a>` : '';
+
+  return `<div class="badge-row badge-row-${variant}">${burnBadge}${heatBadge}${timeBadge}${urlBadge}${xBadge}${walletBadge}</div>`;
 }
 
-// ── TOP-16 ROWS (the hero) ───────────────────────────────────────
-function buildSlot(entry, rank, now){
+function buildSlot(entry, now){
   const div = document.createElement('div');
   div.className = 'slot';
-  const url = escapeHtml(entry.url);
-  const msg = linkifyMsg(escapeHtml(entry.msg));
-  const tx  = encodeURIComponent(entry.tx);
-  // The burn amount itself IS the proof link — clicking it opens the
-  // Solscan tx page for that specific burn. Title attribute provides
-  // a hover hint explaining what the click does.
-  div.innerHTML = `
-    <a class="slot-amount" href="https://solscan.io/tx/${tx}" target="_blank" rel="noopener noreferrer" title="Verify this burn on Solscan ↗">${escapeHtml(fmt(entry.amount))}<span class="slot-ticker">$PYRE</span></a>
-    <div class="slot-msg">${msg}</div>
-    <a class="slot-url" href="https://${url}" target="_blank" rel="noopener noreferrer sponsored ugc">${url}<span class="slot-arrow"> ↗</span></a>`;
+  const hasMsg = !!(entry.msg && entry.msg.trim());
+  const msgHtml = hasMsg
+    ? `<div class="slot-msg">${linkifyMsg(escapeHtml(entry.msg))}</div>`
+    : `<div class="slot-msg slot-msg-flavor" title="No message — flavor text for a pure burn">${escapeHtml(flavorFor(entry.tx))}</div>`;
+  div.innerHTML = msgHtml + badgeRow(entry, now, 'hero');
+  return div;
+}
+
+function buildBackburnerSlot(entry, rank, now){
+  const div = document.createElement('div');
+  div.className = 'bb-slot';
+  const hasMsg = !!(entry.msg && entry.msg.trim());
+  const msgHtml = hasMsg
+    ? `<div class="bb-msg">${linkifyMsg(escapeHtml(entry.msg))}</div>`
+    : `<div class="bb-msg bb-msg-flavor">${escapeHtml(flavorFor(entry.tx))}</div>`;
+  div.innerHTML = `<div class="bb-rank">#${rank}</div>
+    <div class="bb-body">${msgHtml}${badgeRow(entry, now, 'bb')}</div>`;
   return div;
 }
 
@@ -92,29 +182,6 @@ const COLD_HTML = `
     <div class="lb-cold-title">The pyre is cold.</div>
     <div class="lb-cold-sub">Be the first to feed it. Any burn lights it up.</div>
   </div>`;
-
-// ── BACKBURNER (ranks 17+) ──────────────────────────────────────
-function buildBackburnerSlot(entry, rank, now){
-  const div = document.createElement('div');
-  div.className = 'bb-slot';
-  const h   = hoursSince(entry.ts, now);
-  const url = escapeHtml(entry.url);
-  const msg = linkifyMsg(escapeHtml(entry.msg));
-  const tx  = encodeURIComponent(entry.tx);
-  div.innerHTML = `
-    <div class="bb-rank">#${rank}</div>
-    <div class="bb-body">
-      <a class="bb-url" href="https://${url}" target="_blank" rel="noopener noreferrer sponsored ugc">${url}</a>
-      <span class="bb-msg">${msg}</span>
-    </div>
-    <div class="bb-state">
-      <span class="bb-ember">${emberLabel(h)}</span>
-      <span class="bb-time">${escapeHtml(relTime(entry.ts, now))}</span>
-      <a class="bb-solscan" href="https://solscan.io/tx/${tx}" target="_blank" rel="noopener noreferrer">↗</a>
-    </div>
-    <div class="bb-amount">${escapeHtml(fmt(entry.amount))} <span class="bb-ticker">$PYRE</span></div>`;
-  return div;
-}
 
 function renderBackburner(displaced, now){
   const section = document.getElementById('backburner');
@@ -131,11 +198,6 @@ function renderBackburner(displaced, now){
     host.appendChild(buildBackburnerSlot(e, TOP_N + 1 + i, now));
   });
 }
-
-// ── DATA ──────────────────────────────────────────────────────────
-// Source-of-truth for entries lives in js/data.js — main.js calls
-// refreshEntries() on every tick before invoking renderLeaderboard,
-// so getEntries() here is always the freshest cached array.
 
 export function renderLeaderboard(now){
   const lb = document.getElementById('lb-container');
@@ -156,7 +218,7 @@ export function renderLeaderboard(now){
     lb.innerHTML = COLD_HTML;
   } else {
     lb.innerHTML = '';
-    top16.forEach((e, i) => lb.appendChild(buildSlot(e, i + 1, now)));
+    top16.forEach(e => lb.appendChild(buildSlot(e, now)));
   }
 
   renderBackburner(displaced, now);

@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260511-9';
+const V = '20260511-10';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick="openBurnModal()" / form onsubmit never call
@@ -41,9 +41,10 @@ window.submitBurn = function(){};
 // Top-level module loads with cache-busting. await is module-top-level,
 // supported in all browsers that support ES modules.
 await import(`./fire-shader.js?v=${V}`);
-const { refreshEntries } = await import(`./data.js?v=${V}`);
+const { refreshEntries, refreshInscriptions } = await import(`./data.js?v=${V}`);
 const lb = await import(`./leaderboard.js?v=${V}`);
 const { renderLeaderboard } = lb;
+const { renderInscriptionWall } = await import(`./inscription-wall.js?v=${V}`);
 const { updateStats } = await import(`./stats.js?v=${V}`);
 
 // Expose the leaderboard module so burn.js can read minBurnToTakeTop
@@ -56,8 +57,11 @@ window.__pyreLeaderboard = lb;
 // leaderboard.json independently and only stats.js refreshed on the
 // 30s interval — the leaderboard itself never updated post-load.
 async function tick() {
-  await refreshEntries();
-  renderLeaderboard(new Date());
+  // Both files in parallel — independent endpoints.
+  await Promise.all([refreshEntries(), refreshInscriptions()]);
+  const now = new Date();
+  renderLeaderboard(now);
+  renderInscriptionWall(now);
   updateStats();
 }
 
