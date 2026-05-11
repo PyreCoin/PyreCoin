@@ -1427,15 +1427,10 @@ nav{
   border-radius:6px;
   overflow:hidden;
 }
-.buy-modal-foot{
-  font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:0.5px;
-  color:var(--text3);
-  text-align:center;
-  margin:14px 0 0;
-}
-.buy-modal-foot a{color:var(--ember2);text-decoration:none;border-bottom:0.5px dotted var(--ember2);}
-.buy-modal-foot a:hover{color:var(--ember);border-bottom-color:var(--ember);}
+/* Note: the internal "Powered by Jupiter" attribution strip is
+   rendered inside Plugin's open shadow root, so light-DOM CSS
+   cannot reach it. The hide is done by js/buy.js via walkDeep
+   which crosses shadow boundaries; no CSS rule here would help. */
 @media(max-width:560px){
   .burn-modal.buy-modal-panel{padding:24px 18px 18px;}
   .jupiter-target{min-height:480px;}

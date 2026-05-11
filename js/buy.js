@@ -111,6 +111,86 @@ function showFallback(message) {
     '</p></div>';
 }
 
+// The Plugin renders its own "Powered by Jupiter" attribution strip
+// at the bottom of the widget. Combined with our buy-modal-sub
+// "Via Jupiter — Solana's aggregator..." copy that's literally one
+// scroll-length above it, this reads as duplicate branding. We hide
+// the internal strip via DOM scan after render — class names inside
+// the Plugin's React tree are not stable across releases, so we
+// match by text content (the only reliable signal).
+// Recursively walk a node's children AND any shadowRoots so we can
+// reach Plugin internals if they're rendered in a closed shadow tree.
+// Yields every descendant Element across DOM and shadow boundaries.
+function* walkDeep(node) {
+  if (!node) return;
+  if (node.shadowRoot) {
+    for (const child of node.shadowRoot.children) {
+      yield child;
+      yield* walkDeep(child);
+    }
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      yield child;
+      yield* walkDeep(child);
+    }
+  }
+}
+
+function hideInternalAttribution() {
+  // Search the whole document body — Plugin renders into a shadow
+  // root attached to a div in body, NOT into our #jupiter-target.
+  // walkDeep crosses the shadow boundary. The actual strip is a
+  // <span> whose textContent (with inner-flex <a>) collapses to
+  // "powered byjupiter" — NO space between 'by' and 'Jupiter',
+  // because the inline child element doesn't introduce whitespace.
+  // So we match 'powered' AND 'jupiter' separately, not the phrase.
+  let foundAny = false;
+  for (const el of walkDeep(document.body)) {
+    if (el.dataset && el.dataset.pyreHidden === '1') continue;
+    const t = (el.textContent || '').replace(/\s+/g, '').toLowerCase();
+    // Require both tokens AND a short total length so we don't match
+    // the whole widget (whose textContent contains both words plus
+    // a lot more).
+    if (t.length > 0 && t.length < 40 && t.includes('poweredby') && t.includes('jupiter')) {
+      // Walk up to the largest ancestor whose normalised text is STILL
+      // just the attribution strip (i.e. doesn't bleed into siblings).
+      let target = el;
+      while (target.parentElement) {
+        const pt = (target.parentElement.textContent || '').replace(/\s+/g, '').toLowerCase();
+        if (pt.length < 40 && pt.includes('poweredby') && pt.includes('jupiter')) {
+          target = target.parentElement;
+        } else {
+          break;
+        }
+      }
+      target.style.setProperty('display', 'none', 'important');
+      if (target.dataset) target.dataset.pyreHidden = '1';
+      foundAny = true;
+    }
+  }
+  return foundAny;
+}
+
+function startAttributionWatcher() {
+  // The Plugin's React mount staggers across multiple frames — we
+  // run the hider on a schedule (immediate, 250ms, 800ms, 2s, 4s),
+  // AND attach a MutationObserver, so any of the rendering paths
+  // catches the strip. Idempotent because we mark hidden elements
+  // with data-pyre-hidden=1 above.
+  const tries = () => { hideInternalAttribution(); };
+  tries();
+  [250, 800, 2000, 4000].forEach(d => setTimeout(tries, d));
+
+  const root = $('jupiter-target');
+  if (!root) return;
+  const obs = new MutationObserver(tries);
+  obs.observe(root, { childList: true, subtree: true });
+  // Give up after 8s — if Plugin hasn't rendered by then the user has
+  // bigger problems than an extra "Powered by" line.
+  setTimeout(() => obs.disconnect(), 8000);
+}
+
 window.openBuyModal = async function openBuyModal() {
   const modal = $('buyModal');
   if (!modal) return;
@@ -125,6 +205,7 @@ window.openBuyModal = async function openBuyModal() {
   try {
     await loadJupiterScript();
     initJupiter();
+    startAttributionWatcher();
   } catch (err) {
     showFallback('Couldn\'t load the embedded widget. ' + (err.message || ''));
   }
