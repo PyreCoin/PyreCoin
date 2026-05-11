@@ -124,7 +124,7 @@ function badgeRow(entry, now, variant = 'hero'){
     </a>` : '';
 
   const heatBadge = `
-    <span class="badge badge-heat" title="Live heat = amount ÷ (hours+2)^1.5">
+    <span class="badge badge-heat" title="Live heat — how this slot is ranked on the leaderboard. Formula: ($PYRE burned in this tx) ÷ (hours since the burn + 2)^1.5. So a big burn that's brand-new outranks a bigger burn from days ago; everything cools toward zero over time. Burn more, or burn fresher, to climb.">
       <span class="badge-icon">❤️‍🔥</span><span class="badge-val">${escapeHtml(heat)}</span>
     </span>`;
 
