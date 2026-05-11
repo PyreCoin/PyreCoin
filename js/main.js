@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260511-1';
+const V = '20260511-2';
 
 // Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
 // inline onclick="openBurnModal()" / form onsubmit never call
@@ -70,6 +70,11 @@ setInterval(tick, 30000);
 // Lazy-load burn module — defers heavy Solana lib download. Versioned
 // so post-launch fixes propagate without a hard refresh.
 import(`./burn.js?v=${V}`);
+
+// Lazy-load buy module — same versioning. The Jupiter Terminal bundle
+// itself is only fetched when the user actually opens the Buy modal,
+// so this import is cheap (just the small wiring layer).
+import(`./buy.js?v=${V}`);
 
 // ── NAV LINKS ON FIRE ────────────────────────────────────────────
 // As the user scrolls, the nav anchor link matching the section
