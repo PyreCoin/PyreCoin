@@ -52,6 +52,30 @@ const BASE_LAMPORTS     = 5_000;
 const INSCRIPTION_LAMPORTS = 1; // transferred to the beacon as a marker
 const TOTAL_LAMPORTS    = BASE_LAMPORTS + PRIORITY_LAMPORTS + INSCRIPTION_LAMPORTS;
 
+// Live SOL/USD price from Jupiter (free public endpoint, no key).
+// Cached for 60s so reopening the modal doesn't re-fetch. Failure mode:
+// price stays null, the USD readout in the cost line is just omitted.
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+const JUP_PRICE_URL = 'https://api.jup.ag/price/v3?ids=' + SOL_MINT;
+const _solPriceCache = { price: null, ts: 0 };
+async function fetchSolPriceUsd(){
+  if (Date.now() - _solPriceCache.ts < 60_000 && _solPriceCache.price != null) {
+    return _solPriceCache.price;
+  }
+  try {
+    const res = await fetch(JUP_PRICE_URL, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const p = data?.[SOL_MINT]?.usdPrice;
+    if (typeof p === 'number' && isFinite(p) && p > 0) {
+      _solPriceCache.price = p;
+      _solPriceCache.ts = Date.now();
+      return p;
+    }
+  } catch (_) { /* ignore — null result is acceptable */ }
+  return null;
+}
+
 // ─── STATE ───────────────────────────────────────────────────────────
 const burnState = {
   provider: null,        // injected wallet provider (window.solana, etc.)
@@ -151,19 +175,33 @@ document.addEventListener('input', e => {
   if (e.target.id === 'burnAmount') refreshCostEstimate();
 });
 
-// Show the estimated SOL cost — base + priority + 1-lamport beacon
-// transfer if inscription mode (PYRE = 0). Burn mode pays the same SOL
-// fees, just without the beacon marker. The wallet computes the real
-// fee at sign time; this is just transparency.
-function refreshCostEstimate(){
+// Show the estimated cost — base + priority + 1-lamport beacon
+// transfer if inscription mode (PYRE = 0). Renders SOL + a live USD
+// (= USDC) equivalent from Jupiter. The wallet computes the real fee
+// at sign time; this is just transparency.
+async function refreshCostEstimate(){
   const el = $('burnCost');
   if (!el) return;
   const amt = parseFloat($('burnAmount')?.value);
   const isBurn = Number.isFinite(amt) && amt > 0;
   const lamports = isBurn ? (BASE_LAMPORTS + PRIORITY_LAMPORTS) : TOTAL_LAMPORTS;
-  const sol = (lamports / 1e9).toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
-  el.innerHTML = `cost · <strong>${sol} SOL</strong>` +
-    (isBurn ? ` + ${escapeHtml(String(amt))} $PYRE burned` : ' (just the SOL fee)');
+  const solAmount = lamports / 1e9;
+  const solStr = solAmount.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+
+  // Paint the SOL line immediately so the user isn't waiting on Jupiter.
+  // USD price fetch is async and updates the readout in place when it
+  // resolves; if it fails (offline / Jupiter down) the SOL line is
+  // already correct and we just don't show a dollar figure.
+  el.innerHTML = `cost · <strong>${solStr} SOL</strong>` +
+    (isBurn ? ` + ${escapeHtml(String(amt))} $PYRE burned` : '');
+
+  const solUsd = await fetchSolPriceUsd();
+  if (solUsd == null) return;
+  const usd = solAmount * solUsd;
+  // Sub-cent costs round to "<$0.01" rather than printing $0.00.
+  const usdStr = usd < 0.01 ? '<$0.01' : '$' + usd.toFixed(usd < 1 ? 3 : 2);
+  el.innerHTML = `cost · <strong>${solStr} SOL</strong> · <strong>${usdStr}</strong>` +
+    (isBurn ? ` + ${escapeHtml(String(amt))} $PYRE burned` : '');
 }
 
 // Click-outside-to-close — but only if the pointer goes DOWN and UP on
