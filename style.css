@@ -47,6 +47,19 @@ body{
           mask-image:linear-gradient(to bottom, black 75%, transparent 100%);
 }
 
+/* ── GLASS PANEL ── shared chrome for the major card/panel surfaces
+   (stat cards, chart panels, leaderboard slots, top CTA). All four
+   share the same dark backdrop-blur look — keep them visually paired
+   from one declaration so future tweaks (border color, blur radius)
+   land in one place. Individual rules below add their own padding,
+   layout, hover state, etc.; the :hover overrides win on specificity. */
+.stat, .chart-panel, .slot, .top-cta{
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border:0.5px solid var(--border);
+}
+
 /* ── LAYOUT ── */
 .page{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;}
 
@@ -443,10 +456,6 @@ nav.nav--hidden{
 .stat{
   position:relative;
   padding:44px 56px;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  border:0.5px solid var(--border);
   overflow:hidden;
   transition:border-color .2s,background .2s,transform .2s;
   /* Two-column grid: text on the left, sparkline on the right. The
@@ -572,10 +581,6 @@ nav.nav--hidden{
 }
 .chart-panel{
   position:relative;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  border:0.5px solid var(--border);
   padding:32px 40px 28px;
   display:flex;flex-direction:column;
   overflow:hidden;
@@ -725,10 +730,6 @@ nav.nav--hidden{
   flex-direction:column;
   gap:10px;
   padding:14px 18px;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  border:0.5px solid var(--border);
   transition:border-color .2s,background .2s,transform .15s;
 }
 .slot:hover{
@@ -1426,11 +1427,16 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .burn-pay-chip[aria-expanded="true"] .buy-token-chip-chevron{
   transform:rotate(180deg);
 }
-.burn-pay-picker{
+/* ── TOKEN PICKER (shared base) ──
+   Used by both the "paid with" chip on the write form (.burn-pay-picker
+   anchored bottom-left of the chip) and the input-token chip on the
+   buy form (.buy-token-picker anchored bottom-right of the input row).
+   The base rule owns everything except positioning; each variant only
+   carries its own anchor + the border-top tweak the buy picker needs
+   to read as a connected drawer beneath the chip row. */
+.token-picker{
   position:absolute;
   z-index:30;
-  left:0;
-  top:calc(100% + 4px);
   min-width:220px;
   padding:6px;
   background:#0a0300;
@@ -1438,8 +1444,8 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   box-shadow:0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(255,80,0,0.18);
   display:flex;flex-direction:column;gap:2px;
 }
-.burn-pay-picker[hidden]{display:none;}
-.burn-pay-picker button{
+.token-picker[hidden]{display:none;}
+.token-picker button{
   display:flex;align-items:center;gap:10px;
   padding:9px 10px;
   background:transparent;border:none;
@@ -1449,16 +1455,23 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   color:var(--text2);
   transition:background .12s,color .12s;
 }
-.burn-pay-picker button:hover{
+.token-picker button:hover{
   background:rgba(255,100,30,0.10);
   color:#fff;
 }
-.burn-pay-picker button.active{
+.token-picker button.active{
   background:rgba(255,100,30,0.15);
   color:#fff;
 }
-.burn-pay-picker button[disabled]{
+.token-picker button[disabled]{
   opacity:0.4;cursor:not-allowed;
+}
+
+/* Burn form picker — anchored bottom-left of the pay-with chip, with
+   a small gap so the dropdown reads as a separate panel. */
+.burn-pay-picker{
+  left:0;
+  top:calc(100% + 4px);
 }
 
 /* ── BILL OF SALE ─────────────────────────────────────────────────
@@ -1782,42 +1795,15 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   transform:rotate(180deg);
 }
 
-/* Token picker — small dropdown anchored to the bottom-right corner
-   of .buy-input-line (its positioned parent). top:100% puts it flush
-   below the chip's row so it reads as a continuation of the chip,
-   not a floating panel. -2px overlap pulls it tight against the row's
-   bottom border for a connected "drawer" feel. */
+/* Buy form picker — anchored to the bottom-right corner of
+   .buy-input-line (its positioned parent). top:calc(100% - 1px) puts
+   it flush below the chip's row so it reads as a continuation of the
+   chip rather than a floating panel; border-top:none drops the seam
+   so the drawer reads as one connected box. */
 .buy-token-picker{
-  position:absolute;
-  z-index:30;
   right:-1px;
   top:calc(100% - 1px);
-  min-width:220px;
-  padding:6px;
-  background:#0a0300;
-  border:0.5px solid var(--ember);
   border-top:none;
-  box-shadow:0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(255,80,0,0.18);
-  display:flex;flex-direction:column;gap:2px;
-}
-.buy-token-picker[hidden]{display:none;}
-.buy-token-picker button{
-  display:flex;align-items:center;gap:10px;
-  padding:9px 10px;
-  background:transparent;border:none;
-  cursor:pointer;
-  text-align:left;
-  font-family:var(--mono);
-  color:var(--text2);
-  transition:background .12s,color .12s;
-}
-.buy-token-picker button:hover{
-  background:rgba(255,100,30,0.10);
-  color:#fff;
-}
-.buy-token-picker button.active{
-  background:rgba(255,100,30,0.15);
-  color:#fff;
 }
 .buy-token-picker-symbol{
   font-size:13px;font-weight:600;letter-spacing:0.5px;
@@ -2616,10 +2602,6 @@ img.twemoji{
   margin:32px auto 8px;
   padding:28px 28px 24px;
   text-align:center;
-  background:rgba(0,0,0,0.55);
-  backdrop-filter:blur(14px);
-  -webkit-backdrop-filter:blur(14px);
-  border:0.5px solid var(--border);
 }
 .top-cta-title{
   font-family:var(--display);

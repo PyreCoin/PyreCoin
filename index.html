@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-30">
+<link rel="stylesheet" href="style.css?v=20260512-31">
 <!-- Twemoji (jdecked fork — the actively-maintained continuation of
      Twitter's archived original). Parses Unicode emoji in rendered
      HTML and swaps them for consistent SVG glyphs from jsDelivr, so
@@ -216,7 +216,7 @@
               <span id="burnPayLabel">SOL</span>
               <svg class="buy-token-chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="burn-pay-picker" id="burnPayPicker" hidden role="listbox" aria-label="Select pay-with token">
+            <div class="token-picker burn-pay-picker" id="burnPayPicker" hidden role="listbox" aria-label="Select pay-with token">
               <button type="button" role="option" data-pay="pyre">
                 <span class="buy-token-chip-dot buy-token-chip-dot-pyre"></span>
                 <span class="buy-token-picker-symbol">$PYRE</span>
@@ -378,7 +378,7 @@
                  it anchors against the chip's row (not the wider
                  pay-row that extends down through the percent buttons).
                  Right-edge aligned; opens just below the chip. -->
-            <div class="buy-token-picker" id="buyTokenPicker" hidden role="listbox" aria-label="Select input token">
+            <div class="token-picker buy-token-picker" id="buyTokenPicker" hidden role="listbox" aria-label="Select input token">
               <button type="button" role="option" data-mint="So11111111111111111111111111111111111111112">
                 <span class="buy-token-chip-dot buy-token-chip-dot-sol"></span>
                 <span class="buy-token-picker-symbol">SOL</span>
@@ -921,7 +921,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-30"></script>
+<script type="module" src="js/main.js?v=20260512-31"></script>
 
 </body>
 </html>
