@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-20';
+const V = '20260512-21';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -202,17 +202,31 @@ function renderCtaPrices(){
 // privacy at small N — stats.js prefixes with '~' which we surface
 // verbatim. Hidden until we have a real number so we don't render
 // "— degens this week" on first paint.
+// Wire the viewer count card → CTA social-proof line. Two fallback
+// paths handle the cases where CF Web Analytics doesn't give us a
+// real number:
+//
+//   1. stats.js prefixes '~' on real (privacy-rounded) numbers.
+//      Any other textContent — '—' (placeholder), '0', '~0' — means
+//      either CF Analytics is blocked by the user's adblocker
+//      (beacon.min.js gets ERR_BLOCKED_BY_CLIENT) OR the site is so
+//      new there's literally no traffic yet.
+//   2. In both cases we still WANT the line visible — it's the
+//      "egging people on" hook above the leaderboard. Substitute a
+//      cheeky fallback rather than hiding entirely.
 function renderViewerCount(){
   const src = document.getElementById('s-vis7d');
   const line = document.getElementById('cta-viewers-line');
   const dst = document.getElementById('cta-viewers');
   if (!src || !line || !dst) return;
   const txt = (src.textContent || '').trim();
-  if (!txt || txt === '—') {
-    line.hidden = true;
-    return;
+  if (!txt || txt === '—' || txt === '0' || txt === '~0') {
+    // No real data — render a fallback that still says "this is a
+    // happening place" without lying about counts we don't have.
+    dst.textContent = 'brand new';
+  } else {
+    dst.textContent = txt;
   }
-  dst.textContent = txt;
   line.hidden = false;
 }
 refreshPrices();
