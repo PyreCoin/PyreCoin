@@ -326,8 +326,11 @@ function renderSettingsActive() {
 }
 
 function renderTokenPickerActive() {
+  // Hide the currently-selected token from the picker — there's no
+  // reason to offer "switch to the thing you're already on." The
+  // remaining tokens are the actual choices.
   document.querySelectorAll('#buyTokenPicker button').forEach(b => {
-    b.classList.toggle('active', b.dataset.mint === currentToken.mint);
+    b.hidden = b.dataset.mint === currentToken.mint;
   });
 }
 

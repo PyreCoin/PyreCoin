@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-10">
+<link rel="stylesheet" href="style.css?v=20260512-12">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -53,7 +53,7 @@
            when a connected wallet is detected; stays empty (and CSS-
            hidden via :empty) otherwise. -->
       <span id="navWallet" class="nav-wallet"></span>
-      <a class="btn-primary" href="#write"><svg class="icon icon-stroked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Write on Solana</a>
+      <a class="btn-primary nav-cta" href="#write"><svg class="icon icon-stroked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg><span class="nav-cta-full">Write on Solana</span><span class="nav-cta-short" aria-hidden="true">Write</span></a>
     </div>
   </nav>
 
@@ -282,26 +282,27 @@
               <span id="buyTokenChipLabel">SOL</span>
               <svg class="buy-token-chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="11" height="11" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-          </div>
-          <!-- Token picker popover, positioned absolutely against
-               .buy-pay-row. Hidden by default; opened by the chip
-               click handler in buy.js. -->
-          <div class="buy-token-picker" id="buyTokenPicker" hidden role="listbox" aria-label="Select input token">
-            <button type="button" role="option" data-mint="So11111111111111111111111111111111111111112">
-              <span class="buy-token-chip-dot buy-token-chip-dot-sol"></span>
-              <span class="buy-token-picker-symbol">SOL</span>
-              <span class="buy-token-picker-name">Solana</span>
-            </button>
-            <button type="button" role="option" data-mint="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v">
-              <span class="buy-token-chip-dot buy-token-chip-dot-usdc"></span>
-              <span class="buy-token-picker-symbol">USDC</span>
-              <span class="buy-token-picker-name">USD Coin</span>
-            </button>
-            <button type="button" role="option" data-mint="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB">
-              <span class="buy-token-chip-dot buy-token-chip-dot-usdt"></span>
-              <span class="buy-token-picker-symbol">USDT</span>
-              <span class="buy-token-picker-name">Tether</span>
-            </button>
+            <!-- Token picker popover. Lives INSIDE the input line so
+                 it anchors against the chip's row (not the wider
+                 pay-row that extends down through the percent buttons).
+                 Right-edge aligned; opens just below the chip. -->
+            <div class="buy-token-picker" id="buyTokenPicker" hidden role="listbox" aria-label="Select input token">
+              <button type="button" role="option" data-mint="So11111111111111111111111111111111111111112">
+                <span class="buy-token-chip-dot buy-token-chip-dot-sol"></span>
+                <span class="buy-token-picker-symbol">SOL</span>
+                <span class="buy-token-picker-name">Solana</span>
+              </button>
+              <button type="button" role="option" data-mint="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v">
+                <span class="buy-token-chip-dot buy-token-chip-dot-usdc"></span>
+                <span class="buy-token-picker-symbol">USDC</span>
+                <span class="buy-token-picker-name">USD Coin</span>
+              </button>
+              <button type="button" role="option" data-mint="Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB">
+                <span class="buy-token-chip-dot buy-token-chip-dot-usdt"></span>
+                <span class="buy-token-picker-symbol">USDT</span>
+                <span class="buy-token-picker-name">Tether</span>
+              </button>
+            </div>
           </div>
           <div class="buy-percent-row">
             <button type="button" data-pct="25">25%</button>
@@ -781,7 +782,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-10"></script>
+<script type="module" src="js/main.js?v=20260512-12"></script>
 
 </body>
 </html>

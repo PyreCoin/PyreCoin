@@ -311,26 +311,59 @@ nav.nav--hidden{
   .nav-links a{letter-spacing:2px;font-size:10.5px;}
 }
 /* Nav links in DOM order (1-indexed nth-child):
-   1 = How it works · 2 = Numbers · 3 = Etymology · 4 = Rules
+   1 = Write · 2 = Buy · 3 = Numbers · 4 = Etymology · 5 = Rules
+   (then .nav-wallet span, then the .btn-primary CTA last).
    Drop priority as the viewport narrows: Etymology first (deepest
-   tangent), then How it works (its content lives inline below
-   anyway). Numbers + Rules survive longest because they're the
-   highest-signal links — Numbers is the headline feature, Rules
-   carries compliance copy. */
+   tangent), then Numbers (the Numbers section's headline figure is
+   embedded inline lower in the page anyway). Write/Buy/Rules survive
+   longest — Write/Buy are the primary actions, Rules carries
+   compliance copy. The .btn-primary CTA is NEVER dropped — it's the
+   single most important affordance on the site. */
 @media(max-width:880px){
-  .nav-links a:nth-child(3){display:none;} /* drop "Etymology" first */
+  .nav-links a:nth-child(4){display:none;} /* drop "Etymology" first */
 }
 @media(max-width:720px){
   nav{padding:16px 20px;}
   .nav-logo{font-size:24px;letter-spacing:3px;}
-  .nav-links a:nth-child(1){display:none;} /* then drop "How it works" */
+  .nav-links a:nth-child(3){display:none;} /* then drop "Numbers" */
   .nav-links{gap:14px;}
   .nav-links a{font-size:10px;}
 }
 @media(max-width:520px){
-  /* On phones, hide all text links — keep just the brand + the CTA. */
-  .nav-links a{display:none;}
+  /* On phones, hide all remaining text links — keep just the brand
+     + the CTA button. :not(.btn-primary) is critical: the CTA is
+     also an <a>, and a blanket "hide all anchors" would kill it. */
+  .nav-links a:not(.btn-primary){display:none;}
   .nav-links{gap:0;}
+}
+/* Default: long label is shown, short fallback is hidden. The short
+   form is swapped in only at viewports too narrow to fit the full
+   "Write on Solana" alongside the PYRE wordmark. Order matters here —
+   this base rule must come BEFORE the media queries so the cascade
+   resolves correctly (same specificity, last-writer wins). */
+.nav-cta-short{display:none;}
+/* Very-small phones (≤380px). The CTA's "Write on Solana" + icon +
+   letter-spacing 3px won't fit alongside the PYRE wordmark; shrink
+   the padding, drop letter-spacing. */
+@media(max-width:380px){
+  nav{padding:14px 12px;gap:8px;}
+  .nav-logo{font-size:22px;letter-spacing:2px;}
+  .nav-cta{
+    padding:10px 14px;
+    font-size:10px;
+    letter-spacing:1.5px;
+  }
+  .nav-cta .icon{margin-right:5px;width:12px;height:12px;}
+}
+/* Under 320px (iPhone SE 1st gen / older Android), swap to the
+   shorter "Write" label so the button still has TEXT — never icon-
+   alone. The CTA is the single most important affordance on the
+   site; never lose its label. */
+@media(max-width:320px){
+  .nav-cta{padding:9px 11px;letter-spacing:1px;font-size:9.5px;}
+  .nav-cta .icon{margin-right:4px;width:11px;height:11px;}
+  .nav-cta-full{display:none;}
+  .nav-cta-short{display:inline;}
 }
 
 /* ── HERO ──
@@ -1300,6 +1333,11 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border:0.5px solid rgba(255,100,30,0.2);
   border-radius:2px;
   transition:border-color .2s;
+  /* Anchor the token picker against this row's bottom-right corner
+     rather than the wider .buy-pay-row (which extends past the
+     percent buttons). With the picker as a child here, top:100%
+     resolves to "just below the chip's row" — flush and intuitive. */
+  position:relative;
 }
 .buy-input-line:focus-within{
   border-color:var(--ember);
@@ -1404,26 +1442,22 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   transform:rotate(180deg);
 }
 
-/* Pay-row needs position:relative so the absolutely-positioned token
-   picker hangs off it (not the section). */
-.buy-pay-row{
-  position:relative;
-}
-
-/* Token picker — small dropdown anchored to the chip's right edge.
-   Hidden by default; opened by the chip's click handler. List items
-   render as buttons with an ember-tinted active state for the
-   currently-selected token. */
+/* Token picker — small dropdown anchored to the bottom-right corner
+   of .buy-input-line (its positioned parent). top:100% puts it flush
+   below the chip's row so it reads as a continuation of the chip,
+   not a floating panel. -2px overlap pulls it tight against the row's
+   bottom border for a connected "drawer" feel. */
 .buy-token-picker{
   position:absolute;
   z-index:30;
-  right:0;
-  top:calc(100% + 6px);
+  right:-1px;
+  top:calc(100% - 1px);
   min-width:220px;
   padding:6px;
   background:#0a0300;
-  border:0.5px solid rgba(255,100,30,0.35);
-  border-radius:4px;
+  border:0.5px solid var(--ember);
+  border-top:none;
+  border-radius:0 0 4px 4px;
   box-shadow:0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(255,80,0,0.18);
   display:flex;flex-direction:column;gap:2px;
 }
