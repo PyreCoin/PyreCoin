@@ -1,264 +1,459 @@
-// ─── BUY SECTION ─────────────────────────────────────────────────────
-// Inline-mounts Jupiter Plugin — Jupiter's canonical 2025+ embed
-// product (successor to the now-broken Terminal v3, which hardcoded
-// retired API endpoints like tokens.jup.ag / quote-api.jup.ag /
-// api.jup.ag/price/v2). Plugin uses Jupiter Ultra under the hood and
-// self-resolves token metadata / quotes / swap routes via the current
-// api.jup.ag endpoints, so it survives Jupiter's API migrations without
-// a code change on our side.
+// ─── BUY $PYRE ──────────────────────────────────────────────────────
+// Custom SOL→$PYRE swap form built directly on Jupiter's free Swap V1
+// API. Replaces Jupiter Plugin v1 (the React widget) with a native UI
+// that matches the burn form's visual language, ~10KB instead of
+// ~200KB, and zero shadow-DOM friction.
 //
-// Lazy-mount via IntersectionObserver: the Plugin bundle is heavy and
-// not every visitor scrolls to the buy section. We wait until #buy
-// enters the viewport, then load + init once. Subsequent re-entries
-// are no-ops (the _initialized flag short-circuits).
+// Endpoints (lite-api.jup.ag — keyless, CORS-open):
+//   GET  /swap/v1/quote   → routing + estimated output (cached 4s)
+//   POST /swap/v1/swap    → serialized VersionedTransaction (v0)
 //
-// We deliberately keep wallet handling separate from the burn flow:
-// Plugin carries its own Wallet Standard adapter and a Connect Wallet
-// button inside the widget (enableWalletPassthrough: false, the
-// default). This avoids two competing wallet-state machines (burn.js's
-// and Plugin's) fighting over which is "active." Users can connect a
-// different wallet to buy than they used to burn, which is fine —
-// neither flow shares state.
+// Flow:
+//   1. User types SOL amount → 600ms debounce → /quote (rate-limit-safe)
+//   2. /quote response renders You-get + price impact + route
+//   3. User clicks Swap → re-quote fresh → /swap → wallet sign → send
+//   4. Confirm via lastValidBlockHeight (NOT a fresh getLatestBlockhash)
+//   5. Success: Solscan link, balance refresh, form reset
 //
-// pyrecoin.com never custodies or touches funds at any point — the
-// widget signs and broadcasts directly to the user's wallet and
-// Jupiter's contracts. We're just hosting the iframe-equivalent.
+// Defaults (per Jupiter best practice for sub-$10M-mcap mints in 2026):
+//   slippageBps: 300 (3%)        — static floor
+//   dynamicSlippage: true        — bounded by slippageBps, gives back
+//                                  headroom in calm pools
+//   restrictIntermediateTokens   — keeps routes short, avoids hopping
+//                                  through illiquid memecoins
+//   priorityLevel: veryHigh      — landing rate for fresh memecoins
+//   maxLamports: 2_000_000       — 0.002 SOL cap on priority cost
+//   skipPreflight: true          — Jupiter already simulated the route
+//   maxRetries: 0                — we control rebroadcast cadence
+//
+// Wallet plumbing comes from js/wallet.js (shared with burn.js). We
+// subscribe to onWalletChange so the UI tracks connect/disconnect/
+// register/unregister without polling.
+//
+// Funds never touch pyrecoin.com. The wallet signs and we broadcast
+// directly to our RPC proxy; Jupiter's contracts are the route, never
+// a middleman we control.
 
-import { PYRE_MINT_STR, isPlaceholder } from './config.js';
-import { $ } from './utils.js';
+import {
+  Connection, VersionedTransaction, PublicKey
+} from 'https://esm.sh/@solana/web3.js@1.95.4';
+import { PYRE_MINT_STR, RPC_URL, isPlaceholder } from './config.js';
+import { detectProvider, onWalletChange } from './wallet.js';
+import { $, escapeHtml, fmt } from './utils.js';
 
-// Wrapped SOL — Plugin expects mint addresses, not symbols. "So111…
-// 1112" is the wSOL mint that Jupiter normalises bare SOL to for
-// routing purposes.
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
+const SOL_MINT  = 'So11111111111111111111111111111111111111112';
+const JUP_QUOTE = 'https://lite-api.jup.ag/swap/v1/quote';
+const JUP_SWAP  = 'https://lite-api.jup.ag/swap/v1/swap';
 
-// Jupiter Plugin v1 bundle — the active embed product as of 2026-05.
-// See developers.jup.ag/docs/tool-kits/plugin. Self-mounts into a
-// target element when configured with displayMode: 'integrated'.
-// If this URL changes upstream the widget will fail to load and we
-// fall back to the "Open on jup.ag" link below.
-const JUPITER_PLUGIN_SRC = 'https://plugin.jup.ag/plugin-v1.js';
+// Quote debounce + cache: research says lite-api allows 60 req/min/IP.
+// A 250ms keystroke debounce can briefly burst above that; 600ms keeps
+// us safely under, and a 4s cache means rapid re-types of the same
+// amount don't re-hit the API at all.
+const QUOTE_DEBOUNCE_MS = 600;
+const QUOTE_CACHE_TTL   = 4000;
 
-// One-time script loader. Avoids re-injecting the bundle if the modal
-// gets opened multiple times in one session. Returns the same Promise
-// for concurrent calls so racing the loader between rapid re-opens
-// doesn't duplicate the network request.
-let _jupScriptPromise = null;
-function loadJupiterScript() {
-  if (window.Jupiter) return Promise.resolve();
-  if (_jupScriptPromise) return _jupScriptPromise;
-  _jupScriptPromise = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = JUPITER_PLUGIN_SRC;
-    s.async = true;
-    s.defer = true;
-    s.onload = () => resolve();
-    s.onerror = () => {
-      _jupScriptPromise = null;
-      reject(new Error('Jupiter Plugin failed to load — CDN unreachable'));
-    };
-    document.head.appendChild(s);
+// 3% static slippage floor + dynamicSlippage:true. Static 1% fails
+// constantly on sub-$10M-mcap memecoins; 3% is the sweet spot and
+// dynamic gives back the headroom when the pool's calm.
+const SLIPPAGE_BPS = 300;
+
+// Reserve enough SOL for ATA rent + fees if user clicks MAX. Empirically
+// safe across the swap shapes Jupiter builds: ATA creation (~0.00204) +
+// network fee + priority cap. Leaving 0.01 SOL is a defensible default
+// and protects users from accidentally bricking their account.
+const MAX_SOL_RESERVE = 0.01;
+
+const connection = new Connection(RPC_URL, 'confirmed');
+
+const buyState = {
+  provider: null,
+  publicKey: null,
+  solBalance: null,         // in SOL (not lamports)
+  pyreDecimals: null,
+  lastQuote: null,
+  quoting: false,
+  swapping: false,
+  // last-known UI text on submit button — set by setSubmit, read by
+  // re-render paths so they don't clobber a transient progress message.
+  _submitText: 'Connect wallet',
+  _submitDisabled: false,
+};
+
+const _quoteCache = new Map();
+
+// ─── helpers ─────────────────────────────────────────────────────────
+
+function setStatus(msg, kind = 'info') {
+  const el = $('buyStatus');
+  if (!el) return;
+  el.className = 'burn-status ' + kind;
+  el.innerHTML = msg;
+}
+function clearStatus() {
+  const el = $('buyStatus');
+  if (!el) return;
+  el.className = 'burn-status';
+  el.innerHTML = '';
+}
+function setSubmit(label, disabled = false) {
+  buyState._submitText = label;
+  buyState._submitDisabled = disabled;
+  const btn = $('buySubmit');
+  if (!btn) return;
+  btn.textContent = label;
+  btn.disabled = disabled;
+}
+
+// Format a number with up to maxDp decimals, stripping trailing zeros.
+// Used for both SOL and PYRE readouts; the SOL field needs ≥6 decimals
+// to render 0.001234 correctly, the PYRE field is integer-ish so the
+// existing fmt() helper handles it (1.2K / 1.4M style).
+function fmtSol(n, maxDp = 6) {
+  if (!Number.isFinite(n) || n <= 0) return '0';
+  return n.toFixed(maxDp).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+// Convert raw token units to a UI amount given decimals. Avoids
+// floating-point precision loss for the integer division step.
+function toUiAmount(rawStr, decimals) {
+  const raw = BigInt(rawStr);
+  const denom = 10n ** BigInt(decimals);
+  const whole = raw / denom;
+  const frac = raw % denom;
+  // Compose a float — fine for display, since at 6 decimals we have ~15
+  // significant digits of precision and PYRE supply is 1e9, well within.
+  return Number(whole) + Number(frac) / Number(denom);
+}
+
+// ─── mint metadata (decimals) ───────────────────────────────────────
+
+let _mintInfoPromise = null;
+async function getPyreDecimals() {
+  if (buyState.pyreDecimals != null) return buyState.pyreDecimals;
+  if (_mintInfoPromise) return _mintInfoPromise;
+  _mintInfoPromise = (async () => {
+    const info = await connection.getParsedAccountInfo(new PublicKey(PYRE_MINT_STR));
+    const d = info?.value?.data?.parsed?.info?.decimals;
+    if (typeof d !== 'number') throw new Error('Could not read $PYRE decimals from mint');
+    buyState.pyreDecimals = d;
+    return d;
+  })();
+  return _mintInfoPromise;
+}
+
+// ─── Jupiter API ────────────────────────────────────────────────────
+
+async function fetchQuote(amountLamports) {
+  const key = `${SOL_MINT}|${PYRE_MINT_STR}|${amountLamports}|${SLIPPAGE_BPS}`;
+  const cached = _quoteCache.get(key);
+  if (cached && Date.now() - cached.ts < QUOTE_CACHE_TTL) return cached.data;
+  const params = new URLSearchParams({
+    inputMint: SOL_MINT,
+    outputMint: PYRE_MINT_STR,
+    amount: String(amountLamports),
+    slippageBps: String(SLIPPAGE_BPS),
+    swapMode: 'ExactIn',
+    restrictIntermediateTokens: 'true',
   });
-  return _jupScriptPromise;
+  const res = await fetch(`${JUP_QUOTE}?${params}`, { cache: 'no-store' });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`quote ${res.status}${body ? ' · ' + body.slice(0, 160) : ''}`);
+  }
+  const data = await res.json();
+  _quoteCache.set(key, { data, ts: Date.now() });
+  return data;
 }
 
-let _jupInitialized = false;
-function initJupiter() {
-  if (_jupInitialized) return;
-  if (!window.Jupiter) throw new Error('window.Jupiter not present after load');
-  window.Jupiter.init({
-    // 'integrated' mounts the swap UI into our existing target div.
-    // 'modal' would give the Plugin its own backdrop (conflicts with
-    // our modal); 'widget' is a floating button (not what we want).
-    displayMode: 'integrated',
-    integratedTargetId: 'jupiter-target',
-    // Plugin handles RPC via Ultra internally — passing `endpoint`
-    // would override that with our own, but our worker's Origin
-    // allowlist + 60-req/min/IP rate limit would throttle the widget.
-    // Letting Ultra manage RPC keeps the widget independent of our
-    // Helius free-tier quota AND keeps the Burn-vs-Buy flows from
-    // competing for the same RPC budget.
-    formProps: {
-      initialOutputMint: PYRE_MINT_STR,
-      initialInputMint: SOL_MINT,
-      // Lock the output to $PYRE so users can't accidentally swap
-      // INTO some other token from this modal. Input stays flexible
-      // (SOL by default but users with USDC etc. can change it).
-      fixedOutputMint: true,
-      fixedInputMint: false,
-      swapMode: 'ExactIn',
-    },
-    defaultExplorer: 'Solscan',
-    // Plugin's internal wallet flow — Connect Wallet button inside
-    // the widget. enableWalletPassthrough:false is the default; we
-    // could pipe our burn-side Wallet Standard adapter through with
-    // true, but keeping them separate is the cleaner UX for now.
-    branding: {
-      logoUri: 'https://pyrecoin.com/official_coin_image.png',
-      name: '$PYRE',
-    },
+async function fetchSwap(quoteResponse, userPublicKey) {
+  // The body shape comes straight from the Jupiter Swap V1 reference.
+  // Pass quoteResponse VERBATIM — Jupiter signs/validates the route
+  // shape and any field-level mutation invalidates the build.
+  const res = await fetch(JUP_SWAP, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      quoteResponse,
+      userPublicKey: userPublicKey.toBase58(),
+      wrapAndUnwrapSol: true,
+      dynamicComputeUnitLimit: true,
+      dynamicSlippage: true,
+      prioritizationFeeLamports: {
+        priorityLevelWithMaxLamports: {
+          priorityLevel: 'veryHigh',
+          maxLamports: 2_000_000,
+        },
+      },
+    }),
   });
-  _jupInitialized = true;
-}
-
-function showFallback(message) {
-  const t = $('jupiter-target');
-  if (!t) return;
-  t.innerHTML =
-    '<div style="padding:24px;text-align:center;color:var(--text2);' +
-    'font-family:\'DM Mono\',monospace;font-size:12px;line-height:1.7;">' +
-    '<p>' + message + '</p>' +
-    '<p style="margin-top:14px;">' +
-    '<a href="https://jup.ag/tokens/' + PYRE_MINT_STR + '" ' +
-    'target="_blank" rel="noopener noreferrer" ' +
-    'style="color:var(--ember2);text-decoration:underline;">' +
-    'Open on jup.ag ↗</a>' +
-    '</p></div>';
-}
-
-// The Plugin renders its own "Powered by Jupiter" attribution strip
-// at the bottom of the widget. Combined with our section-intro
-// "...routed via Jupiter, Solana's aggregator..." copy that's right
-// above it, this reads as duplicate branding. We hide the internal
-// strip via DOM scan after render — class names inside the Plugin's
-// React tree are not stable across releases, so we match by text
-// content (the only reliable signal).
-// Recursively walk a node's children AND any shadowRoots so we can
-// reach Plugin internals if they're rendered in a closed shadow tree.
-// Yields every descendant Element across DOM and shadow boundaries.
-function* walkDeep(node) {
-  if (!node) return;
-  if (node.shadowRoot) {
-    for (const child of node.shadowRoot.children) {
-      yield child;
-      yield* walkDeep(child);
-    }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`swap ${res.status}${body ? ' · ' + body.slice(0, 160) : ''}`);
   }
-  if (node.children) {
-    for (const child of node.children) {
-      yield child;
-      yield* walkDeep(child);
-    }
-  }
+  return res.json();
 }
 
-function hideInternalAttribution() {
-  // Search the whole document body — Plugin renders into a shadow
-  // root attached to a div in body, NOT into our #jupiter-target.
-  // walkDeep crosses the shadow boundary. The actual strip is a
-  // <span> whose textContent (with inner-flex <a>) collapses to
-  // "powered byjupiter" — NO space between 'by' and 'Jupiter',
-  // because the inline child element doesn't introduce whitespace.
-  // So we match 'powered' AND 'jupiter' separately, not the phrase.
-  let foundAny = false;
-  for (const el of walkDeep(document.body)) {
-    if (el.dataset && el.dataset.pyreHidden === '1') continue;
-    const t = (el.textContent || '').replace(/\s+/g, '').toLowerCase();
-    // Require both tokens AND a short total length so we don't match
-    // the whole widget (whose textContent contains both words plus
-    // a lot more).
-    if (t.length > 0 && t.length < 40 && t.includes('poweredby') && t.includes('jupiter')) {
-      // Walk up to the largest ancestor whose normalised text is STILL
-      // just the attribution strip (i.e. doesn't bleed into siblings).
-      let target = el;
-      while (target.parentElement) {
-        const pt = (target.parentElement.textContent || '').replace(/\s+/g, '').toLowerCase();
-        if (pt.length < 40 && pt.includes('poweredby') && pt.includes('jupiter')) {
-          target = target.parentElement;
-        } else {
-          break;
-        }
-      }
-      target.style.setProperty('display', 'none', 'important');
-      if (target.dataset) target.dataset.pyreHidden = '1';
-      foundAny = true;
-    }
-  }
-  return foundAny;
-}
+// ─── wallet / balance ───────────────────────────────────────────────
 
-function startAttributionWatcher() {
-  // The Plugin's React mount staggers across multiple frames — we
-  // run the hider on a schedule (immediate, 250ms, 800ms, 2s, 4s),
-  // AND attach a MutationObserver, so any of the rendering paths
-  // catches the strip. Idempotent because we mark hidden elements
-  // with data-pyre-hidden=1 above.
-  const tries = () => { hideInternalAttribution(); };
-  tries();
-  [250, 800, 2000, 4000].forEach(d => setTimeout(tries, d));
-
-  const root = $('jupiter-target');
-  if (!root) return;
-  const obs = new MutationObserver(tries);
-  obs.observe(root, { childList: true, subtree: true });
-  // Give up after 8s — if Plugin hasn't rendered by then the user has
-  // bigger problems than an extra "Powered by" line.
-  setTimeout(() => obs.disconnect(), 8000);
-}
-
-// Single-shot mount. Calling this multiple times is safe — the
-// internal flags short-circuit duplicates. Returns a Promise that
-// resolves when the widget is initialised (or shows a fallback on
-// failure).
-let _mountStarted = false;
-async function mountBuyWidget(){
-  if (_mountStarted) return;
-  _mountStarted = true;
-
-  if (isPlaceholder()) {
-    showFallback('$PYRE has not launched yet. The buy widget activates once the token mint is configured.');
+async function refreshSolBalance() {
+  if (!buyState.publicKey) {
+    const el = $('buySolBalance');
+    if (el) el.textContent = '—';
     return;
   }
+  try {
+    const lamports = await connection.getBalance(buyState.publicKey);
+    buyState.solBalance = lamports / 1e9;
+    const el = $('buySolBalance');
+    if (el) el.textContent = fmtSol(buyState.solBalance, 4);
+  } catch (e) {
+    console.warn('SOL balance fetch failed:', e);
+  }
+}
+
+function buttonLabelForCurrentState() {
+  if (!buyState.provider) return 'Install a Solana wallet';
+  if (!buyState.publicKey) return 'Connect wallet';
+  const amt = parseFloat($('buyAmount')?.value);
+  if (!Number.isFinite(amt) || amt <= 0) return 'Enter an amount';
+  if (buyState.solBalance != null && amt > buyState.solBalance) return 'Insufficient SOL';
+  if (buyState.quoting) return 'Quoting…';
+  if (!buyState.lastQuote) return 'Quoting…';
+  return `Swap ${fmtSol(amt, 6)} SOL for $PYRE`;
+}
+
+async function refreshWalletUI() {
+  const provider = detectProvider();
+  buyState.provider = provider;
+
+  if (!provider) {
+    buyState.publicKey = null;
+    buyState.solBalance = null;
+    const balEl = $('buySolBalance');
+    if (balEl) balEl.textContent = '—';
+    setSubmit('Install a Solana wallet', true);
+    return;
+  }
+
+  if (!provider.publicKey) {
+    buyState.publicKey = null;
+    buyState.solBalance = null;
+    const balEl = $('buySolBalance');
+    if (balEl) balEl.textContent = '—';
+    setSubmit('Connect wallet', false);
+    return;
+  }
+
+  buyState.publicKey = provider.publicKey;
+  await refreshSolBalance();
+  // If the user already typed an amount, re-quote with the new wallet.
+  scheduleQuote();
+  setSubmit(buttonLabelForCurrentState(), false);
+}
+
+// ─── quote pipeline ─────────────────────────────────────────────────
+
+let _quoteDebounce = null;
+function scheduleQuote() {
+  clearTimeout(_quoteDebounce);
+  _quoteDebounce = setTimeout(() => {
+    runQuote().catch(e => {
+      // Common cause: amount too small. Render the readouts blank and
+      // surface the Jupiter error so the user knows why nothing's
+      // showing rather than thinking the page is broken.
+      $('buyOutAmount').textContent = '—';
+      $('buyPriceImpact').textContent = '—';
+      $('buyRouteSummary').textContent = '';
+      buyState.lastQuote = null;
+      setStatus(`Quote failed · ${escapeHtml(e.message)}`, 'error');
+      setSubmit(buttonLabelForCurrentState(), false);
+    });
+  }, QUOTE_DEBOUNCE_MS);
+}
+
+async function runQuote() {
+  const amtSol = parseFloat($('buyAmount')?.value);
+  if (!Number.isFinite(amtSol) || amtSol <= 0) {
+    $('buyOutAmount').textContent = '—';
+    $('buyPriceImpact').textContent = '—';
+    $('buyRouteSummary').textContent = '';
+    buyState.lastQuote = null;
+    clearStatus();
+    setSubmit(buttonLabelForCurrentState(), false);
+    return;
+  }
+  const lamports = Math.round(amtSol * 1e9);
+  buyState.quoting = true;
+  setSubmit('Quoting…', true);
+  try {
+    const [q, decimals] = await Promise.all([fetchQuote(lamports), getPyreDecimals()]);
+    buyState.lastQuote = q;
+    const out = toUiAmount(q.outAmount, decimals);
+    $('buyOutAmount').textContent = fmt(out);
+    const pi = parseFloat(q.priceImpactPct);
+    $('buyPriceImpact').textContent = Number.isFinite(pi)
+      ? (pi * 100).toFixed(2) + '%'
+      : '—';
+    const route = (q.routePlan || [])
+      .map(p => p.swapInfo?.label)
+      .filter(Boolean)
+      .join(' → ');
+    $('buyRouteSummary').textContent = route ? `via ${route}` : '';
+    clearStatus();
+    setSubmit(buttonLabelForCurrentState(), false);
+  } finally {
+    buyState.quoting = false;
+  }
+}
+
+// ─── swap submit ────────────────────────────────────────────────────
+
+async function submitBuy() {
+  if (buyState.swapping) return;
+
+  // Refuse if placeholder mode (mint not yet configured). Defensive —
+  // the live build flips runtime-config.json off placeholder at launch.
+  if (isPlaceholder()) {
+    setStatus('$PYRE has not launched yet.', 'error');
+    return;
+  }
+
+  const provider = buyState.provider || detectProvider();
+  if (!provider) { setStatus('No Solana wallet detected.', 'error'); return; }
+
+  // Connect path — the button text was "Connect wallet" and the user
+  // clicked it. Trigger the wallet's connect flow, then refresh the UI.
+  if (!provider.publicKey) {
+    try {
+      await provider.connect();
+    } catch (e) {
+      setStatus(`Connect failed · ${escapeHtml(e.message || 'cancelled')}`, 'error');
+      return;
+    }
+    await refreshWalletUI();
+    return;
+  }
+
+  // From here on we need a quote.
+  if (!buyState.lastQuote) {
+    setStatus('Enter an amount first.', 'error');
+    return;
+  }
+
+  const amtSol = parseFloat($('buyAmount')?.value);
+  if (!Number.isFinite(amtSol) || amtSol <= 0) {
+    setStatus('Enter a positive SOL amount.', 'error');
+    return;
+  }
+  if (buyState.solBalance != null && amtSol > buyState.solBalance) {
+    setStatus('Insufficient SOL balance.', 'error');
+    return;
+  }
+
+  buyState.swapping = true;
+  setSubmit('Building transaction…', true);
 
   try {
-    await loadJupiterScript();
-    initJupiter();
-    startAttributionWatcher();
-  } catch (err) {
-    // Fallback link to jup.ag covers the case where the Plugin CDN is
-    // blocked (corp networks, ad blockers misclassifying it, etc.).
-    _mountStarted = false; // allow retry on next observer fire
-    showFallback('Couldn\'t load the embedded widget. ' + (err.message || ''));
+    // Re-quote fresh immediately before /swap. Stale-quote slippage
+    // (0x1771) is the #1 production failure mode for memecoin swaps —
+    // a quote from 8s ago can be off enough that the on-chain slippage
+    // check fires. One last quote at click-time costs us 1 extra RPC
+    // and saves the user from a failed-tx fee.
+    setStatus('Confirming route…', 'info');
+    const lamports = Math.round(amtSol * 1e9);
+    const freshQuote = await fetchQuote(lamports);
+    buyState.lastQuote = freshQuote;
+
+    setStatus('Fetching swap transaction…', 'info');
+    const swap = await fetchSwap(freshQuote, provider.publicKey);
+
+    setStatus('Sign in your wallet…', 'info');
+    const txBytes = Uint8Array.from(atob(swap.swapTransaction), c => c.charCodeAt(0));
+    const tx = VersionedTransaction.deserialize(txBytes);
+    const signed = await provider.signTransaction(tx);
+
+    setStatus('Sending…', 'info');
+    const raw = signed.serialize();
+    const sig = await connection.sendRawTransaction(raw, {
+      skipPreflight: true,
+      maxRetries: 0,
+    });
+
+    setStatus('Confirming on chain…', 'info');
+    const blockhash = signed.message.recentBlockhash;
+    // Use Jupiter's lastValidBlockHeight, NOT a fresh getLatestBlockhash —
+    // the embedded blockhash is already partway through its life.
+    await connection.confirmTransaction(
+      { signature: sig, blockhash, lastValidBlockHeight: swap.lastValidBlockHeight },
+      'confirmed'
+    );
+
+    const link = `https://solscan.io/tx/${sig}`;
+    setStatus(
+      `Swap confirmed · <a href="${link}" target="_blank" rel="noopener noreferrer">view on Solscan ↗</a>`,
+      'success'
+    );
+
+    // Reset for another swap. Balance re-fetch picks up the new SOL
+    // amount (post-fee) and pulls the user back to a clean state.
+    $('buyAmount').value = '';
+    $('buyOutAmount').textContent = '—';
+    $('buyPriceImpact').textContent = '—';
+    $('buyRouteSummary').textContent = '';
+    buyState.lastQuote = null;
+    setSubmit('Swap again', false);
+    await refreshSolBalance();
+  } catch (e) {
+    // Human-readable failure mapping for the most common ones; everything
+    // else falls back to the raw message.
+    const raw = e?.message || String(e);
+    let msg = raw;
+    if (/User rejected|cancel/i.test(raw))     msg = 'Cancelled — nothing happened.';
+    else if (/0x1771|slippage/i.test(raw))     msg = 'Price moved — try again or raise slippage.';
+    else if (/insufficient/i.test(raw))         msg = 'Insufficient SOL for swap + fees.';
+    else if (/blockhash|expired/i.test(raw))    msg = 'Transaction expired — try again.';
+    else if (/route|no liquidity/i.test(raw))   msg = 'No route found for that amount.';
+    setStatus(`Swap failed · ${escapeHtml(msg)}`, 'error');
+    setSubmit(buttonLabelForCurrentState(), false);
+  } finally {
+    buyState.swapping = false;
   }
 }
+window.submitBuy = submitBuy;
 
-// Lazy-mount on first scroll into view. The Plugin bundle is sizeable;
-// not every visitor scrolls to the buy section, so we don't pay the
-// cost up-front. rootMargin: '200px 0px' starts loading just before the
-// section enters the viewport so the widget is ready by the time the
-// user actually sees it.
-function startLazyMount(){
-  const target = document.getElementById('buy');
-  if (!target) return;
-  // Fallback for ancient browsers w/o IntersectionObserver — just mount
-  // immediately. Modern browsers (>99% of traffic) take the lazy path.
-  if (typeof IntersectionObserver !== 'function') {
-    mountBuyWidget();
-    return;
+// ─── event wiring ───────────────────────────────────────────────────
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'buyAmount') {
+    clearStatus();
+    scheduleQuote();
   }
-  const obs = new IntersectionObserver((entries, observer) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        observer.disconnect();
-        mountBuyWidget();
-        break;
-      }
+});
+
+document.addEventListener('click', e => {
+  if (e.target.id === 'buyMax') {
+    e.preventDefault();
+    if (buyState.solBalance == null) return;
+    const usable = Math.max(0, buyState.solBalance - MAX_SOL_RESERVE);
+    if (usable <= 0) {
+      setStatus('Balance too low to swap (reserve ~0.01 SOL for fees).', 'error');
+      return;
     }
-  }, { rootMargin: '200px 0px', threshold: 0 });
-  obs.observe(target);
-}
+    const input = $('buyAmount');
+    if (input) {
+      input.value = fmtSol(usable, 6);
+      clearStatus();
+      scheduleQuote();
+    }
+  }
+});
 
-// Anchor-jump to #buy should also force a mount in case the user lands
-// directly on the section (where the IntersectionObserver may have
-// already fired on initial paint, but timing is implementation-defined
-// and we don't want a blank slot if it didn't). Listening to hashchange
-// covers both initial load with #buy in URL and click-jumps from the
-// nav.
-function maybeMountFromHash(){
-  if (location.hash === '#buy') mountBuyWidget();
-}
-window.addEventListener('hashchange', maybeMountFromHash);
+// React to wallet connect / disconnect / register events.
+onWalletChange(() => { refreshWalletUI().catch(() => {}); });
 
-// Kick off the lazy mount + handle the initial-load case.
-startLazyMount();
-maybeMountFromHash();
+// Initial render. refreshWalletUI handles all branches (no wallet,
+// detected-not-connected, connected). Pre-warming the mint decimals
+// in the background means the first quote response renders instantly
+// even when the network round-trip lands first.
+refreshWalletUI().catch(() => {});
+getPyreDecimals().catch(() => { /* will retry on first quote */ });

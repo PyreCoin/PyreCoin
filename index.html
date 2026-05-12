@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-4">
+<link rel="stylesheet" href="style.css?v=20260512-6">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -211,11 +211,11 @@
     </div>
   </section>
 
-  <!-- GRAB SOME $PYRE — Jupiter Plugin v1 mounted inline. The plugin
-       loads lazily via IntersectionObserver in js/buy.js so the heavy
-       Jupiter bundle only fetches when this section scrolls into view.
-       Funds never touch pyrecoin.com — the widget signs and broadcasts
-       directly to the user's wallet via Jupiter's contracts. -->
+  <!-- GRAB SOME $PYRE — native swap form on Jupiter's Swap V1 API.
+       Quote and swap go straight to lite-api.jup.ag (CORS-open, no
+       key); sign happens in the user's wallet via the same Wallet
+       Standard plumbing burn.js uses. Funds never touch pyrecoin.com —
+       the wallet signs and we broadcast directly to our RPC proxy. -->
   <div class="full-divider"></div>
   <section class="section buy-section" id="buy">
     <div class="section-header">
@@ -226,14 +226,53 @@
     <p class="section-intro">
       Inscribing is free. Boosting your post to the top of pyrecoin.com
       is not — that takes $PYRE, burned. Bigger or fresher burns climb
-      higher on the leaderboard above. Swap any Solana token for $PYRE
-      below; routed via <strong>Jupiter</strong>, Solana's aggregator,
-      for best execution across pump.fun, Raydium, Orca, and the rest
-      of the DEX universe. Funds never touch pyrecoin.com.
+      higher on the leaderboard above. Swap SOL for $PYRE below; routed
+      via <strong>Jupiter</strong>, Solana's aggregator, for best
+      execution across pump.fun, Raydium, Orca, and the rest of the DEX
+      universe. Funds never touch pyrecoin.com.
     </p>
 
-    <div class="buy-form-card">
-      <div id="jupiter-target" class="jupiter-target"></div>
+    <div class="write-form-card buy-card">
+      <form onsubmit="event.preventDefault();window.submitBuy?.();">
+        <div class="form-note">Pay any SOL · routed via Jupiter for best execution</div>
+
+        <div class="burn-form-row buy-row">
+          <label for="buyAmount">
+            <span>You pay <span class="hint" title="Amount of SOL you want to swap for $PYRE. Click MAX to use your whole balance minus a small reserve (~0.01 SOL) kept back for network + ATA fees.">?</span></span>
+            <span class="label-meta">Balance: <span id="buySolBalance">&mdash;</span> SOL</span>
+          </label>
+          <div class="buy-input-line">
+            <input id="buyAmount" type="number" min="0" step="any" placeholder="0.0" autocomplete="off" inputmode="decimal">
+            <span class="buy-token-chip"><span class="buy-token-chip-dot buy-token-chip-dot-sol"></span>SOL</span>
+            <button type="button" class="buy-max-btn" id="buyMax">MAX</button>
+          </div>
+        </div>
+
+        <div class="buy-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </div>
+
+        <div class="burn-form-row buy-row">
+          <label>
+            <span>You get <span class="hint" title="Estimated $PYRE you'll receive at current liquidity, after slippage. Re-quoted automatically as you type and again at click-time to minimize stale-route risk.">?</span></span>
+            <span class="label-meta" id="buyRouteSummary"></span>
+          </label>
+          <div class="buy-input-line buy-input-line-readout">
+            <span class="buy-readout" id="buyOutAmount">&mdash;</span>
+            <span class="buy-token-chip"><span class="buy-token-chip-dot buy-token-chip-dot-pyre"></span>$PYRE</span>
+          </div>
+        </div>
+
+        <div class="buy-meta-row">
+          <span>Slippage <strong id="buySlippage">3%</strong></span>
+          <span>Price impact <strong id="buyPriceImpact">&mdash;</strong></span>
+          <span>Priority &le;<strong>0.002 SOL</strong></span>
+        </div>
+
+        <div class="burn-status" id="buyStatus"></div>
+
+        <button type="submit" class="write-form-submit" id="buySubmit">Connect wallet</button>
+      </form>
     </div>
   </section>
 
@@ -678,7 +717,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-4"></script>
+<script type="module" src="js/main.js?v=20260512-6"></script>
 
 </body>
 </html>

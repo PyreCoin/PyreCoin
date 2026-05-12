@@ -1138,24 +1138,17 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .buy-section{
   scroll-margin-top:80px;
 }
-.write-form-card,
-.buy-form-card{
+.write-form-card{
   width:100%;
+  max-width:520px;
   margin:0 auto;
+  padding:34px 32px 28px;
   background:#0a0300;
   border:0.5px solid rgba(255,100,30,0.3);
   border-radius:4px;
   box-shadow:0 0 80px rgba(255,80,0,0.3);
   font-family:'DM Sans',sans-serif;
   position:relative;
-}
-.write-form-card{
-  max-width:520px;
-  padding:34px 32px 28px;
-}
-.buy-form-card{
-  max-width:580px;
-  padding:30px 26px 22px;
 }
 .form-note{
   font-family:'DM Mono',monospace;
@@ -1283,6 +1276,160 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .write-form-submit:disabled{
   opacity:0.5;cursor:not-allowed;box-shadow:none;
 }
+
+/* ── BUY FORM (custom Jupiter Swap V1 surface) ────────────────────
+   Replaces the Jupiter Plugin v1 React widget. Reuses .write-form-card
+   + .burn-form-row + .burn-status + .write-form-submit so the visual
+   language matches the burn form exactly. Below adds the bits the
+   burn form doesn't need: side-by-side input/chip/MAX, the read-only
+   "you get" line, the route-summary arrow, and the slippage / price-
+   impact / priority meta row. */
+.buy-card{
+  max-width:580px;
+}
+.buy-input-line{
+  display:flex;
+  align-items:stretch;
+  gap:0;
+  width:100%;
+  background:rgba(255,255,255,0.04);
+  border:0.5px solid rgba(255,100,30,0.2);
+  border-radius:2px;
+  transition:border-color .2s;
+}
+.buy-input-line:focus-within{
+  border-color:var(--ember);
+  background:rgba(255,100,30,0.04);
+}
+.buy-input-line input{
+  flex:1 1 auto;
+  min-width:0;
+  background:transparent;
+  border:none;
+  padding:12px 12px 12px 14px;
+  color:var(--text);
+  font-family:'DM Mono',monospace;
+  font-size:18px;
+  font-weight:500;
+  outline:none;
+  /* Strip the inner-spinner from <input type="number"> so the right
+     edge looks clean next to the chip + MAX button. Keyboard/scroll
+     stepping still works. */
+  -moz-appearance:textfield;
+  appearance:textfield;
+}
+.buy-input-line input::-webkit-outer-spin-button,
+.buy-input-line input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0;
+}
+.buy-input-line input::placeholder{color:var(--text3);}
+.buy-input-line-readout{
+  /* "You get" row — non-interactive; aligns content vertically with
+     the input row above. Same height to keep both rows visually paired. */
+  align-items:center;
+}
+.buy-readout{
+  flex:1 1 auto;
+  padding:12px 12px 12px 14px;
+  color:var(--text);
+  font-family:'DM Mono',monospace;
+  font-size:18px;
+  font-weight:500;
+  font-variant-numeric:tabular-nums;
+  /* Long PYRE numbers (millions+) shouldn't push the chip off-screen
+     on narrow viewports — let them overflow with ellipsis instead. */
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.buy-token-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:0 12px;
+  font-family:'DM Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:1px;
+  color:var(--text);
+  border-left:0.5px solid rgba(255,100,30,0.2);
+  white-space:nowrap;
+  user-select:none;
+}
+.buy-token-chip-dot{
+  display:inline-block;
+  width:10px;height:10px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+.buy-token-chip-dot-sol{
+  background:linear-gradient(135deg,#9945ff 0%,#14f195 100%);
+}
+.buy-token-chip-dot-pyre{
+  background:radial-gradient(circle at 30% 30%,#ffb060,#ff3d00 70%);
+  box-shadow:0 0 6px rgba(255,80,20,0.6);
+}
+.buy-max-btn{
+  padding:0 14px;
+  background:transparent;
+  border:none;
+  border-left:0.5px solid rgba(255,100,30,0.2);
+  color:var(--ember2);
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  cursor:pointer;
+  transition:color .15s,background .15s;
+}
+.buy-max-btn:hover{
+  color:#fff;
+  background:rgba(255,100,30,0.12);
+}
+.buy-arrow{
+  display:flex;
+  align-items:center;justify-content:center;
+  width:30px;height:30px;
+  margin:8px auto;
+  border-radius:50%;
+  background:rgba(255,100,30,0.12);
+  border:0.5px solid rgba(255,100,30,0.3);
+  color:var(--ember2);
+}
+.buy-meta-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px 18px;
+  margin-top:14px;
+  padding-top:12px;
+  border-top:0.5px dashed var(--border2);
+  font-family:'DM Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.5px;
+  color:var(--text3);
+  text-transform:uppercase;
+}
+.buy-meta-row strong{
+  color:var(--text2);
+  font-weight:500;
+  margin-left:4px;
+}
+/* When the route summary is populated it appears in the .label-meta
+   slot of the "You get" row. Empty string keeps the slot collapsed.
+   Italic distinguishes it from numeric values like the SOL balance. */
+#buyRouteSummary{
+  font-style:italic;
+  color:var(--text3);
+}
+#buyRouteSummary:empty{display:none;}
+
+@media(max-width:560px){
+  .buy-input-line input,
+  .buy-readout{font-size:16px;padding:11px 10px 11px 12px;}
+  .buy-token-chip{font-size:11px;padding:0 10px;}
+  .buy-max-btn{padding:0 11px;font-size:9px;}
+  .buy-meta-row{gap:10px 14px;font-size:9.5px;}
+}
 /* Wallet badge — single rounded pill that lives in the navbar:
    shortened address (full address on hover via title), wallet picker
    (when multiple wallets are detected) or just the wallet name, and a
@@ -1339,42 +1486,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   .wallet-badge .wallet-name,
   .wallet-badge .wallet-picker{display:none;}
   .wallet-badge{padding-right:2px;}
-}
-
-/* ── JUPITER PLUGIN v1 THEMING ─────────────────────────────────────── */
-/* Plugin exposes six CSS variables on :root (per
-   developers.jup.ag/docs/tool-kits/plugin/customization) that accept
-   RGB triplets. We map them onto our fire palette so the embedded
-   widget reads as part of pyrecoin instead of as a Jupiter ad bolted
-   onto the page.
-   - primary       → ember orange (the prominent action-button bg)
-   - background    → our deep-fire bg (#0a0300 ≈ rgb(10,3,0))
-   - primaryText   → off-white text (matches --text)
-   - warning       → amber (kept visible — real warnings should not
-                     blend in with the surrounding palette)
-   - interactive   → ember (token-pill chips, dropdowns, arrows)
-   - module        → slightly lighter than bg, for the inner panels */
-:root{
-  --jupiter-plugin-primary:      255, 102, 34;   /* --ember */
-  --jupiter-plugin-background:   10, 3, 0;       /* deep-fire bg */
-  --jupiter-plugin-primaryText:  255, 248, 240;  /* --text */
-  --jupiter-plugin-warning:      255, 170, 51;   /* --ember2 */
-  --jupiter-plugin-interactive:  255, 102, 34;   /* --ember */
-  --jupiter-plugin-module:       18, 6, 2;       /* one notch above bg */
-}
-.jupiter-target{
-  min-height:520px;
-  background:#06010a;
-  border:0.5px solid rgba(255,100,30,0.18);
-  border-radius:6px;
-  overflow:hidden;
-}
-/* Note: the internal "Powered by Jupiter" attribution strip is
-   rendered inside Plugin's open shadow root, so light-DOM CSS
-   cannot reach it. The hide is done by js/buy.js via walkDeep
-   which crosses shadow boundaries; no CSS rule here would help. */
-@media(max-width:560px){
-  .jupiter-target{min-height:480px;}
 }
 
 /* ── LINGUISTIC FONT (IPA, polytonic Greek, PIE combining marks) ── */
@@ -1810,7 +1921,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   /* Inline form/buy cards: compact padding so they breathe on smaller
      phones (Firefox Android, iPhone SE). */
   .write-form-card{padding:24px 22px 22px;}
-  .buy-form-card{padding:24px 18px 18px;}
+  .buy-card{padding:28px 22px 22px;}
   .burn-form-row{margin-bottom:12px;}
 
   /* Disclaimer (unchanged from previous rule, kept here) */
