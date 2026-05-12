@@ -1211,3 +1211,29 @@ renderBurnPayChip();
 recalculateBill();
 fetchAllPrices().then(recalculateBill).catch(() => {});
 startWalletDetectPoller();
+
+// Trigger the auto-suggest-take-#1 + snap-back-link plumbing exactly
+// once at bootstrap. Without this, the burn-amount input sits empty
+// until main.js's next tick fires (~30s after page load), because
+// main.js's first tick runs BEFORE burn.js finishes loading and the
+// optional chain `window.refreshBurnHint?.()` silently no-ops. Calling
+// it ourselves here closes that race — the input is populated the
+// moment burn.js is ready, whether or not the leaderboard data has
+// landed yet. The bill is also re-rendered with the new value.
+//
+// If the leaderboard's data isn't fetched yet, refreshBurnHint sees
+// count=0 and falls back to '1' (the cold-pyre case), which is still
+// better than empty. main.js's tick will refresh to the real
+// minBurnToTakeTop() value within a few seconds.
+//
+// A short retry loop covers the case where __pyreLeaderboard isn't
+// attached to window yet at this exact moment (vanishingly rare —
+// main.js sets it BEFORE awaiting any imports — but defensive).
+function bootstrapAutoSuggest() {
+  if (window.__pyreLeaderboard?.minBurnToTakeTop) {
+    refreshBurnHint();
+  } else {
+    setTimeout(bootstrapAutoSuggest, 100);
+  }
+}
+bootstrapAutoSuggest();
