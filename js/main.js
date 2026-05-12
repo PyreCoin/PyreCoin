@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-25';
+const V = '20260512-26';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -196,39 +196,69 @@ function renderCtaPrices(){
   }
 }
 
-// Mirror the visitor count from the existing #s-vis7d stat card (which
-// stats.js populates from Cloudflare Web Analytics every 30s) into the
-// top CTA's social-proof line. The CF endpoint rounds counts for
-// privacy at small N — stats.js prefixes with '~' which we surface
-// verbatim. Hidden until we have a real number so we don't render
-// "— degens this week" on first paint.
-// Wire the viewer count card → CTA social-proof line. Two fallback
-// paths handle the cases where CF Web Analytics doesn't give us a
-// real number:
+// Wire the visitor-count stat card → CTA social-proof line.
 //
-//   1. stats.js prefixes '~' on real (privacy-rounded) numbers.
-//      Any other textContent — '—' (placeholder), '0', '~0' — means
-//      either CF Analytics is blocked by the user's adblocker
-//      (beacon.min.js gets ERR_BLOCKED_BY_CLIENT) OR the site is so
-//      new there's literally no traffic yet.
-//   2. In both cases we still WANT the line visible — it's the
-//      "egging people on" hook above the leaderboard. Substitute a
-//      cheeky fallback rather than hiding entirely.
+// Speed: the Worker → CF Analytics fetch in stats.js takes ~1–2s on
+// cold load. To avoid the user seeing "brand new" for a couple of
+// seconds before the real number arrives on every visit, we cache
+// the last-known good value in localStorage with a ~6h TTL. On page
+// load:
+//   1. Sync (microseconds): read cache and paint immediately — no
+//      network call, no waiting for the Worker.
+//   2. Async: when stats.js writes a real number into #s-vis7d, the
+//      30s tick() calls renderViewerCount which updates the display
+//      AND refreshes the cache.
+//
+// Net effect: returning visitors see a real number instantly. Brand-
+// new visitors with no cache see the "brand new" fallback until the
+// first Worker fetch resolves.
+const VIEWER_CACHE_KEY = 'pyre.viewerCount';
+const VIEWER_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+function isRealCount(txt) {
+  return !!txt && txt !== '—' && txt !== '0' && txt !== '~0';
+}
+function loadCachedViewerCount() {
+  try {
+    const raw = localStorage.getItem(VIEWER_CACHE_KEY);
+    if (!raw) return null;
+    const { value, ts } = JSON.parse(raw);
+    if (!isRealCount(value)) return null;
+    if (typeof ts !== 'number' || Date.now() - ts > VIEWER_CACHE_TTL_MS) return null;
+    return value;
+  } catch { return null; }
+}
+function saveCachedViewerCount(value) {
+  try {
+    localStorage.setItem(VIEWER_CACHE_KEY, JSON.stringify({ value, ts: Date.now() }));
+  } catch {}
+}
 function renderViewerCount(){
   const src = document.getElementById('s-vis7d');
   const line = document.getElementById('cta-viewers-line');
   const dst = document.getElementById('cta-viewers');
   if (!src || !line || !dst) return;
   const txt = (src.textContent || '').trim();
-  if (!txt || txt === '—' || txt === '0' || txt === '~0') {
-    // No real data — render a fallback that still says "this is a
-    // happening place" without lying about counts we don't have.
-    dst.textContent = 'brand new';
-  } else {
+  if (isRealCount(txt)) {
     dst.textContent = txt;
+    saveCachedViewerCount(txt);
+  } else {
+    // No real data from the worker yet — fall back to the cached
+    // last-known good value if it's fresh; otherwise show "brand new".
+    const cached = loadCachedViewerCount();
+    dst.textContent = cached || 'brand new';
   }
   line.hidden = false;
 }
+// Sync paint at bootstrap: if a cached value exists, render the line
+// immediately so users don't see anything missing while stats.js's
+// fetch is in flight. Subsequent tick()s refresh via renderViewerCount.
+(function instantViewerPaint(){
+  const cached = loadCachedViewerCount();
+  if (!cached) return;
+  const line = document.getElementById('cta-viewers-line');
+  const dst  = document.getElementById('cta-viewers');
+  if (line && dst) { dst.textContent = cached; line.hidden = false; }
+})();
 refreshPrices();
 setInterval(refreshPrices, 60_000);
 // Expose so tick() can re-render the #1 figure after each lb refresh
