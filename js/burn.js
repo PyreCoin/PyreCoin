@@ -56,7 +56,7 @@ const TOTAL_LAMPORTS    = BASE_LAMPORTS + PRIORITY_LAMPORTS + INSCRIPTION_LAMPOR
 // Cached for 60s so reopening the modal doesn't re-fetch. Failure mode:
 // price stays null, the USD readout in the cost line is just omitted.
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
-const JUP_PRICE_URL = 'https://api.jup.ag/price/v3?ids=' + SOL_MINT;
+const JUP_PRICE_URL = 'https://lite-api.jup.ag/price/v3?ids=' + SOL_MINT;
 const _solPriceCache = { price: null, ts: 0 };
 async function fetchSolPriceUsd(){
   if (Date.now() - _solPriceCache.ts < 60_000 && _solPriceCache.price != null) {

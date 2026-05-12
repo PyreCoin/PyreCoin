@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260511-24';
+const V = '20260512-1';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -149,7 +149,7 @@ FIRE_SECTIONS.forEach(id => {
   const el = document.getElementById('cta-cost');
   if (!el) return;
   const SOL_MINT = 'So11111111111111111111111111111111111111112';
-  const URL = 'https://api.jup.ag/price/v3?ids=' + SOL_MINT;
+  const URL = 'https://lite-api.jup.ag/price/v3?ids=' + SOL_MINT;
   const LAMPORTS = 15_001; // base(5000) + priority(10000) + beacon(1)
   function fmt(usd){
     if (usd >= 1)      return '$' + usd.toFixed(2);
