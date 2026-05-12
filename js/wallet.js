@@ -19,7 +19,7 @@
 
 import {
   Transaction, VersionedTransaction, PublicKey
-} from 'https://esm.sh/@solana/web3.js@1.95.4';
+} from 'https://esm.sh/@solana/web3.js@1.98.4';
 import { getWallets } from 'https://esm.sh/@wallet-standard/app@1.1.0';
 
 // localStorage key for the user's wallet pick. Survives reloads so a

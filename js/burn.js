@@ -21,12 +21,13 @@
 // Solana libs are imported directly from esm.sh as ES modules.
 
 import {
-  Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, ComputeBudgetProgram
-} from 'https://esm.sh/@solana/web3.js@1.95.4';
+  Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, ComputeBudgetProgram,
+  VersionedTransaction
+} from 'https://esm.sh/@solana/web3.js@1.98.4';
 import {
   createBurnCheckedInstruction, getAssociatedTokenAddressSync, getAccount,
   TOKEN_2022_PROGRAM_ID
-} from 'https://esm.sh/@solana/spl-token@0.4.8';
+} from 'https://esm.sh/@solana/spl-token@0.4.14';
 // Solana Wallet Standard discovery — picks up Jupiter Mobile/Web, Glow,
 // Magic Eden, OKX, Coinbase, Trust, Bitget, and modern Phantom/Solflare/
 // Backpack via the standard's `register` event protocol instead of the
@@ -38,6 +39,14 @@ import {
   PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR, isPlaceholder
 } from './config.js';
 import { $, shortAddr, escapeHtml, fmt } from './utils.js';
+import { buildAtomicBurnTx, PAY_TOKENS } from './atomic-burn.js';
+
+// ─── PYRE service-fee constant ──────────────────────────────────────
+// Every inscription that goes through pyrecoin.com burns at least
+// this much $PYRE (buy + burn atomically if the user doesn't already
+// hold any). Transparent line item in the bill of sale; framed as a
+// service fee for using the website, not as a token utility claim.
+const SERVICE_FEE_PYRE = 1;
 
 // Twitter / X handle validation — mirrors the server-side rule in
 // scripts/lib/filter.mjs so the wallet prompt only fires for inputs
@@ -52,37 +61,73 @@ const BASE_LAMPORTS     = 5_000;
 const INSCRIPTION_LAMPORTS = 1; // transferred to the beacon as a marker
 const TOTAL_LAMPORTS    = BASE_LAMPORTS + PRIORITY_LAMPORTS + INSCRIPTION_LAMPORTS;
 
-// Live SOL/USD price from Jupiter (free public endpoint, no key).
-// Cached for 60s so reopening the modal doesn't re-fetch. Failure mode:
-// price stays null, the USD readout in the cost line is just omitted.
+// Live USD prices for the four tokens the bill of sale needs to value:
+// SOL (network fee + alt pay path), $PYRE (service fee + leaderboard
+// burn), USDC and USDT (alt pay paths). One round-trip per refresh.
+// Cached for 60s so we don't re-fetch on every keystroke.
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
-const JUP_PRICE_URL = 'https://lite-api.jup.ag/price/v3?ids=' + SOL_MINT;
-const _solPriceCache = { price: null, ts: 0 };
-async function fetchSolPriceUsd(){
-  if (Date.now() - _solPriceCache.ts < 60_000 && _solPriceCache.price != null) {
-    return _solPriceCache.price;
+const BILL_PRICE_MINTS = [SOL_MINT, PYRE_MINT_STR, PAY_TOKENS.usdc.mint, PAY_TOKENS.usdt.mint];
+const JUP_PRICE_URL = 'https://lite-api.jup.ag/price/v3?ids=' + BILL_PRICE_MINTS.join(',');
+const _priceCache = { ts: 0, prices: { sol: null, pyre: null, usdc: null, usdt: null } };
+async function fetchAllPrices(){
+  if (Date.now() - _priceCache.ts < 60_000 && _priceCache.prices.sol != null) {
+    return _priceCache.prices;
   }
   try {
     const res = await fetch(JUP_PRICE_URL, { cache: 'no-store' });
-    if (!res.ok) return null;
+    if (!res.ok) return _priceCache.prices;
     const data = await res.json();
-    const p = data?.[SOL_MINT]?.usdPrice;
-    if (typeof p === 'number' && isFinite(p) && p > 0) {
-      _solPriceCache.price = p;
-      _solPriceCache.ts = Date.now();
-      return p;
-    }
-  } catch (_) { /* ignore — null result is acceptable */ }
-  return null;
+    const sol  = data?.[SOL_MINT]?.usdPrice;
+    const pyre = data?.[PYRE_MINT_STR]?.usdPrice;
+    const usdc = data?.[PAY_TOKENS.usdc.mint]?.usdPrice;
+    const usdt = data?.[PAY_TOKENS.usdt.mint]?.usdPrice;
+    if (typeof sol  === 'number' && sol  > 0) _priceCache.prices.sol  = sol;
+    if (typeof pyre === 'number' && pyre > 0) _priceCache.prices.pyre = pyre;
+    if (typeof usdc === 'number' && usdc > 0) _priceCache.prices.usdc = usdc;
+    if (typeof usdt === 'number' && usdt > 0) _priceCache.prices.usdt = usdt;
+    _priceCache.ts = Date.now();
+  } catch (_) { /* keep last-good prices */ }
+  return _priceCache.prices;
+}
+// Back-compat alias for any code path that still asks just for SOL/USD.
+async function fetchSolPriceUsd(){
+  const p = await fetchAllPrices();
+  return p.sol;
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────
 const burnState = {
   provider: null,        // injected wallet provider (window.solana, etc.)
   publicKey: null,       // user's wallet pubkey (web3.PublicKey)
-  decimals: null,        // mint's decimals, queried on connect
-  balance: null,         // user's $PYRE balance
+  decimals: null,        // PYRE mint's decimals, queried on connect
+  balance: null,         // user's $PYRE balance (uiAmount)
+  // Alt-pay balances. Each: { value: number | null }. null means
+  // "we don't know yet" (haven't fetched, or RPC failed); 0 means
+  // "fetched, account doesn't exist or holds nothing".
+  solBalance: null,
+  usdcBalance: null,
+  usdtBalance: null,
+  // Pay method — one of: 'pyre' | 'sol' | 'usdc' | 'usdt'. The
+  // 'pyre' option uses the user's existing $PYRE balance (no swap);
+  // the others use Jupiter to acquire-and-burn atomically.
+  payMethod: 'sol',
+  // Whether the user has manually edited the burn amount input. When
+  // false, we auto-suggest min-to-take-#1 on every leaderboard tick.
+  // Set true on any input event or X-clear click.
+  userEditedAmount: false,
 };
+const PAY_METHOD_KEY = 'pyre.burnPayMethod';
+function loadPayMethod() {
+  try {
+    const v = localStorage.getItem(PAY_METHOD_KEY);
+    if (['pyre','sol','usdc','usdt'].includes(v)) return v;
+  } catch {}
+  return 'sol';
+}
+function savePayMethod(v) {
+  try { localStorage.setItem(PAY_METHOD_KEY, v); } catch {}
+}
+burnState.payMethod = loadPayMethod();
 
 // ─── UI HELPERS ──────────────────────────────────────────────────────
 function setStatus(msg, kind = 'info') {
@@ -120,66 +165,141 @@ function startWalletDetectPoller(){
 // _liveEntries state and double the leaderboard.json fetch).
 // Exposed on window so main.js's tick() can refresh it on the same
 // 30s cadence as the leaderboard data itself.
+// Auto-prefill the burn amount with min-to-take-#1 IF the user hasn't
+// manually edited the field yet. Runs on every leaderboard tick from
+// main.js. The user's X-clear click also sets userEditedAmount=true so
+// we don't fight them back to a non-zero number.
 function refreshBurnHint() {
-  const el = $('burnHint');
-  if (!el) return;
   const lb = window.__pyreLeaderboard;
+  const hintEl = $('burnHint');
   if (!lb || typeof lb.minBurnToTakeTop !== 'function') {
-    el.innerHTML = '';
+    if (hintEl) hintEl.innerHTML = '';
     return;
   }
   const min = lb.minBurnToTakeTop(new Date());
   const count = (typeof lb.liveEntryCount === 'function') ? lb.liveEntryCount() : 0;
-  if (count === 0) {
-    el.innerHTML = 'tip · the pyre is cold — any burn takes #1.';
-  } else {
-    el.innerHTML = `tip · burn <strong>≥ ${escapeHtml(fmt(min))} $PYRE</strong> right now to take #1.`;
+  // Auto-suggest the take-#1 amount in the input until the user
+  // overrides. Empty + auto = pre-fill; >0 + auto = pre-fill; X click
+  // sets userEditedAmount and the value sticks at 0.
+  if (!burnState.userEditedAmount) {
+    const input = $('burnAmount');
+    if (input && count > 0) {
+      input.value = String(min);
+    } else if (input && count === 0) {
+      input.value = '1';
+    }
   }
+  if (hintEl) {
+    if (count === 0) {
+      hintEl.innerHTML = 'tip · the pyre is cold — any burn takes #1.';
+    } else {
+      hintEl.innerHTML = `tip · burn <strong>&ge; ${escapeHtml(fmt(min))} $PYRE</strong> right now to take #1.`;
+    }
+  }
+  recalculateBill();
 }
 window.refreshBurnHint = refreshBurnHint;
 
-// Live message char counter + cost re-estimation
+// Live message char counter + bill of sale re-render.
 document.addEventListener('input', e => {
   if (e.target.id === 'burnMsg') {
     const el = $('msgCount');
     if (el) el.textContent = e.target.value.length;
   }
-  if (e.target.id === 'burnAmount') refreshCostEstimate();
+  if (e.target.id === 'burnAmount') {
+    burnState.userEditedAmount = true;
+    recalculateBill();
+  }
 });
 
-// Show the estimated cost — base + priority + 1-lamport beacon
-// transfer if inscription mode (PYRE = 0). Renders SOL + a live USD
-// (= USDC) equivalent from Jupiter. The wallet computes the real fee
-// at sign time; this is just transparency.
-async function refreshCostEstimate(){
-  const el = $('burnCost');
-  if (!el) return;
-  const amt = parseFloat($('burnAmount')?.value);
-  const isBurn = Number.isFinite(amt) && amt > 0;
-  const lamports = isBurn ? (BASE_LAMPORTS + PRIORITY_LAMPORTS) : TOTAL_LAMPORTS;
-  const solAmount = lamports / 1e9;
-  const solStr = solAmount.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+// ─── BILL OF SALE ─────────────────────────────────────────────────
+// Renders the itemized cost breakdown beneath the form: Solana fee,
+// service fee (1 $PYRE buy+burn), leaderboard burn (N $PYRE buy+burn),
+// and the bottom-line "you pay" total in both USD and the chosen
+// pay-with token. Re-runs on every input change, every leaderboard
+// tick, every payMethod switch, and every price refresh.
+function fmtBillUsd(usd) {
+  if (!isFinite(usd) || usd <= 0) return '~$0';
+  if (usd >= 1000) return '~$' + Math.round(usd).toLocaleString();
+  if (usd >= 1)    return '~$' + usd.toFixed(2);
+  if (usd >= 0.01) return '~$' + usd.toFixed(3);
+  if (usd >= 0.0001) return '~$' + usd.toFixed(5);
+  return '~$' + usd.toFixed(7);
+}
+function fmtPayAmount(amount, decimals, symbol) {
+  if (!isFinite(amount) || amount <= 0) return `&approx; 0 ${symbol}`;
+  const dp = decimals === 9 ? 6 : 4;
+  const s = amount.toFixed(dp).replace(/0+$/, '').replace(/\.$/, '');
+  return `&approx; ${s} ${symbol}`;
+}
+function recalculateBill() {
+  const billEl = $('burnBill');
+  if (!billEl) return;
+  const rawAmt = parseFloat($('burnAmount')?.value);
+  const leaderboardAmt = (Number.isFinite(rawAmt) && rawAmt > 0) ? rawAmt : 0;
+  const totalBurnAmt = SERVICE_FEE_PYRE + leaderboardAmt; // always at least the service fee
+  const prices = _priceCache.prices;
+  const solFeeSol = TOTAL_LAMPORTS / 1e9;
+  const solFeeUsd = prices.sol != null ? solFeeSol * prices.sol : null;
+  const serviceUsd = prices.pyre != null ? SERVICE_FEE_PYRE * prices.pyre : null;
+  const lbUsd = prices.pyre != null ? leaderboardAmt * prices.pyre : null;
+  const totalUsd = (solFeeUsd ?? 0) + (serviceUsd ?? 0) + (lbUsd ?? 0);
 
-  // Paint the SOL line immediately so the user isn't waiting on Jupiter.
-  // USD price fetch is async and updates the readout in place when it
-  // resolves; if it fails (offline / Jupiter down) the SOL line is
-  // already correct and we just don't show a dollar figure.
-  el.innerHTML = `cost · <strong>${solStr} SOL</strong>` +
-    (isBurn ? ` + ${escapeHtml(String(amt))} $PYRE burned` : '');
+  // ── Each line item ──
+  $('burnBillSolFee').textContent = solFeeUsd != null ? fmtBillUsd(solFeeUsd) : '—';
+  $('burnBillService').textContent = serviceUsd != null ? fmtBillUsd(serviceUsd) : '—';
+  const lbRow = $('burnBillLeaderboardRow');
+  if (leaderboardAmt > 0) {
+    lbRow.hidden = false;
+    $('burnBillBurnAmt').textContent = fmt(leaderboardAmt);
+    $('burnBillLeaderboard').textContent = lbUsd != null ? fmtBillUsd(lbUsd) : '—';
+  } else {
+    lbRow.hidden = true;
+  }
 
-  const solUsd = await fetchSolPriceUsd();
-  if (solUsd == null) return;
-  const usd = solAmount * solUsd;
-  // Show enough decimals that the figure isn't misleading at sub-cent
-  // scale — the precision IS the point. Five decimals captures the
-  // typical 0.000015 SOL × ~$100 ≈ $0.00150 case cleanly.
-  let usdStr;
-  if      (usd >= 1)     usdStr = '$' + usd.toFixed(2);
-  else if (usd >= 0.01)  usdStr = '$' + usd.toFixed(3);
-  else if (usd >= 0.0001) usdStr = '$' + usd.toFixed(5);
-  else                    usdStr = '$' + usd.toFixed(7);
-  el.innerHTML = `cost · <strong>${solStr} SOL</strong> · <strong>${usdStr}</strong>` +
-    (isBurn ? ` + ${escapeHtml(String(amt))} $PYRE burned` : '');
+  // ── Total in USD + pay-with-token equivalent ──
+  $('burnBillTotalUsd').textContent = totalUsd > 0 ? fmtBillUsd(totalUsd) : '—';
+
+  // Compute the pay-with-token amount. If 'pyre' is the pay method,
+  // there's no swap — show just the $PYRE-burned total and the SOL fee
+  // separately. For SOL/USDC/USDT we add the SOL network fee + the
+  // swap cost (USD value / token price).
+  const payTok = burnState.payMethod;
+  const totalPayEl = $('burnBillTotalPay');
+  if (payTok === 'pyre') {
+    // The user pays SOL for network fees + (1 + N) $PYRE from balance.
+    const pyreTotal = totalBurnAmt;
+    totalPayEl.innerHTML = `&approx; ${fmt(pyreTotal)} $PYRE + ${solFeeSol.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')} SOL fee`;
+  } else {
+    const tokKey = payTok;
+    const tokPrice = prices[tokKey];
+    if (tokPrice == null || tokPrice <= 0) {
+      totalPayEl.innerHTML = '&approx; — ' + tokKey.toUpperCase();
+    } else {
+      // Total USD / token's USD price = how many of that token to spend.
+      // For SOL: includes its own network fee already (totalUsd has solFeeUsd).
+      // For USDC/USDT: the SOL network fee comes from the user's SOL
+      // wallet separately; the token covers only the burn-buy. So
+      // subtract the SOL fee from the USD total before converting.
+      let conversionUsd = totalUsd;
+      if (tokKey !== 'sol') conversionUsd = Math.max(0, totalUsd - (solFeeUsd || 0));
+      const tokAmount = conversionUsd / tokPrice;
+      const dec = PAY_TOKENS[tokKey]?.decimals ?? 6;
+      const sym = PAY_TOKENS[tokKey]?.symbol  ?? tokKey.toUpperCase();
+      const extra = (tokKey !== 'sol' && solFeeUsd != null && prices.sol > 0)
+        ? ` + ${(solFeeUsd / prices.sol).toFixed(6).replace(/0+$/, '').replace(/\.$/, '')} SOL fee`
+        : '';
+      totalPayEl.innerHTML = fmtPayAmount(tokAmount, dec, sym) + extra;
+    }
+  }
+
+  // Submit button label — describes the action precisely.
+  const btn = $('burnSubmit');
+  if (btn && !btn.disabled && burnState.publicKey) {
+    btn.textContent = totalBurnAmt > 1
+      ? `Burn ${fmt(totalBurnAmt)} $PYRE & inscribe`
+      : `Burn 1 $PYRE & inscribe`;
+  }
 }
 
 // ─── WALLET DETECTION ────────────────────────────────────────────────
@@ -401,8 +521,99 @@ window.__pyreDisconnectWallet = async function disconnectWallet(){
 };
 
 function _submitLabel(){
+  // Every inscription always burns at least the service fee. The label
+  // reflects total burn (service fee + optional leaderboard amount).
   const amt = parseFloat($('burnAmount')?.value);
-  return (Number.isFinite(amt) && amt > 0) ? 'Burn $PYRE & inscribe' : 'Inscribe';
+  const lb = (Number.isFinite(amt) && amt > 0) ? amt : 0;
+  const total = SERVICE_FEE_PYRE + lb;
+  return `Burn ${fmt(total)} $PYRE & inscribe`;
+}
+
+// X clear button — sets burn amount to 0 and marks the user has
+// edited the field (so auto-prefill won't pull them back to the
+// take-#1 suggestion on the next leaderboard tick). The 1 $PYRE
+// service fee still applies; this just zeros out the OPTIONAL
+// leaderboard layer on top.
+document.addEventListener('click', e => {
+  const clearBtn = e.target.closest('#burnAmountClear');
+  if (clearBtn) {
+    e.preventDefault();
+    const input = $('burnAmount');
+    if (input) {
+      input.value = '0';
+      burnState.userEditedAmount = true;
+      recalculateBill();
+      input.focus();
+    }
+    return;
+  }
+  // Pay-with chip toggle
+  const payToggle = e.target.closest('#burnPayToggle');
+  if (payToggle) {
+    const picker = $('burnPayPicker');
+    if (!picker) return;
+    const willOpen = picker.hidden;
+    picker.hidden = !willOpen;
+    payToggle.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen) renderBurnPayPickerActive();
+    return;
+  }
+  // Pay-with option click
+  const payOpt = e.target.closest('#burnPayPicker button[data-pay]');
+  if (payOpt) {
+    const val = payOpt.dataset.pay;
+    if (['pyre','sol','usdc','usdt'].includes(val)) {
+      burnState.payMethod = val;
+      savePayMethod(val);
+      renderBurnPayChip();
+      recalculateBill();
+    }
+    const picker = $('burnPayPicker');
+    const toggle = $('burnPayToggle');
+    if (picker) picker.hidden = true;
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  // Click outside the chip → close
+  if (!e.target.closest('#burnPayPicker, #burnPayToggle')) {
+    const picker = $('burnPayPicker');
+    const toggle = $('burnPayToggle');
+    if (picker && !picker.hidden) {
+      picker.hidden = true;
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+  }
+});
+
+// Esc closes the pay picker
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const picker = $('burnPayPicker');
+    const toggle = $('burnPayToggle');
+    if (picker && !picker.hidden) {
+      picker.hidden = true;
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+  }
+});
+
+const PAY_VISUALS = {
+  pyre: { label: '$PYRE', dotClass: 'buy-token-chip-dot-pyre' },
+  sol:  { label: 'SOL',   dotClass: 'buy-token-chip-dot-sol'  },
+  usdc: { label: 'USDC',  dotClass: 'buy-token-chip-dot-usdc' },
+  usdt: { label: 'USDT',  dotClass: 'buy-token-chip-dot-usdt' },
+};
+function renderBurnPayChip() {
+  const v = PAY_VISUALS[burnState.payMethod] || PAY_VISUALS.sol;
+  const lbl = $('burnPayLabel');
+  const dot = $('burnPayDot');
+  if (lbl) lbl.textContent = v.label;
+  if (dot) dot.className = 'buy-token-chip-dot ' + v.dotClass;
+}
+function renderBurnPayPickerActive() {
+  document.querySelectorAll('#burnPayPicker button[data-pay]').forEach(b => {
+    b.classList.toggle('active', b.dataset.pay === burnState.payMethod);
+  });
 }
 
 // pump.fun mints SPL tokens under the Token-2022 program (NOT the
@@ -540,7 +751,9 @@ window.submitBurn = async function submitBurn() {
     return;
   }
 
-  // Read fields — all optional except the "at least one" rule below.
+  // Read content fields. At least one of msg/url/xh is required — the
+  // 1 $PYRE service fee alone isn't a reason to inscribe (otherwise
+  // every page reload could spam an empty memo into the wall).
   const rawUrl = $('burnUrl')?.value || '';
   const url    = rawUrl.trim() ? normalizeBurnUrl(rawUrl) : '';
   if (rawUrl.trim() && !url) {
@@ -549,11 +762,15 @@ window.submitBurn = async function submitBurn() {
   }
   const msg = ($('burnMsg')?.value || '').trim();
   let   xh  = ($('burnX')?.value   || '').trim().replace(/^@/, '');
-  const amt = parseFloat($('burnAmount')?.value);
-  const wantsBurn = Number.isFinite(amt) && amt > 0;
+  const rawAmt = parseFloat($('burnAmount')?.value);
+  const leaderboardAmt = (Number.isFinite(rawAmt) && rawAmt > 0) ? rawAmt : 0;
+  // Total burn = service fee (always) + optional leaderboard layer.
+  // Always at least SERVICE_FEE_PYRE > 0, so the BurnChecked
+  // instruction is always present in the tx.
+  const totalBurnAmt = SERVICE_FEE_PYRE + leaderboardAmt;
 
-  if (!msg && !url && !xh && !wantsBurn) {
-    setStatus('Add a message, a URL, an X handle, or set $PYRE > 0 — at least one.', 'error');
+  if (!msg && !url && !xh) {
+    setStatus('Add a message, a URL, or an X handle — at least one is required.', 'error');
     return;
   }
   if (msg.includes('|') || (url && url.includes('|')) || xh.includes('|')) {
@@ -584,13 +801,21 @@ window.submitBurn = async function submitBurn() {
     if (!provider.isConnected) await provider.connect();
     burnState.provider = provider;
     burnState.publicKey = provider.publicKey;
-    if (wantsBurn) {
+
+    const payMethod = burnState.payMethod;
+    const isDirectPyre = payMethod === 'pyre';
+
+    if (isDirectPyre) {
+      // Direct path requires the user to already hold >= totalBurnAmt PYRE.
+      // If not, point them at switching the pay method instead of failing.
       await refreshBalance();
       if (burnState.balance === null) {
         throw new Error('Couldn\'t verify your $PYRE balance (RPC failed). Try again in a moment.');
       }
-      if (amt > burnState.balance) {
-        throw new Error('You only have ' + burnState.balance.toLocaleString() + ' $PYRE — not enough for this burn.');
+      if (totalBurnAmt > burnState.balance) {
+        throw new Error('You only have ' + burnState.balance.toLocaleString() +
+          ' $PYRE — not enough to cover the ' + fmt(totalBurnAmt) + ' $PYRE burn. ' +
+          'Switch the pay-with chip to SOL/USDC/USDT to acquire-and-burn atomically.');
       }
     }
 
@@ -606,68 +831,92 @@ window.submitBurn = async function submitBurn() {
     if (msg) memoParts.push('msg=' + msg);
     const memoText = memoParts.join(' | ');
 
-    const tx = new Transaction();
+    let tx;                       // Transaction | VersionedTransaction
+    let lastValidBlockHeight;     // for confirmation timeout
 
-    // Priority fee — small, optional, helps the tx land fast.
-    tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: PRIORITY_LAMPORTS * 1000 / 200 }));
-
-    if (wantsBurn) {
-      // Burn path: Token-2022 BurnChecked + memo. Mint supply
-      // decreases at the protocol layer.
+    if (isDirectPyre) {
+      // ── DIRECT PATH ── legacy Transaction; user has enough $PYRE
+      // already. One BurnChecked + Memo + 1-lamport beacon (for
+      // inscription wall indexing) in a single signature.
       const mint = new PublicKey(PYRE_MINT_STR);
       if (burnState.decimals === null) {
         const mintInfo = await conn.getParsedAccountInfo(mint);
         burnState.decimals = mintInfo.value.data.parsed.info.decimals;
       }
       const senderAta = getAssociatedTokenAddressSync(mint, sender, false, TOKEN_PROGRAM);
-      const rawAmount = BigInt(Math.floor(amt * 10 ** burnState.decimals));
-      tx.add(createBurnCheckedInstruction(
+      const rawAmount = BigInt(Math.floor(totalBurnAmt * 10 ** burnState.decimals));
+      const legacyTx = new Transaction();
+      legacyTx.add(ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: PRIORITY_LAMPORTS * 1000 / 200
+      }));
+      legacyTx.add(createBurnCheckedInstruction(
         senderAta, mint, sender, rawAmount, burnState.decimals, [], TOKEN_PROGRAM
       ));
-    } else {
-      // Inscribe path: 1 lamport → beacon, marks this tx as a
-      // pyrecoin.com inscription. Anyone can replicate the shape;
-      // the beacon is a deterministic marker, not a permission gate.
-      tx.add(SystemProgram.transfer({
-        fromPubkey: sender,
-        toPubkey: new PublicKey(INSCRIPTION_BEACON_STR),
-        lamports: INSCRIPTION_LAMPORTS,
-      }));
-    }
-
-    // Memo always last so explorers display it after the action.
-    if (memoText) {
-      tx.add(new TransactionInstruction({
+      legacyTx.add(new TransactionInstruction({
         keys: [{ pubkey: sender, isSigner: true, isWritable: false }],
         programId: new PublicKey(MEMO_PROGRAM_ID_STR),
         data: new TextEncoder().encode(memoText),
       }));
+      // 1-lamport beacon so the ingest's getSignaturesForAddress(beacon)
+      // scan also picks this up — both leaderboard and inscription wall
+      // indexers see the tx.
+      legacyTx.add(SystemProgram.transfer({
+        fromPubkey: sender,
+        toPubkey: new PublicKey(INSCRIPTION_BEACON_STR),
+        lamports: INSCRIPTION_LAMPORTS,
+      }));
+      const bh = await conn.getLatestBlockhash('processed');
+      legacyTx.recentBlockhash = bh.blockhash;
+      legacyTx.feePayer = sender;
+      tx = legacyTx;
+      lastValidBlockHeight = bh.lastValidBlockHeight;
+    } else {
+      // ── ATOMIC PATH ── one VersionedTransaction that swaps from
+      // (SOL|USDC|USDT) → PYRE via Jupiter, burns the output, attaches
+      // the memo, all signed once. See js/atomic-burn.js.
+      const payMint = PAY_TOKENS[payMethod]?.mint;
+      if (!payMint) throw new Error('Invalid pay method: ' + payMethod);
+      setStatus('Quoting Jupiter swap…', 'info');
+      const built = await buildAtomicBurnTx({
+        conn,
+        payer: sender,
+        payMint,
+        totalBurnAmt,
+        memoText,
+      });
+      // Hard cap: Solana txs are 1232 bytes max. If Jupiter's route is
+      // too dense to fit alongside the burn+memo+beacon, surface a
+      // clear error — the user can try a different pay token or smaller
+      // burn amount. (Two-tx fallback is a future enhancement; for now
+      // we refuse oversize to keep atomicity airtight.)
+      if (built.sizeBytes > 1232) {
+        throw new Error(
+          'Route too dense to fit in one transaction (' + built.sizeBytes + ' bytes, max 1232). ' +
+          'Try a smaller burn amount or a different pay-with token.'
+        );
+      }
+      tx = built.tx;
+      lastValidBlockHeight = built.lastValidBlockHeight;
     }
 
     setStatus('Confirm in your wallet…', 'info');
 
-    // Use the freshest blockhash possible ('processed' commitment returns
-    // the newest one our RPC has seen). The 150-slot (~60s) validity
-    // window starts ticking from blockhash creation; every saved slot
-    // here is a slot the user gets to spend reading Phantom's prompt.
-    const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('processed');
-    tx.recentBlockhash = blockhash;
-    tx.feePayer = sender;
-
-    // Sign-only via the wallet, then broadcast ourselves with retries.
-    // signAndSendTransaction goes through the wallet's RPC and gives no
-    // retry control — if the user takes 30+s in Phantom's prompt and the
-    // blockhash drifts close to its expiry, a single-shot broadcast can
-    // be rejected by the leader as "BlockhashNotFound" and silently drop.
-    // signTransaction + our sendRawTransaction(maxRetries:10) re-submits
-    // the same signed tx until it lands; the chain de-dupes by signature
-    // so retries are safe (no double-burn risk).
+    // Both paths have already baked their blockhash + payer into the
+    // tx (legacy: tx.recentBlockhash / tx.feePayer; v0: TransactionMessage
+    // compiled with payerKey + recentBlockhash). No additional setup
+    // needed here.
     if (typeof provider.signTransaction !== 'function') {
       throw new Error('Your wallet does not expose signTransaction. Try Phantom, Jupiter, Solflare, or Backpack.');
     }
+    // wallet.js's adapter auto-detects VersionedTransaction (via
+    // tx.version) and serializes accordingly. Sign returns the same
+    // type that came in.
     const signedTx = await provider.signTransaction(tx);
+    // Skip preflight on the atomic path — Jupiter already simulated
+    // the route; the extra preflight pass tends to false-positive on
+    // Token-2022 / pump.fun routes and just slows landing.
     const signature = await conn.sendRawTransaction(signedTx.serialize(), {
-      skipPreflight: false,
+      skipPreflight: !isDirectPyre,
       maxRetries: 10,
       preflightCommitment: 'confirmed',
     });
@@ -682,12 +931,17 @@ window.submitBurn = async function submitBurn() {
     // a way that fires "Signature has expired" prematurely.
     await pollForConfirmation(conn, signature, lastValidBlockHeight);
 
-    const successCopy = wantsBurn
-      ? '🔥 Burned. Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>'
-      : '✍️ Inscribed. Your message is on chain forever. It will appear on the Inscription Wall within ~10 minutes.<br>';
-    setStatus(successCopy +
-      '<a href="https://solscan.io/tx/' + signature + '" target="_blank">View transaction ↗</a>', 'success');
-    if (wantsBurn) await refreshBalance();
+    // Every successful flow now burns at least the service fee — single
+    // success copy. The leaderboard sees the burn; the inscription wall
+    // sees the beacon transfer. Both indexers pick it up on the next
+    // 5-minute ingest cycle.
+    setStatus(
+      `🔥 ${fmt(totalBurnAmt)} $PYRE burned. ` +
+      'Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>' +
+      '<a href="https://solscan.io/tx/' + signature + '" target="_blank">View transaction ↗</a>',
+      'success'
+    );
+    await refreshBalance();
   } catch (err) {
     const m = err?.message || String(err);
     const ml = m.toLowerCase();
@@ -737,5 +991,9 @@ setTimeout(refreshWalletState, 2000);
 // ready as soon as the user scrolls (or anchor-jumps) to it. Without
 // these, the form would render with empty cost text and a stuck
 // "Install a Solana wallet" button until an extension sneaks in.
-refreshCostEstimate();
+// Initial paint: chip + bill of sale. Prices may not be fetched yet —
+// recalculateBill is also called once prices resolve below.
+renderBurnPayChip();
+recalculateBill();
+fetchAllPrices().then(recalculateBill).catch(() => {});
 startWalletDetectPoller();

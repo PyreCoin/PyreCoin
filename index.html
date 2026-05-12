@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-13">
+<link rel="stylesheet" href="style.css?v=20260512-14">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -180,14 +180,76 @@
           </label>
           <input id="burnX" type="text" maxlength="16" placeholder="@yourhandle" autocomplete="off">
         </div>
-        <div class="burn-form-row">
+        <div class="burn-form-row burn-amount-row">
           <label for="burnAmount">
-            <span>$PYRE to burn <span class="hint" title="Optional. Any positive number destroys that many $PYRE at the Solana protocol layer (Token-2022 BurnChecked). The mint's total supply actually decreases — every aggregator (Jupiter, DexScreener, Birdeye, Solscan) reflects the drop. Burning lands you on the leaderboard above, ranked by time-decayed heat: bigger or fresher burns climb higher. Leave at 0 to just inscribe a message — no $PYRE required.">?</span></span>
+            <span>$PYRE to burn <span class="hint" title="$PYRE you want to burn on top of the 1 $PYRE service fee. Auto-suggested at the amount needed to take #1 on the leaderboard above. Click the × to drop to 0 and pay only the service fee (inscription only). The total burn is service fee + this amount, charged in your selected pay-with token via an atomic Jupiter swap if you don't already hold enough $PYRE.">?</span></span>
+            <span class="label-meta">You have <span id="burnPyreBalance">&mdash;</span> $PYRE</span>
           </label>
-          <input id="burnAmount" type="number" min="0" step="any" placeholder="0">
-          <div class="burn-hint" id="burnCost"></div>
+          <div class="burn-amount-line">
+            <input id="burnAmount" type="number" min="0" step="any" placeholder="0">
+            <button type="button" class="burn-amount-clear" id="burnAmountClear" aria-label="Drop to 0" title="Drop the leaderboard burn to 0 (you'll still pay the 1 $PYRE service fee)">&times;</button>
+          </div>
+          <div class="burn-pay-row">
+            <span class="burn-pay-label">paid with</span>
+            <button type="button" class="burn-pay-chip" id="burnPayToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="burnPayPicker" title="Pay with $PYRE balance, SOL, USDC, or USDT">
+              <span class="buy-token-chip-dot buy-token-chip-dot-sol" id="burnPayDot"></span>
+              <span id="burnPayLabel">SOL</span>
+              <svg class="buy-token-chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="burn-pay-picker" id="burnPayPicker" hidden role="listbox" aria-label="Select pay-with token">
+              <button type="button" role="option" data-pay="pyre">
+                <span class="buy-token-chip-dot buy-token-chip-dot-pyre"></span>
+                <span class="buy-token-picker-symbol">$PYRE</span>
+                <span class="buy-token-picker-name">from your balance</span>
+              </button>
+              <button type="button" role="option" data-pay="sol">
+                <span class="buy-token-chip-dot buy-token-chip-dot-sol"></span>
+                <span class="buy-token-picker-symbol">SOL</span>
+                <span class="buy-token-picker-name">swap via Jupiter</span>
+              </button>
+              <button type="button" role="option" data-pay="usdc">
+                <span class="buy-token-chip-dot buy-token-chip-dot-usdc"></span>
+                <span class="buy-token-picker-symbol">USDC</span>
+                <span class="buy-token-picker-name">swap via Jupiter</span>
+              </button>
+              <button type="button" role="option" data-pay="usdt">
+                <span class="buy-token-chip-dot buy-token-chip-dot-usdt"></span>
+                <span class="buy-token-picker-symbol">USDT</span>
+                <span class="buy-token-picker-name">swap via Jupiter</span>
+              </button>
+            </div>
+          </div>
           <div class="burn-hint" id="burnHint"></div>
         </div>
+
+        <!-- Bill of sale. Re-rendered on every input change and every
+             leaderboard tick (PYRE price drift). All values come from
+             Jupiter Price V3 (USD reference) — see js/burn.js. Lines
+             gracefully hide when their amount is 0. -->
+        <div class="burn-bill" id="burnBill">
+          <div class="burn-bill-header">your bill</div>
+          <div class="burn-bill-row">
+            <span class="burn-bill-label">Solana network fee</span>
+            <span class="burn-bill-cost"><span class="burn-bill-usd" id="burnBillSolFee">~$0.003</span></span>
+          </div>
+          <div class="burn-bill-row" id="burnBillServiceRow">
+            <span class="burn-bill-label">Service fee &middot; 1 $PYRE buy + burn</span>
+            <span class="burn-bill-cost"><span class="burn-bill-usd" id="burnBillService">~$0.000003</span></span>
+          </div>
+          <div class="burn-bill-row" id="burnBillLeaderboardRow" hidden>
+            <span class="burn-bill-label">Leaderboard burn &middot; <span id="burnBillBurnAmt">0</span> $PYRE</span>
+            <span class="burn-bill-cost"><span class="burn-bill-usd" id="burnBillLeaderboard">~$0</span></span>
+          </div>
+          <div class="burn-bill-divider"></div>
+          <div class="burn-bill-row burn-bill-total">
+            <span class="burn-bill-label">You pay total</span>
+            <span class="burn-bill-cost">
+              <span class="burn-bill-total-usd" id="burnBillTotalUsd">~$0.003</span>
+              <span class="burn-bill-total-pay" id="burnBillTotalPay">&approx; 0.000015 SOL</span>
+            </span>
+          </div>
+        </div>
+
         <div class="burn-status" id="burnStatus"></div>
         <button type="submit" class="write-form-submit" id="burnSubmit">Connect wallet</button>
       </form>
@@ -791,7 +853,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-13"></script>
+<script type="module" src="js/main.js?v=20260512-14"></script>
 
 </body>
 </html>
