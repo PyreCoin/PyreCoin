@@ -16,11 +16,16 @@
   --border2: rgba(255,100,30,0.08);
   --glass: rgba(0,0,0,0.72);
   --glass2: rgba(0,0,0,0.55);
-  /* Serif stack for IPA, polytonic Greek, and PIE combining marks. DM
-     Sans / DM Mono lack glyph coverage; Noto Serif renders combining
-     marks (péh₂wr̥) and polytonic Greek (πῦρ, πυρά) cleanly. Reused by
-     .ling, .nav-logo-hover, .dict-ipa, .dict-pron-row, .etym-form,
-     .cognates-grid, and .encyc-cols .gk. */
+  /* Typography stacks. --mono is the workhorse (50+ uses for labels,
+     monospaced numbers, status text); --sans is the body face; --display
+     is the all-caps Bebas Neue used for headlines and section titles.
+     --serif is the Unicode-coverage fallback for IPA, polytonic Greek,
+     and PIE combining marks (péh₂wr̥, πῦρ) — DM Sans / DM Mono lack
+     glyph coverage; reused by .ling, .nav-logo-hover, .dict-ipa,
+     .dict-pron-row, .etym-form, .cognates-grid, .encyc-cols .gk. */
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --display: 'Bebas Neue', sans-serif;
   --serif: 'Noto Serif', 'Charis SIL', Cambria, Georgia, serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -28,7 +33,7 @@ html{scroll-behavior:smooth}
 body{
   background:#000;
   color:var(--text);
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   min-height:100vh;
   overflow-x:hidden;
 }
@@ -65,7 +70,7 @@ nav.nav--hidden{
 }
 .nav-logo{
   position:relative;          /* anchor for the absolute-positioned tooltip below */
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:28px;letter-spacing:4px;color:#fff;
   text-shadow:0 0 30px rgba(255,120,20,0.8);
   flex-shrink:0;
@@ -120,7 +125,7 @@ nav.nav--hidden{
   box-shadow:
     0 14px 40px rgba(0,0,0,0.75),
     0 0 50px rgba(255,80,0,0.18);
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:12.5px;
   font-weight:300;
   letter-spacing:0.2px;
@@ -185,7 +190,7 @@ nav.nav--hidden{
   font-size:11px;font-weight:700;letter-spacing:2.5px;
   color:var(--text2);text-decoration:none;
   transition:color .2s;text-transform:uppercase;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   white-space:nowrap;
 }
 .nav-links a:hover{color:var(--ember)}
@@ -352,7 +357,7 @@ nav.nav--hidden{
   border-radius:3px;
 }
 .lb-cold-title{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:64px;letter-spacing:2px;color:#fff;
   text-shadow:0 0 60px rgba(255,120,20,0.7);
   margin-bottom:14px;
@@ -427,7 +432,7 @@ nav.nav--hidden{
 }
 .stat-lbl{
   grid-area:lbl;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;letter-spacing:3px;
   color:var(--text3);text-transform:uppercase;
   position:relative;
@@ -435,7 +440,7 @@ nav.nav--hidden{
 }
 .stat-val{
   grid-area:val;
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:96px;letter-spacing:1px;
   color:var(--ember);
   text-shadow:0 0 36px rgba(255,100,20,0.55);
@@ -447,7 +452,7 @@ nav.nav--hidden{
    absent on every other card (replaced by the longer .stat-blurb). */
 .stat-change{
   grid-area:change;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;letter-spacing:1px;
   color:var(--text3);
   line-height:1.5;
@@ -462,7 +467,7 @@ nav.nav--hidden{
    the BurnChecked / getTokenSupply references. */
 .stat-blurb{
   grid-area:blurb;
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:14px;
   font-weight:300;
   letter-spacing:0.15px;
@@ -472,7 +477,7 @@ nav.nav--hidden{
   max-width:60ch;
 }
 .stat-blurb code{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:12px;
   color:var(--ember);
   background:rgba(255,80,0,0.08);
@@ -550,7 +555,7 @@ nav.nav--hidden{
   position:relative;
 }
 .chart-panel-title{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:13px;letter-spacing:2.5px;
   color:var(--ember2);
   text-transform:uppercase;
@@ -563,7 +568,7 @@ nav.nav--hidden{
   padding:2px;
 }
 .chart-range{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;letter-spacing:1px;
   color:var(--text3);
   background:transparent;border:none;
@@ -582,7 +587,7 @@ nav.nav--hidden{
 /* "What this chart is" paragraph between the head and the chart
    body. Same shape as .stat-blurb so the section reads consistently. */
 .chart-panel-blurb{
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:14px;
   font-weight:300;
   letter-spacing:0.15px;
@@ -620,7 +625,7 @@ nav.nav--hidden{
 .chart-panel-empty{
   display:flex;align-items:center;justify-content:center;
   height:100%;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11.5px;letter-spacing:1.5px;
   color:var(--text3);
   text-transform:uppercase;
@@ -629,7 +634,7 @@ nav.nav--hidden{
   line-height:1.7;
 }
 .chart-panel-foot{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;letter-spacing:1px;
   color:var(--text3);
   margin-top:14px;padding-top:12px;
@@ -654,7 +659,7 @@ nav.nav--hidden{
   display:flex;align-items:baseline;gap:16px;margin-bottom:40px;
 }
 .section-title{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:44px;letter-spacing:3px;
   color:var(--text);
   text-transform:uppercase;
@@ -694,7 +699,7 @@ nav.nav--hidden{
 }
 
 .slot-msg{
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:15px;font-weight:300;
   color:var(--text);
   line-height:1.45;
@@ -731,7 +736,7 @@ nav.nav--hidden{
   align-items:center;
   gap:4px;
   padding:3px 8px;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;
   letter-spacing:0.2px;
   color:var(--text2);
@@ -858,14 +863,14 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   background:rgba(255,40,0,0.04);
 }
 .bb-rank{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;letter-spacing:1px;
   color:var(--text3);
   padding-top:2px;
 }
 .bb-body{min-width:0;display:flex;flex-direction:column;gap:6px;}
 .bb-msg{
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:13px;font-weight:300;
   color:var(--text2);
   line-height:1.4;
@@ -889,7 +894,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
    and its body. Used by Write on Solana, Grab Some $PYRE, and By the
    Numbers so all three sections read with the same visual rhythm. */
 .section-intro{
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:15.5px;
   font-weight:300;
   letter-spacing:0.15px;
@@ -926,14 +931,14 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   pointer-events:none;
 }
 .heat-math-label{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;letter-spacing:4px;
   color:var(--text3);text-transform:uppercase;
   margin-bottom:28px;
   position:relative;
 }
 .heat-math-formula{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:22px;
   color:var(--ember);
   text-shadow:0 0 28px rgba(255,100,20,0.45);
@@ -955,7 +960,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:14px 18px;
   background:rgba(0,0,0,0.4);
   border-left:2px solid rgba(255,100,30,0.4);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:13px;
   text-align:left;
 }
@@ -965,7 +970,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .hm-heat{color:var(--ember2);}
 .hm-heat em{color:var(--text2);font-style:italic;font-size:11px;margin-left:8px;}
 .heat-math-tldr{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;
   color:var(--text2);letter-spacing:2px;
   text-transform:uppercase;
@@ -991,7 +996,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 /* ── RULES ── */
 .rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
 .rules-col-title{
-  font-family:'DM Mono',monospace;font-size:10px;
+  font-family:var(--mono);font-size:10px;
   letter-spacing:3px;color:var(--text3);
   margin-bottom:16px;text-transform:uppercase;
 }
@@ -1024,11 +1029,11 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   margin:72px auto 36px;
 }
 .cta-label{
-  font-family:'DM Mono',monospace;font-size:10px;
+  font-family:var(--mono);font-size:10px;
   letter-spacing:4px;color:var(--text3);margin-bottom:20px;
 }
 .cta-title{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:clamp(48px,8vw,80px);
   color:#fff;letter-spacing:2px;
   text-shadow:0 0 60px rgba(255,120,20,0.7);
@@ -1040,7 +1045,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:14px 36px;background:#ff3d00;border:none;
   border-radius:2px;color:#fff;font-size:11px;font-weight:700;
   letter-spacing:3px;text-transform:uppercase;cursor:pointer;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   box-shadow:0 0 30px rgba(255,60,0,0.4);
   transition:all .2s;
 }
@@ -1050,7 +1055,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border:0.5px solid rgba(255,80,20,0.3);border-radius:2px;
   color:var(--text2);font-size:11px;font-weight:500;
   letter-spacing:3px;text-transform:uppercase;cursor:pointer;
-  font-family:'DM Mono',monospace;transition:all .2s;
+  font-family:var(--mono);transition:all .2s;
 }
 .btn-ghost:hover{border-color:var(--ember);color:var(--ember2);}
 
@@ -1067,7 +1072,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   text-align:left;
 }
 .cta-block .footer-col-title{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;letter-spacing:2.5px;
   color:var(--ember2);
   text-transform:uppercase;
@@ -1080,7 +1085,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   display:flex;flex-direction:column;gap:9px;
 }
 .cta-block .footer-col a{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;letter-spacing:1.5px;
   color:var(--text3);
   text-decoration:none;
@@ -1107,7 +1112,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   letter-spacing:0.2px;
 }
 .cta-block .footer-quote-cite{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;letter-spacing:1.2px;
   color:rgba(255,140,60,0.45);
   text-transform:lowercase;
@@ -1127,7 +1132,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 /* ── DIVIDER ── */
 .full-divider{height:0.5px;background:var(--border);margin:0;}
 
-/* ── BURN MODAL ── */
 /* ── INLINE FORM CARDS ───────────────────────────────────────────────
    Both the #write form and the #buy widget share the same panel
    chrome — bordered, deep-fire background, ember-glow shadow. They
@@ -1147,11 +1151,11 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border:0.5px solid rgba(255,100,30,0.3);
   border-radius:4px;
   box-shadow:0 0 80px rgba(255,80,0,0.3);
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   position:relative;
 }
 .form-note{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:9px;letter-spacing:1px;
   color:var(--text3);
   text-transform:uppercase;
@@ -1165,7 +1169,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   justify-content:space-between;
   align-items:baseline;
   gap:8px;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:9px;letter-spacing:2px;
   color:var(--text3);text-transform:uppercase;
   margin-bottom:6px;
@@ -1195,7 +1199,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   background:rgba(255,140,60,0.08);
   border:0.5px solid rgba(255,140,60,0.3);
   color:var(--text2);
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:9px;
   font-weight:500;
   letter-spacing:0;
@@ -1217,7 +1221,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border-radius:2px;
   padding:10px 12px;
   color:var(--text);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:13px;
   outline:none;
   transition:border-color .2s;
@@ -1228,7 +1232,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .burn-form-row input::placeholder{color:var(--text3);}
 .burn-form-row .helper{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:9px;color:var(--text3);
   margin-top:4px;letter-spacing:0.5px;
 }
@@ -1237,7 +1241,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
    the leaderboard module has attached to window). */
 .burn-hint{
   margin-top:6px;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;
   letter-spacing:0.3px;
   color:var(--text2);
@@ -1248,7 +1252,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .burn-status{
   margin-top:18px;padding:12px 14px;
   border-radius:2px;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;line-height:1.55;
   display:none;
 }
@@ -1262,7 +1266,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   background:#ff3d00;
   border:none;border-radius:2px;
   color:#fff;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;font-weight:700;
   letter-spacing:3px;text-transform:uppercase;
   cursor:pointer;
@@ -1308,7 +1312,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border:none;
   padding:12px 12px 12px 14px;
   color:var(--text);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:18px;
   font-weight:500;
   outline:none;
@@ -1332,7 +1336,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   flex:1 1 auto;
   padding:12px 12px 12px 14px;
   color:var(--text);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:18px;
   font-weight:500;
   font-variant-numeric:tabular-nums;
@@ -1347,7 +1351,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   align-items:center;
   gap:6px;
   padding:0 12px;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:12px;
   font-weight:600;
   letter-spacing:1px;
@@ -1375,7 +1379,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border:none;
   border-left:0.5px solid rgba(255,100,30,0.2);
   color:var(--ember2);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;
   font-weight:700;
   letter-spacing:1.5px;
@@ -1403,7 +1407,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   margin-top:14px;
   padding-top:12px;
   border-top:0.5px dashed var(--border2);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;
   letter-spacing:0.5px;
   color:var(--text3);
@@ -1441,7 +1445,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border:0.5px solid var(--border);
   border-radius:99px;
   background:rgba(0,0,0,0.4);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;
   color:var(--text3);
   letter-spacing:0.5px;
@@ -1455,7 +1459,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .wallet-name{color:var(--text3);}
 .wallet-picker{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;color:var(--ember2);
   background:transparent;border:0.5px solid var(--border);
   border-radius:3px;padding:1px 3px;
@@ -1522,20 +1526,20 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   box-shadow:
     0 0 60px rgba(255,100,20,0.18),
     inset 0 0 80px rgba(255,180,80,0.08);
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   position:relative;
 }
 .dict-card::before{
   content:'A';
   position:absolute;top:14px;right:18px;
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:11px;letter-spacing:3px;
   color:rgba(26,5,0,0.35);
 }
 .dict-card::after{
   content:'ENTRY 01 · vol. MMXXVI';
   position:absolute;bottom:18px;right:20px;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:9px;letter-spacing:1.5px;
   color:rgba(26,5,0,0.4);
 }
@@ -1545,11 +1549,11 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding-bottom:14px;margin-bottom:18px;flex-wrap:wrap;
 }
 .dict-word{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:54px;letter-spacing:-1px;line-height:1;color:#1a0500;
 }
 .dict-pos{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;font-style:italic;
   color:rgba(26,5,0,0.55);letter-spacing:1px;
 }
@@ -1578,7 +1582,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .dict-def::before{
   counter-increment:def;
   content:counter(def);
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:14px;color:#cc2800;
   flex-shrink:0;width:18px;line-height:1.5;
 }
@@ -1591,7 +1595,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .dict-derived{
   margin-top:20px;padding-top:14px;
   border-top:1px solid rgba(26,5,0,0.12);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;color:rgba(26,5,0,0.6);line-height:1.9;
 }
 .dict-derived strong{color:#1a0500;}
@@ -1603,7 +1607,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:30px 28px;
 }
 .etym-title{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:13px;letter-spacing:5px;
   color:var(--text3);text-transform:uppercase;
   margin-bottom:22px;
@@ -1620,7 +1624,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .etym-step:last-child{border:none;}
 .etym-era{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:9px;letter-spacing:1.5px;
   color:var(--text3);text-transform:uppercase;line-height:1.6;
 }
@@ -1640,7 +1644,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border-top:0.5px solid var(--border2);
 }
 .cognates-label{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:9px;letter-spacing:2.5px;
   color:var(--text3);margin-bottom:12px;text-transform:uppercase;
 }
@@ -1665,11 +1669,11 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   flex-wrap:wrap;
 }
 .encyc-title{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:32px;letter-spacing:0;color:var(--text);
 }
 .encyc-sub{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;letter-spacing:2px;
   color:var(--text3);text-transform:uppercase;
 }
@@ -1680,7 +1684,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 @media(max-width:880px){.encyc-cols{columns:1;}}
 .encyc-cols p{margin-bottom:14px;break-inside:avoid;}
 .encyc-cols p:first-child::first-letter{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:48px;float:left;line-height:0.85;
   color:var(--ember);margin:4px 8px 0 0;
   text-shadow:0 0 16px rgba(255,80,0,0.4);
@@ -1694,7 +1698,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:14px 16px;
   background:rgba(255,80,20,0.06);
   border-left:2px solid var(--ember);
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;color:var(--text2);line-height:1.7;
 }
 .sidebar-fact b{color:var(--ember2);}
@@ -1708,12 +1712,12 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   background:rgba(255,80,20,0.03);
 }
 .mock-label{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:9px;letter-spacing:3px;
   color:var(--ember2);margin-bottom:14px;text-transform:uppercase;
 }
 .mock-text{
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:14px;line-height:1.85;color:var(--text2);font-weight:300;
 }
 .mock-text p{margin-bottom:12px;}
@@ -1721,7 +1725,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .mock-text strong{color:var(--ember2);font-weight:500;}
 .mock-text .stamp{
   display:inline-block;
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;letter-spacing:1px;
   padding:2px 8px;border:0.5px solid rgba(255,80,20,0.4);
   color:var(--ember);margin-right:6px;
@@ -1740,7 +1744,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border-radius:4px;
 }
 .disclaimer h2{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:30px;letter-spacing:2px;
   color:var(--ember2);
   margin-bottom:14px;
@@ -1764,7 +1768,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .disclaimer a:hover{color:var(--ember);border-color:var(--ember);}
 .disclaimer-tldr{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;color:var(--ember);
   text-transform:uppercase;letter-spacing:1.5px;
   padding-top:18px;margin-top:18px;
@@ -1807,19 +1811,19 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:96px 36px;
   margin:0 auto;
   max-width:1200px;width:100%;
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:13.5px;line-height:1.75;color:var(--text2);
   border-top:0.5px solid var(--border2);
 }
 .colophon-head{margin-bottom:16px;}
 .colophon-label{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;letter-spacing:3px;
   color:var(--ember);text-transform:uppercase;
   margin-right:10px;
 }
 .colophon-meta{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:10px;letter-spacing:1px;
   color:var(--text3);font-style:italic;
 }
@@ -1839,12 +1843,12 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .colophon a{color:var(--ember2);text-decoration:none;border-bottom:0.5px dotted var(--ember2);}
 .colophon a:hover{color:var(--ember);border-color:var(--ember);}
 .colophon code{
-  font-family:'DM Mono',monospace;font-size:11.5px;
+  font-family:var(--mono);font-size:11.5px;
   color:var(--ember);background:rgba(255,100,30,0.08);
   padding:1px 6px;border-radius:2px;
 }
 .colophon-sign{
-  font-family:'DM Mono',monospace;
+  font-family:var(--mono);
   font-size:11px;color:var(--text3);
   text-align:center;letter-spacing:1px;
   padding-top:16px;margin-top:18px;
@@ -1852,8 +1856,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   font-style:italic;
 }
 
-/* (footer-link inline-flex rule was here; merged into the
-   .cta-block .footer-links a selector above.) */
 /* ── MOBILE OPTIMIZATIONS ───────────────────────────────────────────
    Below 560px the page was crushed inside a 40px section-padding shell;
    the 4-col stats bar squeezed digits to ~88px each; the CTA buttons
@@ -2010,7 +2012,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border-radius:6px;
 }
 .top-cta-title{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:42px;
   line-height:1.05;
   letter-spacing:1.5px;
@@ -2039,7 +2041,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   50.01%, 100% { opacity:0; }
 }
 .top-cta-sub{
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:14px;font-weight:300;
   color:var(--text2);
   line-height:1.7;
@@ -2061,17 +2063,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   justify-content:center;
   flex-wrap:wrap;
 }
-.btn-inscribe{
-  background:rgba(255,255,255,0.04);
-  border:1px solid rgba(255,200,140,0.4);
-  color:var(--text);
-}
-.btn-inscribe:hover{
-  background:rgba(255,255,255,0.08);
-  border-color:rgba(255,200,140,0.7);
-}
-.btn-burn-cta{ /* uses existing .btn-primary styling */ }
-
 @media(max-width:560px){
   .top-cta{margin:20px 12px 6px;padding:22px 18px 18px;}
   .top-cta-title{font-size:32px;letter-spacing:1px;}
@@ -2107,7 +2098,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   background:rgba(0,0,0,0.6);
 }
 .wall-msg{
-  font-family:'DM Sans',sans-serif;
+  font-family:var(--sans);
   font-size:15px;font-weight:300;
   color:var(--text);
   line-height:1.45;
@@ -2120,7 +2111,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   color:var(--text2);
 }
 .wall-empty-title{
-  font-family:'Bebas Neue',sans-serif;
+  font-family:var(--display);
   font-size:22px;letter-spacing:1px;
   color:var(--ember);margin-bottom:6px;
 }
@@ -2135,17 +2126,3 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   .wall-msg{font-size:13px;}
 }
 
-/* ── MODAL HELPERS for the new optional fields. */
-.burn-form-row label .opt{
-  font-family:'DM Mono',monospace;
-  font-size:9.5px;letter-spacing:1px;
-  color:var(--text3);
-  text-transform:uppercase;
-  margin-left:6px;
-  font-weight:400;
-}
-.burn-cost{
-  color:var(--text2);
-  font-style:normal;
-}
-.burn-cost strong{color:var(--ember2);font-weight:500;}
