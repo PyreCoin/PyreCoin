@@ -140,6 +140,27 @@ function clearStatus(){
   $('burnStatus').innerHTML = '';
 }
 
+// Reactive validation styling — adds .has-error to the .burn-form-row
+// containing the given input id, triggering the red glow + shake
+// keyframes defined in style.css. Cleared on next input event in
+// that field (see the global 'input' listener below).
+function flagRowError(inputId) {
+  const input = document.getElementById(inputId);
+  const row = input?.closest('.burn-form-row');
+  if (!row) return;
+  // Restart the animation by toggling the class off-then-on across
+  // a frame. Without this trick, re-flagging the same row inside the
+  // same animation cycle is a no-op.
+  row.classList.remove('has-error');
+  // Force reflow so the class re-add re-triggers the keyframe.
+  // eslint-disable-next-line no-unused-expressions
+  void row.offsetWidth;
+  row.classList.add('has-error');
+}
+function clearAllRowErrors() {
+  document.querySelectorAll('.burn-form-row.has-error').forEach(r => r.classList.remove('has-error'));
+}
+
 // Phantom/Solflare/Backpack sometimes inject window.solana 1-2 seconds
 // after the page loads. The retry poller below catches that case so
 // the form's submit button transitions from "Install a Solana wallet"
@@ -200,7 +221,9 @@ function refreshBurnHint() {
 }
 window.refreshBurnHint = refreshBurnHint;
 
-// Live message char counter + bill of sale re-render.
+// Live message char counter + bill of sale re-render + reactive
+// validation reset. Any input event in a row that's currently
+// .has-error clears the error glow — the user is actively fixing it.
 document.addEventListener('input', e => {
   if (e.target.id === 'burnMsg') {
     const el = $('msgCount');
@@ -209,6 +232,11 @@ document.addEventListener('input', e => {
   if (e.target.id === 'burnAmount') {
     burnState.userEditedAmount = true;
     recalculateBill();
+  }
+  // Always clear an error glow on this row when the user types.
+  const row = e.target.closest?.('.burn-form-row');
+  if (row && row.classList.contains('has-error')) {
+    row.classList.remove('has-error');
   }
 });
 
@@ -751,12 +779,16 @@ window.submitBurn = async function submitBurn() {
     return;
   }
 
+  // Clear any prior error glow before re-validating.
+  clearAllRowErrors();
+
   // Read content fields. At least one of msg/url/xh is required — the
   // 1 $PYRE service fee alone isn't a reason to inscribe (otherwise
   // every page reload could spam an empty memo into the wall).
   const rawUrl = $('burnUrl')?.value || '';
   const url    = rawUrl.trim() ? normalizeBurnUrl(rawUrl) : '';
   if (rawUrl.trim() && !url) {
+    flagRowError('burnUrl');
     setStatus('That URL doesn\'t look right — try something like <code>yoursite.xyz</code> (no spaces, no <code>|</code>).', 'error');
     return;
   }
@@ -770,15 +802,21 @@ window.submitBurn = async function submitBurn() {
   const totalBurnAmt = SERVICE_FEE_PYRE + leaderboardAmt;
 
   if (!msg && !url && !xh) {
-    setStatus('Add a message, a URL, or an X handle — at least one is required.', 'error');
+    // Light up all three content rows so the user can see exactly
+    // which fields need anything in them. Status line stays short —
+    // the visual feedback IS the explanation.
+    flagRowError('burnMsg');
+    flagRowError('burnUrl');
+    flagRowError('burnX');
+    setStatus('Add a message, a URL, or an X handle — at least one.', 'error');
     return;
   }
-  if (msg.includes('|') || (url && url.includes('|')) || xh.includes('|')) {
-    setStatus('The <code>|</code> character is reserved (used as the memo separator). Pick another.', 'error');
-    return;
-  }
+  if (msg.includes('|')) { flagRowError('burnMsg'); setStatus('The <code>|</code> character is reserved.', 'error'); return; }
+  if (url && url.includes('|')) { flagRowError('burnUrl'); setStatus('The <code>|</code> character is reserved.', 'error'); return; }
+  if (xh.includes('|')) { flagRowError('burnX'); setStatus('The <code>|</code> character is reserved.', 'error'); return; }
   if (xh && !X_HANDLE_RE.test(xh)) {
-    setStatus('X handle should be 1–15 letters, numbers, or underscores. Drop the @ — we add it back.', 'error');
+    flagRowError('burnX');
+    setStatus('X handle: 1–15 letters, numbers, or underscores.', 'error');
     return;
   }
 

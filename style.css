@@ -1294,6 +1294,28 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .burn-status.success{display:block;background:rgba(0,200,100,0.10);color:#5dd99a;border-left:2px solid #00c864;}
 .burn-status a{color:inherit;text-decoration:underline;}
 
+/* ── INVALID-INPUT REACTIVE FEEDBACK ──────────────────────────────
+   Applied transiently when submit-time validation finds an empty or
+   malformed field. Red glow + short horizontal shake. JS adds the
+   class and removes it on the next input event in that field, so
+   the visual feedback is reactive (only after the user actually
+   tried something wrong) — no preemptive "fill these in" copy. */
+@keyframes burn-shake{
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80%      { transform: translateX(4px); }
+}
+.burn-form-row.has-error input,
+.burn-form-row.has-error .burn-amount-line{
+  border-color: #ff4040 !important;
+  background: rgba(255,40,40,0.06) !important;
+  box-shadow: 0 0 18px rgba(255,40,40,0.35);
+  animation: burn-shake .45s cubic-bezier(.36,.07,.19,.97);
+}
+.burn-form-row.has-error label{
+  color: #ff8080;
+}
+
 /* ── BURN AMOUNT ROW (auto-prefill + X clear + payment chip) ─────
    The amount input has the same look as the other text inputs but
    with an absolute-positioned × button at the right edge to clear
