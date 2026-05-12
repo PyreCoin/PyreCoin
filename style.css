@@ -1373,22 +1373,241 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   background:radial-gradient(circle at 30% 30%,#ffb060,#ff3d00 70%);
   box-shadow:0 0 6px rgba(255,80,20,0.6);
 }
-.buy-max-btn{
-  padding:0 14px;
-  background:transparent;
-  border:none;
-  border-left:0.5px solid rgba(255,100,30,0.2);
-  color:var(--ember2);
-  font-family:var(--mono);
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:1.5px;
+.buy-token-chip-dot-usdc{
+  background:linear-gradient(135deg,#2775ca 0%,#5ea6ff 100%);
+}
+.buy-token-chip-dot-usdt{
+  background:linear-gradient(135deg,#26a17b 0%,#50d8b1 100%);
+}
+/* Interactive token chip — button variant. Same shape as the static
+   chip, plus a chevron and a hover/focus state. The aria-haspopup
+   pattern keeps it accessible without a separate dropdown wrapper. */
+.buy-token-chip-btn{
   cursor:pointer;
   transition:color .15s,background .15s;
 }
-.buy-max-btn:hover{
+.buy-token-chip-btn:hover,
+.buy-token-chip-btn[aria-expanded="true"]{
+  background:rgba(255,100,30,0.10);
   color:#fff;
+}
+.buy-token-chip-chevron{
+  color:var(--text3);
+  margin-left:2px;
+  transition:transform .15s,color .15s;
+}
+.buy-token-chip-btn:hover .buy-token-chip-chevron,
+.buy-token-chip-btn[aria-expanded="true"] .buy-token-chip-chevron{
+  color:var(--ember2);
+}
+.buy-token-chip-btn[aria-expanded="true"] .buy-token-chip-chevron{
+  transform:rotate(180deg);
+}
+
+/* Pay-row needs position:relative so the absolutely-positioned token
+   picker hangs off it (not the section). */
+.buy-pay-row{
+  position:relative;
+}
+
+/* Token picker — small dropdown anchored to the chip's right edge.
+   Hidden by default; opened by the chip's click handler. List items
+   render as buttons with an ember-tinted active state for the
+   currently-selected token. */
+.buy-token-picker{
+  position:absolute;
+  z-index:30;
+  right:0;
+  top:calc(100% + 6px);
+  min-width:220px;
+  padding:6px;
+  background:#0a0300;
+  border:0.5px solid rgba(255,100,30,0.35);
+  border-radius:4px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(255,80,0,0.18);
+  display:flex;flex-direction:column;gap:2px;
+}
+.buy-token-picker[hidden]{display:none;}
+.buy-token-picker button{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;
+  background:transparent;border:none;border-radius:3px;
+  cursor:pointer;
+  text-align:left;
+  font-family:var(--mono);
+  color:var(--text2);
+  transition:background .12s,color .12s;
+}
+.buy-token-picker button:hover{
+  background:rgba(255,100,30,0.10);
+  color:#fff;
+}
+.buy-token-picker button.active{
+  background:rgba(255,100,30,0.15);
+  color:#fff;
+}
+.buy-token-picker-symbol{
+  font-size:13px;font-weight:600;letter-spacing:0.5px;
+  min-width:46px;
+}
+.buy-token-picker-name{
+  font-size:10.5px;color:var(--text3);
+  letter-spacing:0.2px;
+  font-family:var(--sans);
+}
+
+/* Percentage quick-fill buttons. Sized to the token chip's height
+   so they read as a grouped action row. Hover ember, active state
+   tracked transiently (no persistent "active" — the chosen percent
+   resolves into the amount input and we don't pin the button). */
+.buy-percent-row{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:6px;
+  margin-top:8px;
+}
+.buy-percent-row button{
+  padding:7px 0;
+  background:rgba(255,255,255,0.03);
+  border:0.5px solid rgba(255,100,30,0.18);
+  border-radius:2px;
+  color:var(--text2);
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:1.5px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .15s;
+}
+.buy-percent-row button:hover{
   background:rgba(255,100,30,0.12);
+  border-color:rgba(255,100,30,0.4);
+  color:#fff;
+}
+.buy-percent-row button:active{
+  background:rgba(255,100,30,0.22);
+}
+
+/* USD value readout, sits below the amount input + percent row.
+   Italic, dim, monospaced — it's a hint, not a number to focus on. */
+.buy-usd-value{
+  margin-top:8px;
+  font-family:var(--mono);
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+  color:var(--text3);
+  letter-spacing:0.3px;
+  min-height:1em; /* reserve space so the layout doesn't jitter */
+}
+.buy-usd-value:empty{visibility:hidden;}
+
+/* Settings cog in the section header. align-items:baseline on the
+   parent puts the cog level with the title's text baseline, which
+   looks intentional. margin-left:auto pins it to the right edge. */
+.buy-settings-btn{
+  margin-left:auto;
+  align-self:center;
+  display:inline-flex;
+  align-items:center;justify-content:center;
+  width:32px;height:32px;
+  background:rgba(255,100,30,0.06);
+  border:0.5px solid var(--border);
+  border-radius:50%;
+  color:var(--text2);
+  cursor:pointer;
+  transition:all .2s;
+}
+.buy-settings-btn:hover,
+.buy-settings-btn[aria-expanded="true"]{
+  color:var(--ember2);
+  border-color:rgba(255,100,30,0.5);
+  background:rgba(255,100,30,0.15);
+  transform:rotate(45deg);
+}
+.buy-settings-btn[aria-expanded="true"]{
+  transform:rotate(90deg);
+}
+
+/* Settings popover. Lives inline at the top of the form card, above
+   the form-note row, so the form below shifts down when it opens
+   rather than overlaying. Cleaner than a floating tooltip on mobile. */
+.buy-settings-panel{
+  margin:-10px -6px 18px;
+  padding:14px 14px 12px;
+  background:rgba(0,0,0,0.5);
+  border:0.5px dashed rgba(255,100,30,0.25);
+  border-radius:3px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.buy-settings-panel[hidden]{display:none;}
+.buy-settings-row{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.buy-settings-label{
+  font-family:var(--mono);
+  font-size:9px;letter-spacing:2.5px;
+  color:var(--text3);
+  text-transform:uppercase;
+}
+.buy-settings-options{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:6px;
+}
+.buy-settings-row[data-setting="priority"] .buy-settings-options,
+.buy-settings-options[data-setting="priority"]{
+  grid-template-columns:repeat(3, 1fr);
+}
+.buy-settings-options button{
+  padding:8px 0;
+  background:rgba(255,255,255,0.03);
+  border:0.5px solid rgba(255,100,30,0.18);
+  border-radius:2px;
+  color:var(--text2);
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:1px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all .15s;
+}
+.buy-settings-options button:hover{
+  background:rgba(255,100,30,0.10);
+  color:#fff;
+}
+.buy-settings-options button.active{
+  background:rgba(255,100,30,0.22);
+  border-color:var(--ember);
+  color:#fff;
+  box-shadow:0 0 12px rgba(255,80,0,0.25);
+}
+.buy-settings-toggle{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  cursor:pointer;
+  font-family:var(--sans);
+  font-size:11px;
+  color:var(--text2);
+  line-height:1.45;
+  font-weight:300;
+}
+.buy-settings-toggle input[type="checkbox"]{
+  width:14px;height:14px;
+  accent-color:var(--ember);
+  margin-top:1px;
+  flex-shrink:0;
+  cursor:pointer;
+}
+.buy-settings-meta{
+  font-family:var(--mono);
+  font-size:9.5px;
+  color:var(--text3);
+  letter-spacing:0.3px;
 }
 .buy-arrow{
   display:flex;
@@ -1431,8 +1650,31 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   .buy-input-line input,
   .buy-readout{font-size:16px;padding:11px 10px 11px 12px;}
   .buy-token-chip{font-size:11px;padding:0 10px;}
-  .buy-max-btn{padding:0 11px;font-size:9px;}
   .buy-meta-row{gap:10px 14px;font-size:9.5px;}
+  .buy-settings-options{gap:5px;}
+  .buy-settings-options button{font-size:10px;padding:7px 0;}
+  .buy-settings-options[data-setting="priority"]{
+    /* Long "Very High" label needs a touch more breathing room */
+    font-size:9.5px;
+  }
+  .buy-percent-row button{font-size:10px;letter-spacing:1px;}
+  .buy-token-picker{
+    /* Pin to the right edge of the card on phones — the chip is
+       small enough that anchoring to it crowds the dropdown. */
+    left:8px;right:8px;
+    min-width:0;
+  }
+  /* Mobile section-header stacks to column by default; override for the
+     buy section so the settings cog sits next to the title instead of
+     stacking onto its own row. The divider line drops below them. */
+  .buy-section .section-header{
+    flex-direction:row;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+  }
+  .buy-section .section-title{flex:1;}
+  .buy-section .section-line{order:99;width:100%;}
 }
 /* Wallet badge — single rounded pill that lives in the navbar:
    shortened address (full address on hover via title), wallet picker
