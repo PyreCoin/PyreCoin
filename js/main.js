@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-26';
+const V = '20260512-27';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -190,9 +190,16 @@ function renderCtaPrices(){
     costEl.textContent = fmtUsd((INSCRIPTION_LAMPORTS / 1e9) * _solUsd);
   }
   const topEl = document.getElementById('cta-top-spot');
-  if (topEl && _pyreUsd != null && lb?.minBurnToTakeTop) {
+  if (topEl && _pyreUsd != null && _solUsd != null && lb?.minBurnToTakeTop) {
+    // Total cost to take #1 = Solana network fee + 1 $PYRE service fee
+    // + min-to-take-#1 $PYRE burn. All in USD. This is what users
+    // actually pay, atomic in a single signature.
+    const SERVICE_FEE_PYRE = 1;
     const pyreAmount = lb.minBurnToTakeTop(Date.now());
-    topEl.textContent = fmtUsd(pyreAmount * _pyreUsd);
+    const solFeeUsd = (INSCRIPTION_LAMPORTS / 1e9) * _solUsd;
+    const serviceFeeUsd = SERVICE_FEE_PYRE * _pyreUsd;
+    const burnUsd = pyreAmount * _pyreUsd;
+    topEl.textContent = fmtUsd(solFeeUsd + serviceFeeUsd + burnUsd);
   }
 }
 
