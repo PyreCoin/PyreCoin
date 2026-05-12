@@ -1934,6 +1934,16 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   line-height:1.7;
   margin-bottom:22px;
 }
+/* Second line of the sub — the optional burn-to-#1 call-out. Slightly
+   ember-tinted so it whispers "this is the cool optional part" without
+   shouting. #cta-top-spot inside it inherits the tint. */
+.top-cta-sub-burn{
+  color:rgba(255,180,110,0.85);
+}
+.top-cta-sub-burn #cta-top-spot{
+  color:#fff;
+  font-weight:400;
+}
 .top-cta-btns{
   display:flex;
   gap:12px;

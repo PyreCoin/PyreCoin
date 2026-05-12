@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-3';
+const V = '20260512-4';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -37,6 +37,7 @@ const lb = await import(`./leaderboard.js?v=${V}`);
 const { renderLeaderboard } = lb;
 const { renderInscriptionWall } = await import(`./inscription-wall.js?v=${V}`);
 const { updateStats } = await import(`./stats.js?v=${V}`);
+const { PYRE_MINT_STR } = await import(`./config.js?v=${V}`);
 
 // Expose the leaderboard module so burn.js can read minBurnToTakeTop
 // without re-importing the module under a different specifier (which
@@ -59,6 +60,9 @@ async function tick() {
   // Optional chaining handles the load-order race where main.js ticks
   // once before burn.js finishes its dynamic import.
   window.refreshBurnHint?.();
+  // CTA "burn ~$X to take #1" line — same cadence, no new fetch (uses
+  // cached PYRE/USD price + freshly-rendered entries).
+  window.__pyreRenderCtaPrices?.();
 }
 
 // Initial render + steady cadence. Heat visibly decays between ticks
@@ -139,37 +143,107 @@ FIRE_SECTIONS.forEach(id => {
   }, { passive: true });
 })();
 
-// ── LIVE INSCRIPTION COST in the top CTA ─────────────────────────
-// Pulls the SOL/USD price from Jupiter (free public endpoint) and
-// computes the exact dollar cost of one inscription tx: base fee +
-// priority fee + 1-lamport beacon transfer = 15,001 lamports. Shown
-// in the headline sub-line as social proof: "this really is pennies."
-// Refreshes every 60s to track SOL price drift.
-(function liveCostTicker(){
-  const el = document.getElementById('cta-cost');
-  if (!el) return;
-  const SOL_MINT = 'So11111111111111111111111111111111111111112';
-  const URL = 'https://lite-api.jup.ag/price/v3?ids=' + SOL_MINT;
-  const LAMPORTS = 15_001; // base(5000) + priority(10000) + beacon(1)
-  function fmt(usd){
-    if (usd >= 1)      return '$' + usd.toFixed(2);
-    if (usd >= 0.01)   return '$' + usd.toFixed(3);
-    if (usd >= 0.0001) return '$' + usd.toFixed(5);
-    return '$' + usd.toFixed(7);
+// ── LIVE PRICES in the top CTA ──────────────────────────────────
+// Two readouts, both live, both pulled from one Jupiter Price V3 call:
+//
+//   1. SOL cost per inscription: base fee + priority fee + 1-lamport
+//      beacon transfer = 15,001 lamports × SOL/USD.
+//   2. USD-to-take-#1: minBurnToTakeTop() (in $PYRE) × PYRE/USD.
+//      Re-rendered as the leaderboard refreshes, so the number tracks
+//      the live heat. Inscription is free — the burn-to-#1 line is the
+//      optional, additive layer.
+//
+// Refreshes on 60s timer AND inside the main tick() loop after each
+// leaderboard refresh, so the #1 figure stays current.
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+const PRICE_URL = `https://lite-api.jup.ag/price/v3?ids=${SOL_MINT},${PYRE_MINT_STR}`;
+const INSCRIPTION_LAMPORTS = 15_001; // base(5000) + priority(10000) + beacon(1)
+function fmtUsd(usd){
+  if (!isFinite(usd) || usd <= 0) return '$—';
+  if (usd >= 1000) return '$' + Math.round(usd).toLocaleString();
+  if (usd >= 1)    return '$' + usd.toFixed(2);
+  if (usd >= 0.01) return '$' + usd.toFixed(3);
+  if (usd >= 0.0001) return '$' + usd.toFixed(5);
+  return '$' + usd.toFixed(7);
+}
+let _solUsd = null;
+let _pyreUsd = null;
+async function refreshPrices(){
+  try {
+    const res = await fetch(PRICE_URL, { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    const s = data?.[SOL_MINT]?.usdPrice;
+    const p = data?.[PYRE_MINT_STR]?.usdPrice;
+    if (typeof s === 'number' && isFinite(s) && s > 0) _solUsd = s;
+    if (typeof p === 'number' && isFinite(p) && p > 0) _pyreUsd = p;
+    renderCtaPrices();
+  } catch (_) { /* keep last good values */ }
+}
+function renderCtaPrices(){
+  const costEl = document.getElementById('cta-cost');
+  if (costEl && _solUsd != null) {
+    costEl.textContent = fmtUsd((INSCRIPTION_LAMPORTS / 1e9) * _solUsd);
   }
-  async function tick(){
-    try {
-      const res = await fetch(URL, { cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json();
-      const p = data?.[SOL_MINT]?.usdPrice;
-      if (typeof p !== 'number' || !isFinite(p) || p <= 0) return;
-      el.textContent = fmt((LAMPORTS / 1e9) * p);
-    } catch (_) { /* leave the placeholder text if fetch fails */ }
+  const topEl = document.getElementById('cta-top-spot');
+  if (topEl && _pyreUsd != null && lb?.minBurnToTakeTop) {
+    const pyreAmount = lb.minBurnToTakeTop(Date.now());
+    topEl.textContent = fmtUsd(pyreAmount * _pyreUsd);
   }
-  tick();
-  setInterval(tick, 60_000);
-})();
+}
+refreshPrices();
+setInterval(refreshPrices, 60_000);
+// Expose so tick() can re-render the #1 figure after each lb refresh
+// without re-fetching prices.
+window.__pyreRenderCtaPrices = renderCtaPrices;
+
+// ── TITLE FITTER ─────────────────────────────────────────────────
+// The typewriter cycles words of widely varying widths ("hopes" vs
+// "shower thoughts" vs "protest signs"). At narrow viewports (≤320px)
+// the longest words overflow and wrap onto a second line, which
+// breaks the layout for the next sub-line. We measure every candidate
+// word against the title's available width and scale the title's
+// font-size down just enough that the WIDEST word still fits on one
+// physical line at the current viewport. Runs after fonts load and
+// on resize/orientationchange. Linear scale = one-shot answer, no
+// search loop.
+function fitTitleToContainer(){
+  const title = document.querySelector('.top-cta-title');
+  const wordEl = document.getElementById('typed-word');
+  if (!title || !wordEl) return;
+  // Reset any prior inline override so we measure against the CSS-
+  // derived starting size.
+  title.style.fontSize = '';
+  const cs = getComputedStyle(title);
+  const startSize = parseFloat(cs.fontSize);
+  if (!isFinite(startSize) || startSize <= 0) return;
+  const availWidth = title.clientWidth;
+  if (availWidth <= 0) return;
+  const probe = document.createElement('span');
+  probe.style.cssText =
+    'position:absolute;visibility:hidden;white-space:nowrap;left:-9999px;top:-9999px;' +
+    `font:${cs.font};letter-spacing:${cs.letterSpacing};` +
+    `text-transform:${cs.textTransform};font-feature-settings:${cs.fontFeatureSettings};`;
+  document.body.appendChild(probe);
+  let maxWidth = 0;
+  for (const w of TYPED_WORDS) {
+    probe.textContent = 'Burn your ' + w + '|';
+    if (probe.offsetWidth > maxWidth) maxWidth = probe.offsetWidth;
+  }
+  probe.remove();
+  if (maxWidth <= 0 || maxWidth <= availWidth) return;
+  const targetSize = Math.max(14, Math.floor(startSize * (availWidth / maxWidth)));
+  title.style.fontSize = targetSize + 'px';
+}
+let _fitDebounce = null;
+function scheduleFit(){
+  clearTimeout(_fitDebounce);
+  _fitDebounce = setTimeout(fitTitleToContainer, 100);
+}
+if (document.fonts?.ready) document.fonts.ready.then(fitTitleToContainer);
+else fitTitleToContainer();
+window.addEventListener('resize', scheduleFit, { passive: true });
+window.addEventListener('orientationchange', scheduleFit, { passive: true });
 
 // ── TYPEWRITER in the top CTA headline ───────────────────────────
 // "Burn your ____ into the blockchain." — cycles a noun in the blank
