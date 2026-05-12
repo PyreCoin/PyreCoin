@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-16">
+<link rel="stylesheet" href="style.css?v=20260512-17">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -67,10 +67,6 @@
       into the blockchain.
     </h1>
     <p class="top-cta-sub">
-      <span class="top-cta-sub-viewers" id="cta-viewers-line" hidden>
-        <span class="cta-eyes" aria-hidden="true">&#128064;</span>
-        <span id="cta-viewers">&mdash;</span> degens this week
-      </span>
       <span class="top-cta-sub-line">
         <span id="cta-cost">~$0.001</span> to inscribe in SOL + 1 $PYRE service fee
       </span>
@@ -85,6 +81,16 @@
       </a>
     </div>
   </section>
+
+  <!-- Viewer-count hook. Floats between the CTA card and the leaderboard,
+       naked on the fire-shader background. Bold white text — the 👀 +
+       count + 👇 reads as a finger pointing at the slots below. Hidden
+       until #s-vis7d resolves a non-placeholder count. -->
+  <div class="lb-viewers-line" id="cta-viewers-line" hidden>
+    <span class="cta-eyes" aria-hidden="true">&#128064;</span>
+    <span id="cta-viewers">&mdash;</span> degens this week
+    <span class="cta-finger" aria-hidden="true">&#128071;</span>
+  </div>
 
   <!-- HERO — the leaderboard floats here directly on the fire shader.
        16 uniform rows, each rendered by leaderboard.js as a badge-bottom
@@ -852,7 +858,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-16"></script>
+<script type="module" src="js/main.js?v=20260512-17"></script>
 
 </body>
 </html>
