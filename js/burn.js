@@ -1,6 +1,6 @@
 // ─── INSCRIBE / BURN ─────────────────────────────────────────────────
-// Unified write surface. One modal, one submit handler, two transaction
-// shapes:
+// Unified write surface. One inline form (in the #write section), one
+// submit handler, two transaction shapes:
 //
 //   INSCRIBE  ($PYRE = 0): 1-lamport transfer to INSCRIPTION_BEACON +
 //             Memo Program payload. Permanent on chain, indexed by
@@ -96,39 +96,14 @@ function clearStatus(){
 }
 
 // Phantom/Solflare/Backpack sometimes inject window.solana 1-2 seconds
-// after DOMContentLoaded. Without re-detection on modal open + a brief
-// retry window, slow extensions leave the modal stuck on
-// "Wallet: none detected" until the page is reloaded.
+// after the page loads. The retry poller below catches that case so
+// the form's submit button transitions from "Install a Solana wallet"
+// to "Connect wallet" without requiring a page reload.
 let _walletDetectPoller = null;
 function stopWalletDetectPoller(){
   if (_walletDetectPoller){ clearInterval(_walletDetectPoller); _walletDetectPoller = null; }
 }
-
-// Single entry point. The modal lets the user decide between pure
-// inscription and burn+inscribe via the $PYRE amount field — there's
-// no point in shipping different doorways to the same room. The
-// `openInscribeModal` / `openBurnModal` names remain as aliases for
-// older inline onclicks in case any survived, but all current CTAs
-// use `openWriteModal`.
-window.openWriteModal    = function() { _openModal(); };
-window.openInscribeModal = window.openWriteModal;
-window.openBurnModal     = window.openWriteModal;
-
-function _openModal(){
-  const modal = $('burnModal');
-  if (!modal) return;
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  // PYRE amount defaults to blank; the input's placeholder shows "0",
-  // making the inscribe path the visual default while still inviting
-  // the user to type a real burn amount.
-  const amtInput = $('burnAmount');
-  if (amtInput) amtInput.value = '';
-
-  refreshWalletState();
-  refreshBurnHint();
-  refreshCostEstimate();
+function startWalletDetectPoller(){
   stopWalletDetectPoller();
   let retries = 8; // ~2s at 250ms intervals
   _walletDetectPoller = setInterval(() => {
@@ -139,10 +114,12 @@ function _openModal(){
   }, 250);
 }
 
-// Populate the modal's "min burn to take #1" tip from the live
+// Populate the form's "min burn to take #1" tip from the live
 // leaderboard module (attached to window by main.js to avoid a
 // dual-import of leaderboard.js — which would spawn a second
 // _liveEntries state and double the leaderboard.json fetch).
+// Exposed on window so main.js's tick() can refresh it on the same
+// 30s cadence as the leaderboard data itself.
 function refreshBurnHint() {
   const el = $('burnHint');
   if (!el) return;
@@ -159,12 +136,7 @@ function refreshBurnHint() {
     el.innerHTML = `tip · burn <strong>≥ ${escapeHtml(fmt(min))} $PYRE</strong> right now to take #1.`;
   }
 }
-window.closeBurnModal = function() {
-  stopWalletDetectPoller();
-  $('burnModal').classList.remove('open');
-  document.body.style.overflow = '';
-  clearStatus();
-};
+window.refreshBurnHint = refreshBurnHint;
 
 // Live message char counter + cost re-estimation
 document.addEventListener('input', e => {
@@ -209,32 +181,6 @@ async function refreshCostEstimate(){
   el.innerHTML = `cost · <strong>${solStr} SOL</strong> · <strong>${usdStr}</strong>` +
     (isBurn ? ` + ${escapeHtml(String(amt))} $PYRE burned` : '');
 }
-
-// Click-outside-to-close — but only if the pointer goes DOWN and UP on
-// the backdrop itself. The previous inline `onclick` handler closed
-// the modal on any click event whose target was the backdrop, which
-// included the case where a user mousedown'd on a form field, dragged
-// to select text, and released outside the modal — closing it
-// mid-selection. This pattern preserves text-selection inside the
-// modal while still closing on a clean outside click.
-(function wireBackdropDismiss() {
-  const backdrop = $('burnModal');
-  if (!backdrop) return;
-  let pointerDownOnBackdrop = false;
-  backdrop.addEventListener('pointerdown', (e) => {
-    pointerDownOnBackdrop = (e.target === backdrop);
-  });
-  backdrop.addEventListener('pointerup', (e) => {
-    if (pointerDownOnBackdrop && e.target === backdrop) {
-      closeBurnModal();
-    }
-    pointerDownOnBackdrop = false;
-  });
-  // Reset state if the pointer is cancelled (e.g., drag becomes a
-  // browser gesture). Without this, a stray cancel could leave the
-  // flag set and a subsequent legitimate click misbehave.
-  backdrop.addEventListener('pointercancel', () => { pointerDownOnBackdrop = false; });
-})();
 
 // ─── WALLET DETECTION ────────────────────────────────────────────────
 // Two-layer detection: Solana Wallet Standard first (Jupiter, Glow,
@@ -324,11 +270,10 @@ function initStandardRegistry() {
         .filter(isSolanaStandardWallet)
         .map(adaptStandardWallet);
       // Late wallet registration is the common case (extensions inject
-      // after our module loads). Re-render the modal if it's open so
-      // the user doesn't have to close and reopen to see the new wallet.
-      if ($('burnModal')?.classList.contains('open')) {
-        refreshWalletState();
-      }
+      // after our module loads). Re-render the inline form whenever a
+      // wallet appears so the user doesn't have to reload the page to
+      // see the new wallet in the picker.
+      refreshWalletState();
     };
     refresh();
     api.on('register', refresh);
@@ -341,6 +286,12 @@ function initStandardRegistry() {
   }
 }
 initStandardRegistry();
+
+// The "late wallet registration" callback above (in `refresh()`) used to
+// re-render only when the modal was open. With the form always in the
+// DOM, the inline copy of that re-render is unconditional — see the
+// refreshWalletState() call wired to the standard registry's refresh
+// callback below.
 
 function detectLegacyProvider() {
   // Pre-Wallet-Standard injection points. Kept for older wallet versions.
@@ -774,13 +725,17 @@ window.submitBurn = async function submitBurn() {
 
 // Detect existing connection on load — populates the navbar #navWallet
 // slot if Phantom/Solflare/etc. auto-connect to a previously-approved
-// site. burn.js is lazy-loaded so `load` may already have fired by the
-// time we get here; fire one immediately AND once via setTimeout to
-// catch slow wallet-extension injection (Phantom can take 1–2s).
+// site, AND the inline form's submit button. burn.js is lazy-loaded so
+// `load` may already have fired by the time we get here; fire one
+// immediately AND once via setTimeout to catch slow wallet-extension
+// injection (Phantom can take 1–2s).
 refreshWalletState();
 setTimeout(refreshWalletState, 800);
 setTimeout(refreshWalletState, 2000);
 
-// If main.js's bootstrap stub already opened the modal before this
-// module finished loading, the modal is open; refreshWalletState above
-// already covered it.
+// Seed the cost line + start a brief detection poller so the form is
+// ready as soon as the user scrolls (or anchor-jumps) to it. Without
+// these, the form would render with empty cost text and a stuck
+// "Install a Solana wallet" button until an extension sneaks in.
+refreshCostEstimate();
+startWalletDetectPoller();

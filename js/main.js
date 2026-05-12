@@ -20,22 +20,13 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260511-23';
+const V = '20260511-24';
 
-// Bootstrap stubs — defined SYNCHRONOUSLY before any await so HTML
-// inline onclick handlers never call undefined functions while modules
-// load. burn.js overwrites these on load.
-function _bootstrapOpen(){
-  document.getElementById('burnModal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-window.openWriteModal    = _bootstrapOpen;
-window.openInscribeModal = _bootstrapOpen;
-window.openBurnModal     = _bootstrapOpen;
-window.closeBurnModal = function(){
-  document.getElementById('burnModal').classList.remove('open');
-  document.body.style.overflow = '';
-};
+// Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
+// await so an inline form-submit fired before burn.js finishes loading
+// is a no-op instead of a crash. burn.js overwrites this on load. The
+// modal open/close stubs are gone because the forms are now inline and
+// reached via anchor jumps, not function calls.
 window.submitBurn = function(){};
 
 // Top-level module loads with cache-busting. await is module-top-level,
@@ -63,6 +54,11 @@ async function tick() {
   renderLeaderboard(now);
   renderInscriptionWall(now);
   updateStats();
+  // Inline write form's "min burn to take #1" tip — tied to the live
+  // leaderboard, so re-compute on the same cadence as the board itself.
+  // Optional chaining handles the load-order race where main.js ticks
+  // once before burn.js finishes its dynamic import.
+  window.refreshBurnHint?.();
 }
 
 // Initial render + steady cadence. Heat visibly decays between ticks
@@ -92,7 +88,7 @@ import(`./buy.js?v=${V}`);
 // band. Net effect: only one section is on fire at a time, and the
 // transition feels like the flame passing from one link to the
 // next as you scroll.
-const FIRE_SECTIONS = ['how', 'metrics', 'etymology', 'rules'];
+const FIRE_SECTIONS = ['write', 'buy', 'metrics', 'etymology', 'rules'];
 const fireObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     const link = document.querySelector(`.nav-links a[href="#${entry.target.id}"]`);

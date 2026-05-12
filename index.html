@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260511-23">
+<link rel="stylesheet" href="style.css?v=20260511-24">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -44,7 +44,8 @@
       <span class="nav-logo-tooltip" role="tooltip"><span class="ling tone-ember">πυρά</span> <span class="ling tone-faint">(purá)</span> — Ancient Greek for any meaningful fire: funeral pyre, altar-fire, hearth. The root of this project's name.</span>
     </a>
     <div class="nav-links">
-      <a href="#how">How it works</a>
+      <a href="#write">Write</a>
+      <a href="#buy">Buy</a>
       <a href="#metrics">Numbers</a>
       <a href="#etymology">Etymology</a>
       <a href="#rules">Rules</a>
@@ -52,15 +53,14 @@
            when a connected wallet is detected; stays empty (and CSS-
            hidden via :empty) otherwise. -->
       <span id="navWallet" class="nav-wallet"></span>
-      <button class="btn-primary" onclick="openWriteModal()"><svg class="icon icon-stroked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Write on Solana</button>
+      <a class="btn-primary" href="#write"><svg class="icon icon-stroked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Write on Solana</a>
     </div>
   </nav>
 
   <!-- TOP CTA — single dramatic CTA. Headline runs a typewriter cycle
        over a noun ("dreams" / "hopes" / "fears" / "shitposts" / …) so
-       the page feels alive on first paint. One button opens the
-       unified Write modal; that modal handles both pure-SOL
-       inscription and burn+inscribe via the $PYRE amount field. -->
+       the page feels alive on first paint. The button is an anchor jump
+       to #write — the inline form lives in that section. -->
   <section class="top-cta">
     <h1 class="top-cta-title">
       Burn your <span id="typed-word" class="typed-word"></span><span class="typed-cursor">|</span><br>
@@ -70,10 +70,10 @@
       <span id="cta-cost">~$0.001</span> per inscription · Burn $PYRE to climb the leaderboard.
     </p>
     <div class="top-cta-btns">
-      <button class="btn-primary" onclick="openWriteModal()">
+      <a class="btn-primary" href="#write">
         <svg class="icon icon-stroked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>
         Write on Solana
-      </button>
+      </a>
     </div>
   </section>
 
@@ -125,49 +125,63 @@
     </div>
   </section>
 
-  <!-- HOW IT WORKS — reframed as a Solana social experiment in writing
-       things onto the blockchain on purpose. Two cards: burn, then
-       land on the leaderboard. The "buy first" framing is gone —
-       buying is a side note below the cards, not the entry point. The
-       heat-math callout grounds the decay formula in concrete examples. -->
+  <!-- WRITE ON SOLANA — inline form, no modal. The form is the page.
+       Section intro frames the action; the form itself is the next thing
+       you see. All four fields are optional but at least one of (msg,
+       URL, X handle, PYRE > 0) must be filled. PYRE = 0 means pure
+       inscription (just SOL fees + 1-lamport beacon marker). PYRE > 0
+       triggers a Token-2022 BurnChecked alongside the memo and lands
+       you on the heat-ranked leaderboard above. The heat-math callout
+       below grounds the decay formula in concrete examples. -->
   <div class="full-divider"></div>
-  <section class="section how-section" id="how">
+  <section class="section write-section" id="write">
     <div class="section-header">
-      <div class="section-title">How it works</div>
+      <div class="section-title">Write on Solana</div>
       <div class="section-line"></div>
     </div>
 
     <p class="section-intro">
-      A Solana experiment in writing things onto the blockchain
-      <em>on purpose</em>. Anyone can inscribe a message — plus an
-      optional URL and X handle — for a fraction of a cent in SOL.
-      The chain keeps the receipt; every major Solana explorer
-      mirrors it. Burn some $PYRE alongside your inscription to
-      climb the heat-ranked leaderboard above.
+      Type something — a message, a URL, an X handle — and sign with
+      any Solana wallet. Costs a fraction of a cent in SOL. The chain
+      keeps the receipt; every major Solana explorer mirrors it
+      forever. Add a $PYRE burn to climb the heat-ranked leaderboard
+      at the top of this page; leave it at 0 to just inscribe.
     </p>
 
-    <!-- Two static cards: free inscription path on the left, burn-for-
-         leaderboard tier on the right. Only card 01's link line opens
-         the write modal; the leaderboard above is the destination of
-         card 02 so it doesn't need its own link. -->
-    <div class="how-grid how-grid-2">
-      <div class="how-card how-card-static">
-        <div class="how-num">01</div>
-        <div class="how-title">Inscribe</div>
-        <div class="how-body">Type whatever — a message, a URL, an X handle. Sign with any Solana wallet. Costs a fraction of a cent in SOL. The chain keeps the receipt forever.</div>
-        <a class="how-link" href="#" onclick="event.preventDefault();openWriteModal();return false;">→ open the write modal</a>
-      </div>
-
-      <div class="how-card how-card-static">
-        <div class="how-num">02</div>
-        <div class="how-title">Burn $PYRE to climb</div>
-        <div class="how-body">Add a $PYRE burn to your inscription. The tokens are gone — the mint's supply actually drops — and your slot lands on the leaderboard above, ranked by heat. Bigger or fresher burns climb higher; older slots cool to the backburner.</div>
-      </div>
+    <div class="write-form-card">
+      <form onsubmit="event.preventDefault();submitBurn();">
+        <div class="form-note">All fields optional · at least one required</div>
+        <div class="burn-form-row">
+          <label for="burnMsg">
+            <span>Message <span class="hint" title="Anything goes — a quote, a confession, a joke, a manifesto, last words. Up to 280 characters. Once the transaction confirms it lives on the Solana chain forever and is mirrored by every major explorer (Solscan, Solana Explorer, Helius, etc.).">?</span></span>
+            <span class="label-meta"><span id="msgCount">0</span> / 280</span>
+          </label>
+          <input id="burnMsg" type="text" maxlength="280" placeholder="Say something the chain will keep forever." autocomplete="off">
+        </div>
+        <div class="burn-form-row">
+          <label for="burnUrl">
+            <span>URL <span class="hint" title="A site you want people to visit when they click your slot — a portfolio, a project, a song, a manifesto, whatever. You can leave off the https:// — we add it. Max 200 characters. We reject IP-literals, link shorteners, and non-HTTPS URLs.">?</span></span>
+          </label>
+          <input id="burnUrl" type="text" maxlength="200" placeholder="yoursite.xyz" autocomplete="off">
+        </div>
+        <div class="burn-form-row">
+          <label for="burnX">
+            <span><svg class="x-inline" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg> handle <span class="hint" title="Your X.com (Twitter) username — letters, numbers, underscores; 1–15 chars. With or without the @ — we strip it. Your handle becomes a clickable badge on your slot that links to x.com/yourhandle.">?</span></span>
+          </label>
+          <input id="burnX" type="text" maxlength="16" placeholder="@yourhandle" autocomplete="off">
+        </div>
+        <div class="burn-form-row">
+          <label for="burnAmount">
+            <span>$PYRE to burn <span class="hint" title="Optional. Any positive number destroys that many $PYRE at the Solana protocol layer (Token-2022 BurnChecked). The mint's total supply actually decreases — every aggregator (Jupiter, DexScreener, Birdeye, Solscan) reflects the drop. Burning lands you on the leaderboard above, ranked by time-decayed heat: bigger or fresher burns climb higher. Leave at 0 to just inscribe a message — no $PYRE required.">?</span></span>
+          </label>
+          <input id="burnAmount" type="number" min="0" step="any" placeholder="0">
+          <div class="burn-hint" id="burnCost"></div>
+          <div class="burn-hint" id="burnHint"></div>
+        </div>
+        <div class="burn-status" id="burnStatus"></div>
+        <button type="submit" class="write-form-submit" id="burnSubmit">Connect wallet</button>
+      </form>
     </div>
-
-    <p class="how-aside">
-      Want a leaderboard slot? You'll need some $PYRE first — try begging <a href="https://x.com/AlphaCove" target="_blank" rel="noopener noreferrer">@AlphaCove</a> on X, or <a href="#" onclick="event.preventDefault();openBuyModal();return false;">buy some via Jupiter</a>. Just inscribing? No $PYRE required.
-    </p>
 
     <div class="heat-math">
       <div class="heat-math-label">— the heat math —</div>
@@ -193,6 +207,32 @@
         </div>
       </div>
       <div class="heat-math-tldr">the pyre rewards recency · there is no permanent rank</div>
+    </div>
+  </section>
+
+  <!-- GRAB SOME $PYRE — Jupiter Plugin v1 mounted inline. The plugin
+       loads lazily via IntersectionObserver in js/buy.js so the heavy
+       Jupiter bundle only fetches when this section scrolls into view.
+       Funds never touch pyrecoin.com — the widget signs and broadcasts
+       directly to the user's wallet via Jupiter's contracts. -->
+  <div class="full-divider"></div>
+  <section class="section buy-section" id="buy">
+    <div class="section-header">
+      <div class="section-title">Grab Some $PYRE</div>
+      <div class="section-line"></div>
+    </div>
+
+    <p class="section-intro">
+      Inscribing is free. Boosting your post to the top of pyrecoin.com
+      is not — that takes $PYRE, burned. Bigger or fresher burns climb
+      higher on the leaderboard above. Swap any Solana token for $PYRE
+      below; routed via <strong>Jupiter</strong>, Solana's aggregator,
+      for best execution across pump.fun, Raydium, Orca, and the rest
+      of the DEX universe. Funds never touch pyrecoin.com.
+    </p>
+
+    <div class="buy-form-card">
+      <div id="jupiter-target" class="jupiter-target"></div>
     </div>
   </section>
 
@@ -562,71 +602,10 @@
     </p>
   </section>
 
-  <!-- UNIFIED INSCRIBE / BURN MODAL.
-       All four fields below are optional, but at least one of (msg,
-       URL, X handle, PYRE > 0) must be filled. PYRE = 0 means pure
-       inscription (just SOL fees + 1-lamport beacon marker). PYRE > 0
-       triggers a Token-2022 BurnChecked alongside the memo. -->
-  <div class="burn-modal-backdrop" id="burnModal">
-    <div class="burn-modal" role="dialog" aria-modal="true" aria-labelledby="burnTitle">
-      <button class="burn-modal-close" onclick="closeBurnModal()" aria-label="Close">×</button>
-      <div class="burn-modal-title" id="burnTitle">Write to Solana</div>
-
-      <form onsubmit="event.preventDefault();submitBurn();">
-        <div class="form-note">All fields optional · at least one required</div>
-        <div class="burn-form-row">
-          <label for="burnMsg">
-            <span>Message <span class="hint" title="Anything goes — a quote, a confession, a joke, a manifesto, last words. Up to 280 characters. Once the transaction confirms it lives on the Solana chain forever and is mirrored by every major explorer (Solscan, Solana Explorer, Helius, etc.).">?</span></span>
-            <span class="label-meta"><span id="msgCount">0</span> / 280</span>
-          </label>
-          <input id="burnMsg" type="text" maxlength="280" placeholder="Say something the chain will keep forever." autocomplete="off">
-        </div>
-        <div class="burn-form-row">
-          <label for="burnUrl">
-            <span>URL <span class="hint" title="A site you want people to visit when they click your slot — a portfolio, a project, a song, a manifesto, whatever. You can leave off the https:// — we add it. Max 200 characters. We reject IP-literals, link shorteners, and non-HTTPS URLs.">?</span></span>
-          </label>
-          <input id="burnUrl" type="text" maxlength="200" placeholder="yoursite.xyz" autocomplete="off">
-        </div>
-        <div class="burn-form-row">
-          <label for="burnX">
-            <span><svg class="x-inline" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg> handle <span class="hint" title="Your X.com (Twitter) username — letters, numbers, underscores; 1–15 chars. With or without the @ — we strip it. Your handle becomes a clickable badge on your slot that links to x.com/yourhandle.">?</span></span>
-          </label>
-          <input id="burnX" type="text" maxlength="16" placeholder="@yourhandle" autocomplete="off">
-        </div>
-        <div class="burn-form-row">
-          <label for="burnAmount">
-            <span>$PYRE to burn <span class="hint" title="Optional. Any positive number destroys that many $PYRE at the Solana protocol layer (Token-2022 BurnChecked). The mint's total supply actually decreases — every aggregator (Jupiter, DexScreener, Birdeye, Solscan) reflects the drop. Burning lands you on the leaderboard above, ranked by time-decayed heat: bigger or fresher burns climb higher. Leave at 0 to just inscribe a message — no $PYRE required.">?</span></span>
-          </label>
-          <input id="burnAmount" type="number" min="0" step="any" placeholder="0">
-          <div class="burn-hint" id="burnCost"></div>
-          <div class="burn-hint" id="burnHint"></div>
-        </div>
-        <div class="burn-status" id="burnStatus"></div>
-        <button type="submit" class="burn-modal-submit" id="burnSubmit">Connect wallet</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- BUY MODAL — embeds Jupiter Plugin v1 (plugin.jup.ag). Re-uses
-       the .burn-modal-* layout classes so it inherits the same
-       backdrop/panel styling without duplicating CSS. js/buy.js loads
-       the Plugin bundle lazily (only when the user actually opens
-       this modal) and mounts it into #jupiter-target. -->
-  <div class="burn-modal-backdrop" id="buyModal">
-    <div class="burn-modal buy-modal-panel" role="dialog" aria-modal="true" aria-labelledby="buyTitle">
-      <button class="burn-modal-close" type="button" onclick="closeBuyModal()" aria-label="Close">×</button>
-      <div class="burn-modal-title" id="buyTitle">Buy $PYRE</div>
-      <p class="buy-modal-sub">
-        Via Jupiter — Solana's aggregator. Routes across pump.fun, Raydium, Orca, Phoenix, et al. for best execution.
-        Wallet connection handled by the widget; <strong>funds never touch pyrecoin.com</strong>.
-      </p>
-      <div id="jupiter-target" class="jupiter-target"></div>
-    </div>
-  </div>
-
   <!-- COMBINED CTA + FOOTER — the "Throw it on the pyre" CTA closes
        the page. The smaller link/note ribbon sits beneath as a
-       single semantic <footer>. -->
+       single semantic <footer>. The two action buttons are anchor
+       jumps to the inline forms above (#write, #buy) — no modal. -->
   <div class="full-divider"></div>
   <footer class="cta-block" id="burn">
     <div class="cta-label">Ready to be seen?</div>
@@ -637,10 +616,10 @@
       Just <em class="ling tone-ember">πυρά</em>.
     </p>
     <div class="btn-row">
-      <button class="btn-primary" onclick="openWriteModal()"><svg class="icon icon-stroked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Write on Solana</button>
-      <button class="btn-ghost" onclick="window.open('https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live','_blank','noopener')"><svg class="icon" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg>$PYRE on X</button>
-      <button class="btn-primary" onclick="openBuyModal()"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Buy $PYRE</button>
-      <button class="btn-ghost" onclick="window.open('https://github.com/PyreCoin/PyreCoin','_blank','noopener')"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</button>
+      <a class="btn-primary" href="#write"><svg class="icon icon-stroked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Write on Solana</a>
+      <a class="btn-ghost" href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer"><svg class="icon" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg>$PYRE on X</a>
+      <a class="btn-primary" href="#buy"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Buy $PYRE</a>
+      <a class="btn-ghost" href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
     </div>
 
     <div class="cta-divider"></div>
@@ -658,7 +637,8 @@
       <div class="footer-col">
         <div class="footer-col-title">The Project</div>
         <ul>
-          <li><a href="#how">How it works</a></li>
+          <li><a href="#write">Write on Solana</a></li>
+          <li><a href="#buy">Grab some $PYRE</a></li>
           <li><a href="#metrics">By the numbers</a></li>
           <li><a href="#rules">Rules</a></li>
           <li><a href="#disclaimer">Disclaimer</a></li>
@@ -697,7 +677,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260511-23"></script>
+<script type="module" src="js/main.js?v=20260511-24"></script>
 
 </body>
 </html>

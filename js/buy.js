@@ -1,11 +1,16 @@
-// ─── BUY BUTTON ─────────────────────────────────────────────────────
-// Embeds Jupiter Plugin — Jupiter's canonical 2025+ embed product
-// (successor to the now-broken Terminal v3, which hardcoded retired
-// API endpoints like tokens.jup.ag / quote-api.jup.ag / api.jup.ag/
-// price/v2). Plugin uses Jupiter Ultra under the hood and self-resolves
-// token metadata / quotes / swap routes via the current api.jup.ag
-// endpoints, so it survives Jupiter's API migrations without a code
-// change on our side.
+// ─── BUY SECTION ─────────────────────────────────────────────────────
+// Inline-mounts Jupiter Plugin — Jupiter's canonical 2025+ embed
+// product (successor to the now-broken Terminal v3, which hardcoded
+// retired API endpoints like tokens.jup.ag / quote-api.jup.ag /
+// api.jup.ag/price/v2). Plugin uses Jupiter Ultra under the hood and
+// self-resolves token metadata / quotes / swap routes via the current
+// api.jup.ag endpoints, so it survives Jupiter's API migrations without
+// a code change on our side.
+//
+// Lazy-mount via IntersectionObserver: the Plugin bundle is heavy and
+// not every visitor scrolls to the buy section. We wait until #buy
+// enters the viewport, then load + init once. Subsequent re-entries
+// are no-ops (the _initialized flag short-circuits).
 //
 // We deliberately keep wallet handling separate from the burn flow:
 // Plugin carries its own Wallet Standard adapter and a Connect Wallet
@@ -112,12 +117,12 @@ function showFallback(message) {
 }
 
 // The Plugin renders its own "Powered by Jupiter" attribution strip
-// at the bottom of the widget. Combined with our buy-modal-sub
-// "Via Jupiter — Solana's aggregator..." copy that's literally one
-// scroll-length above it, this reads as duplicate branding. We hide
-// the internal strip via DOM scan after render — class names inside
-// the Plugin's React tree are not stable across releases, so we
-// match by text content (the only reliable signal).
+// at the bottom of the widget. Combined with our section-intro
+// "...routed via Jupiter, Solana's aggregator..." copy that's right
+// above it, this reads as duplicate branding. We hide the internal
+// strip via DOM scan after render — class names inside the Plugin's
+// React tree are not stable across releases, so we match by text
+// content (the only reliable signal).
 // Recursively walk a node's children AND any shadowRoots so we can
 // reach Plugin internals if they're rendered in a closed shadow tree.
 // Yields every descendant Element across DOM and shadow boundaries.
@@ -191,11 +196,14 @@ function startAttributionWatcher() {
   setTimeout(() => obs.disconnect(), 8000);
 }
 
-window.openBuyModal = async function openBuyModal() {
-  const modal = $('buyModal');
-  if (!modal) return;
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
+// Single-shot mount. Calling this multiple times is safe — the
+// internal flags short-circuit duplicates. Returns a Promise that
+// resolves when the widget is initialised (or shows a fallback on
+// failure).
+let _mountStarted = false;
+async function mountBuyWidget(){
+  if (_mountStarted) return;
+  _mountStarted = true;
 
   if (isPlaceholder()) {
     showFallback('$PYRE has not launched yet. The buy widget activates once the token mint is configured.');
@@ -207,48 +215,50 @@ window.openBuyModal = async function openBuyModal() {
     initJupiter();
     startAttributionWatcher();
   } catch (err) {
+    // Fallback link to jup.ag covers the case where the Plugin CDN is
+    // blocked (corp networks, ad blockers misclassifying it, etc.).
+    _mountStarted = false; // allow retry on next observer fire
     showFallback('Couldn\'t load the embedded widget. ' + (err.message || ''));
   }
-};
+}
 
-window.closeBuyModal = function closeBuyModal() {
-  const modal = $('buyModal');
-  if (!modal) return;
-  modal.classList.remove('open');
-  document.body.style.overflow = '';
-};
-
-// Click-outside-to-close — same pointer-down + pointer-up pattern as
-// burn.js so a drag-select that ends outside the modal doesn't trip
-// a close.
-(function wireBackdropDismiss() {
-  const backdrop = $('buyModal');
-  if (!backdrop) return;
-  let pointerDownOnBackdrop = false;
-  backdrop.addEventListener('pointerdown', (e) => {
-    pointerDownOnBackdrop = (e.target === backdrop);
-  });
-  backdrop.addEventListener('pointerup', (e) => {
-    if (pointerDownOnBackdrop && e.target === backdrop) {
-      window.closeBuyModal();
+// Lazy-mount on first scroll into view. The Plugin bundle is sizeable;
+// not every visitor scrolls to the buy section, so we don't pay the
+// cost up-front. rootMargin: '200px 0px' starts loading just before the
+// section enters the viewport so the widget is ready by the time the
+// user actually sees it.
+function startLazyMount(){
+  const target = document.getElementById('buy');
+  if (!target) return;
+  // Fallback for ancient browsers w/o IntersectionObserver — just mount
+  // immediately. Modern browsers (>99% of traffic) take the lazy path.
+  if (typeof IntersectionObserver !== 'function') {
+    mountBuyWidget();
+    return;
+  }
+  const obs = new IntersectionObserver((entries, observer) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        observer.disconnect();
+        mountBuyWidget();
+        break;
+      }
     }
-    pointerDownOnBackdrop = false;
-  });
-  backdrop.addEventListener('pointercancel', () => { pointerDownOnBackdrop = false; });
-})();
+  }, { rootMargin: '200px 0px', threshold: 0 });
+  obs.observe(target);
+}
 
-// Escape-to-close.
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && $('buyModal')?.classList.contains('open')) {
-    window.closeBuyModal();
-  }
-});
+// Anchor-jump to #buy should also force a mount in case the user lands
+// directly on the section (where the IntersectionObserver may have
+// already fired on initial paint, but timing is implementation-defined
+// and we don't want a blank slot if it didn't). Listening to hashchange
+// covers both initial load with #buy in URL and click-jumps from the
+// nav.
+function maybeMountFromHash(){
+  if (location.hash === '#buy') mountBuyWidget();
+}
+window.addEventListener('hashchange', maybeMountFromHash);
 
-// Deep-link: pyrecoin.com/?openBuy=1 auto-opens the modal — useful
-// for sharing direct-to-buy links from social posts and for QA /
-// screenshots without having to click manually. Harmless if absent.
-try {
-  if (new URL(location.href).searchParams.get('openBuy') === '1') {
-    setTimeout(() => window.openBuyModal(), 0);
-  }
-} catch { /* no-op if URL parsing fails (test env, etc.) */ }
+// Kick off the lazy mount + handle the initial-load case.
+startLazyMount();
+maybeMountFromHash();
