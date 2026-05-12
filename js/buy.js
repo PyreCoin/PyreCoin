@@ -300,10 +300,14 @@ async function runQuote() {
       .join(' → ');
     $('buyRouteSummary').textContent = route ? `via ${route}` : '';
     clearStatus();
-    setSubmit(buttonLabelForCurrentState(), false);
   } finally {
     buyState.quoting = false;
   }
+  // setSubmit AFTER the finally — otherwise buttonLabelForCurrentState()
+  // reads buyState.quoting before finally flips it to false and returns
+  // 'Quoting…' even on a successful quote. Errors fall through to the
+  // .catch in scheduleQuote, which writes its own error-labeled button.
+  setSubmit(buttonLabelForCurrentState(), false);
 }
 
 // ─── swap submit ────────────────────────────────────────────────────
