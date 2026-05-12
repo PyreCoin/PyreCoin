@@ -618,10 +618,13 @@ async function refreshWalletState() {
   if (provider.publicKey) {
     burnState.publicKey = provider.publicKey;
     const addr = provider.publicKey.toString();
-    const pickerHtml = renderWalletPickerLine(all, provider);
     if (navSlot) {
+      // Address + disconnect only. Users know which wallet they have
+      // installed — the "via Phantom" / picker text was redundant.
+      // Multi-wallet users still get a picker inside the form on submit
+      // if needed; the nav badge stays compact.
       navSlot.innerHTML =
-        `<span class="wallet-badge"><span class="wallet-addr" title="${escapeHtml(addr)}">${escapeHtml(shortAddr(addr))}</span> ${pickerHtml}` +
+        `<span class="wallet-badge"><span class="wallet-addr" title="${escapeHtml(addr)}">${escapeHtml(shortAddr(addr))}</span>` +
         `<button type="button" class="wallet-disconnect" onclick="window.__pyreDisconnectWallet()" aria-label="Disconnect wallet" title="Disconnect">×</button></span>`;
     }
     $('burnSubmit').textContent = _submitLabel();

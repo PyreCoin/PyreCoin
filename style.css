@@ -2076,9 +2076,13 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
    (when multiple wallets are detected) or just the wallet name, and a
    × disconnect button. Renders inside #navWallet only when a wallet
    is actually connected. */
+/* Wallet badge — compact square box in the nav. Address + × disconnect
+   only. The wallet-name / wallet-picker rendering was removed from
+   burn.js's refreshWalletState; users know which wallet they have
+   installed — the "via Phantom" label was redundant chrome. */
 .wallet-badge{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 4px 3px 10px;
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 4px 4px 8px;
   border:0.5px solid var(--border);
   border-radius:0;
   background:rgba(0,0,0,0.4);
@@ -2094,22 +2098,13 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   cursor:help;
   white-space:nowrap;
 }
-.wallet-name{color:var(--text3);}
-.wallet-picker{
-  font-family:var(--mono);
-  font-size:10px;color:var(--ember2);
-  background:transparent;border:0.5px solid var(--border);
-  border-radius:0;padding:1px 3px;
-  letter-spacing:0.5px;cursor:pointer;
-}
-.wallet-picker:focus{outline:none;border-color:var(--ember2);}
 .wallet-disconnect{
   background:transparent;
   border:none;
   color:var(--text3);
   font-size:14px;line-height:1;
-  width:18px;height:18px;
-  padding:0;margin-left:2px;
+  width:16px;height:16px;
+  padding:0;
   cursor:pointer;
   border-radius:50%;
   display:inline-flex;align-items:center;justify-content:center;
@@ -2118,15 +2113,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .wallet-disconnect:hover{
   color:var(--text);
   background:rgba(255,80,40,0.25);
-}
-/* Compact the wallet badge on narrow viewports — keep the shortened
-   address (the meaningful bit) and the disconnect button; drop the
-   "via Phantom" / picker text that just confirms what the user already
-   chose. */
-@media(max-width:720px){
-  .wallet-badge .wallet-name,
-  .wallet-badge .wallet-picker{display:none;}
-  .wallet-badge{padding-right:2px;}
 }
 
 /* ── LINGUISTIC FONT (IPA, polytonic Greek, PIE combining marks) ── */
