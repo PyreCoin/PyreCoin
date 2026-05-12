@@ -310,22 +310,36 @@ nav.nav--hidden{
   .nav-links{gap:20px;}
   .nav-links a{letter-spacing:2px;font-size:10.5px;}
 }
-/* Nav links in DOM order (1-indexed nth-child):
-   1 = Write · 2 = Buy · 3 = Numbers · 4 = Etymology · 5 = Rules
-   (then .nav-wallet span, then the .btn-primary CTA last).
-   Drop priority as the viewport narrows: Etymology first (deepest
-   tangent), then Numbers (the Numbers section's headline figure is
-   embedded inline lower in the page anyway). Write/Buy/Rules survive
-   longest — Write/Buy are the primary actions, Rules carries
-   compliance copy. The .btn-primary CTA is NEVER dropped — it's the
-   single most important affordance on the site. */
-@media(max-width:880px){
-  .nav-links a:nth-child(4){display:none;} /* drop "Etymology" first */
+/* Nav-link priority drops. Each <a data-nav-priority="N"> in .nav-links
+   gets hidden when the viewport gets too narrow for its priority bucket.
+   The .btn-primary CTA has no data-nav-priority and never drops — it's
+   the single most important affordance on the site.
+
+   Priority assignments (lower number = higher priority = survives longer):
+     1 — Numbers, Rules     (data dashboard + compliance copy)
+     2 — Buy                (secondary action)
+     3 — Math               (mechanism explainer)
+     4 — Write              (text link; redundant with the CTA button)
+     5 — Etymology          (deepest tangent)
+
+   Breakpoints chosen empirically so each drop happens just before the
+   row would visually crowd the PYRE wordmark and the CTA. Adjust here
+   only; the cascade is otherwise data-driven (priority N hides at each
+   threshold below, so adding a future link is just an attribute, no
+   new media query). */
+@media(max-width:1080px){
+  .nav-links a[data-nav-priority="5"]{display:none;} /* Etymology */
+}
+@media(max-width:960px){
+  .nav-links a[data-nav-priority="4"]{display:none;} /* Write (text — CTA covers it) */
+}
+@media(max-width:820px){
+  .nav-links a[data-nav-priority="3"]{display:none;} /* Math */
 }
 @media(max-width:720px){
   nav{padding:16px 20px;}
   .nav-logo{font-size:24px;letter-spacing:3px;}
-  .nav-links a:nth-child(3){display:none;} /* then drop "Numbers" */
+  .nav-links a[data-nav-priority="2"]{display:none;} /* Buy */
   .nav-links{gap:14px;}
   .nav-links a{font-size:10px;}
 }

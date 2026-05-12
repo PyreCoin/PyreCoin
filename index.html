@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-17">
+<link rel="stylesheet" href="style.css?v=20260512-18">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -43,12 +43,18 @@
       <span class="nav-logo-hover ling" aria-hidden="true">πυρά</span>
       <span class="nav-logo-tooltip" role="tooltip"><span class="ling tone-ember">πυρά</span> <span class="ling tone-faint">(purá)</span> — Ancient Greek for any meaningful fire: funeral pyre, altar-fire, hearth. The root of this project's name.</span>
     </a>
+    <!-- Nav links carry data-nav-priority (1 = highest, 5 = lowest).
+         CSS breakpoints drop higher numbers first as the viewport
+         narrows; the CTA button has no priority attribute and never
+         drops. Wallet badge (#navWallet) drops only via its empty:
+         hidden rule. -->
     <div class="nav-links">
-      <a href="#write">Write</a>
-      <a href="#buy">Buy</a>
-      <a href="#metrics">Numbers</a>
-      <a href="#etymology">Etymology</a>
-      <a href="#rules">Rules</a>
+      <a href="#write"     data-nav-priority="4">Write</a>
+      <a href="#buy"       data-nav-priority="2">Buy</a>
+      <a href="#math"      data-nav-priority="3">Math</a>
+      <a href="#metrics"   data-nav-priority="1">Numbers</a>
+      <a href="#etymology" data-nav-priority="5">Etymology</a>
+      <a href="#rules"     data-nav-priority="1">Rules</a>
       <!-- Wallet status slot — filled by burn.js refreshWalletState()
            when a connected wallet is detected; stays empty (and CSS-
            hidden via :empty) otherwise. -->
@@ -143,11 +149,11 @@
   <!-- WRITE ON SOLANA — inline form, no modal. The form is the page.
        Section intro frames the action; the form itself is the next thing
        you see. All four fields are optional but at least one of (msg,
-       URL, X handle, PYRE > 0) must be filled. PYRE = 0 means pure
-       inscription (just SOL fees + 1-lamport beacon marker). PYRE > 0
-       triggers a Token-2022 BurnChecked alongside the memo and lands
-       you on the heat-ranked leaderboard above. The heat-math callout
-       below grounds the decay formula in concrete examples. -->
+       URL, X handle) is required. Every inscription burns at least the
+       1 $PYRE service fee (acquired and burned atomically in the same
+       tx via Jupiter if the user doesn't already hold any). Larger
+       burns climb the heat-ranked leaderboard above; the ranking
+       formula lives in its own #math section further down. -->
   <div class="full-divider"></div>
   <section class="section write-section" id="write">
     <div class="section-header">
@@ -258,32 +264,6 @@
         <div class="burn-status" id="burnStatus"></div>
         <button type="submit" class="write-form-submit" id="burnSubmit">Connect wallet</button>
       </form>
-    </div>
-
-    <div class="heat-math">
-      <div class="heat-math-label">— the heat math —</div>
-      <div class="heat-math-formula">heat&nbsp;&nbsp;=&nbsp;&nbsp;amount&nbsp;÷&nbsp;(hours_since&nbsp;+&nbsp;2)<sup>1.5</sup></div>
-      <div class="heat-math-examples">
-        <div class="heat-math-row">
-          <span class="hm-burn">100K $PYRE burn</span>
-          <span class="hm-when">at t = 0</span>
-          <span class="hm-arrow">→</span>
-          <span class="hm-heat">heat ≈ 35,400</span>
-        </div>
-        <div class="heat-math-row">
-          <span class="hm-burn">same 100K burn</span>
-          <span class="hm-when">24 hours later</span>
-          <span class="hm-arrow">→</span>
-          <span class="hm-heat">heat ≈ 760</span>
-        </div>
-        <div class="heat-math-row">
-          <span class="hm-burn">5K burn</span>
-          <span class="hm-when">1 hour after the original</span>
-          <span class="hm-arrow">→</span>
-          <span class="hm-heat">heat ≈ 960 <em>← outranks the day-old whale</em></span>
-        </div>
-      </div>
-      <div class="heat-math-tldr">the pyre rewards recency · there is no permanent rank</div>
     </div>
   </section>
 
@@ -414,6 +394,52 @@
 
         <button type="submit" class="write-form-submit" id="buySubmit">Connect wallet</button>
       </form>
+    </div>
+  </section>
+
+  <!-- DO THE MATH — the leaderboard's ranking formula laid out. Lifted
+       out of the Write on Solana section so the write form isn't 1300px
+       tall on the smallest phones, and so this content has its own nav
+       anchor (#math) for direct linking. Sits between the action sections
+       (Write / Buy) and the data section (Numbers) so the reader path
+       flows: how to do it → why it ranks that way → how it's performing. -->
+  <div class="full-divider"></div>
+  <section class="section math-section" id="math">
+    <div class="section-header">
+      <div class="section-title">Do the math</div>
+      <div class="section-line"></div>
+    </div>
+
+    <p class="section-intro">
+      Leaderboard heat is a single formula. Burns lose value with time
+      at a power of 1.5 &mdash; so a big burn from yesterday gets out-
+      ranked by a smaller burn today. The pyre rewards <em>recency</em>;
+      there's no permanent rank, no way to sit on a slot forever.
+    </p>
+
+    <div class="heat-math">
+      <div class="heat-math-formula">heat&nbsp;&nbsp;=&nbsp;&nbsp;amount&nbsp;÷&nbsp;(hours_since&nbsp;+&nbsp;2)<sup>1.5</sup></div>
+      <div class="heat-math-examples">
+        <div class="heat-math-row">
+          <span class="hm-burn">100K $PYRE burn</span>
+          <span class="hm-when">at t = 0</span>
+          <span class="hm-arrow">&rarr;</span>
+          <span class="hm-heat">heat &asymp; 35,400</span>
+        </div>
+        <div class="heat-math-row">
+          <span class="hm-burn">same 100K burn</span>
+          <span class="hm-when">24 hours later</span>
+          <span class="hm-arrow">&rarr;</span>
+          <span class="hm-heat">heat &asymp; 760</span>
+        </div>
+        <div class="heat-math-row">
+          <span class="hm-burn">5K burn</span>
+          <span class="hm-when">1 hour after the original</span>
+          <span class="hm-arrow">&rarr;</span>
+          <span class="hm-heat">heat &asymp; 960 <em>&larr; outranks the day-old whale</em></span>
+        </div>
+      </div>
+      <div class="heat-math-tldr">the pyre rewards recency &middot; there is no permanent rank</div>
     </div>
   </section>
 
@@ -858,7 +884,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-17"></script>
+<script type="module" src="js/main.js?v=20260512-18"></script>
 
 </body>
 </html>
