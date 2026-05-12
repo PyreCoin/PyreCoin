@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-22">
+<link rel="stylesheet" href="style.css?v=20260512-23">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -231,6 +231,11 @@
             </div>
           </div>
           <div class="burn-hint" id="burnHint"></div>
+          <!-- Snap-back-to-take-#1 link. burn.js renders the live target
+               amount into .burn-top-hint-link; click sets the input to
+               that amount and drops back into auto-suggest mode. Hidden
+               whenever the input already equals the live take-#1 target. -->
+          <button type="button" class="burn-top-hint" id="burnTopHint" hidden></button>
         </div>
 
         <!-- Bill of sale. Re-rendered on every input change and every
@@ -884,7 +889,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-22"></script>
+<script type="module" src="js/main.js?v=20260512-23"></script>
 
 </body>
 </html>

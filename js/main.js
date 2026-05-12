@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-22';
+const V = '20260512-23';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading

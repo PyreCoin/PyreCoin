@@ -195,8 +195,10 @@ function startWalletDetectPoller(){
 function refreshBurnHint() {
   const lb = window.__pyreLeaderboard;
   const hintEl = $('burnHint');
+  const topBtn = $('burnTopHint');
   if (!lb || typeof lb.minBurnToTakeTop !== 'function') {
     if (hintEl) hintEl.innerHTML = '';
+    if (topBtn) topBtn.hidden = true;
     return;
   }
   const min = lb.minBurnToTakeTop(new Date());
@@ -217,6 +219,24 @@ function refreshBurnHint() {
       hintEl.innerHTML = 'tip · the pyre is cold — any burn takes #1.';
     } else {
       hintEl.innerHTML = `tip · burn <strong>&ge; ${escapeHtml(fmt(min))} $PYRE</strong> right now to take #1.`;
+    }
+  }
+  // Snap-back link: only displayed when the user has edited the input
+  // AWAY from the live take-#1 target. Clicking it re-fills the input
+  // with the current N and re-enters auto-suggest mode (so future
+  // leaderboard ticks keep tracking the live target).
+  if (topBtn) {
+    const input = $('burnAmount');
+    const cur = parseFloat(input?.value);
+    const showLink = count > 0 && (
+      burnState.userEditedAmount && cur !== min
+    );
+    topBtn.hidden = !showLink;
+    if (showLink) {
+      topBtn.dataset.takeTop = String(min);
+      topBtn.innerHTML =
+        `<span class="burn-top-hint-link">Burn ${escapeHtml(fmt(min))} $PYRE</span> ` +
+        'to grab the top of the pyrecoin.com leaderboard';
     }
   }
   recalculateBill();
@@ -573,7 +593,26 @@ document.addEventListener('click', e => {
       input.value = '0';
       burnState.userEditedAmount = true;
       recalculateBill();
+      refreshBurnHint(); // refresh the snap-back-to-#1 link
       input.focus();
+    }
+    return;
+  }
+  // Snap-back-to-take-#1 suggestion link — re-fills the input with
+  // the live target amount and drops back into auto-suggest mode.
+  const topHint = e.target.closest('#burnTopHint');
+  if (topHint) {
+    e.preventDefault();
+    const input = $('burnAmount');
+    const n = topHint.dataset.takeTop;
+    if (input && n) {
+      input.value = n;
+      // userEditedAmount=false so future leaderboard ticks keep
+      // tracking the live target. The link will hide itself once
+      // the input matches the current min.
+      burnState.userEditedAmount = false;
+      recalculateBill();
+      refreshBurnHint();
     }
     return;
   }

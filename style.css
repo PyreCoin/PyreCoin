@@ -1296,6 +1296,38 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .burn-hint:empty{display:none;}
 .burn-hint strong{color:var(--ember2);font-weight:500;}
+
+/* Snap-back-to-take-#1 suggestion. Renders as a button styled like
+   an inline-flow paragraph so it reads as conversational copy with
+   a clickable verb-phrase at the start. Only visible when the user
+   has edited the input away from the live take-#1 target. */
+.burn-top-hint{
+  display:block;
+  width:100%;
+  margin-top:6px;
+  padding:0;
+  background:transparent;
+  border:none;
+  text-align:left;
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:0.3px;
+  color:var(--text2);
+  line-height:1.55;
+  cursor:pointer;
+}
+.burn-top-hint[hidden]{display:none;}
+.burn-top-hint-link{
+  color:var(--ember2);
+  font-weight:600;
+  text-decoration:underline;
+  text-underline-offset:2px;
+  transition:color .15s;
+}
+.burn-top-hint:hover .burn-top-hint-link,
+.burn-top-hint:focus .burn-top-hint-link{
+  color:#fff;
+}
 .burn-status{
   margin-top:18px;padding:12px 14px;
   border-radius:2px;
