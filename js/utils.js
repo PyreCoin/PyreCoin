@@ -105,6 +105,46 @@ export function scaleToRaw(uiAmount, decimals){
   return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(padded || '0');
 }
 
+// ── country code helpers ────────────────────────────────────────
+// Turn an ISO 3166-1 alpha-2 country code ("US", "GB", "DE") into:
+//   - the Unicode flag emoji ("🇺🇸", "🇬🇧", "🇩🇪") via the regional-
+//     indicator letter pairing (U+1F1E6..U+1F1FF). Twemoji's parser
+//     swaps these to consistent SVG glyphs cross-platform.
+//   - the human-readable country name ("United States", "United
+//     Kingdom", "Germany") via Intl.DisplayNames, the standard
+//     browser-bundled localization API. Falls back to the raw code
+//     if DisplayNames isn't available or the code is unrecognized.
+
+function _looksIsoCode(s){
+  return typeof s === 'string' && /^[A-Za-z]{2}$/.test(s);
+}
+
+export function isoToFlag(code){
+  if (!_looksIsoCode(code)) return '';
+  const up = code.toUpperCase();
+  const A = 0x1F1E6;
+  return String.fromCodePoint(
+    A + up.charCodeAt(0) - 65,
+    A + up.charCodeAt(1) - 65,
+  );
+}
+
+let _regionDn = null;
+function _getRegionDn(){
+  if (_regionDn !== null) return _regionDn;
+  try {
+    _regionDn = new Intl.DisplayNames(['en'], { type: 'region' });
+  } catch { _regionDn = false; }
+  return _regionDn;
+}
+export function isoToName(code){
+  if (!_looksIsoCode(code)) return code || '';
+  const dn = _getRegionDn();
+  if (!dn) return code.toUpperCase();
+  try { return dn.of(code.toUpperCase()) || code.toUpperCase(); }
+  catch { return code.toUpperCase(); }
+}
+
 // Twemoji parser shim. The @twemoji/api CDN bundle exposes
 // window.twemoji; renderers call parseEmoji(node) after dropping new
 // HTML into the DOM so emoji characters get swapped to consistent SVG

@@ -61,6 +61,12 @@ export const INSCRIPTION_BEACON_STR = '2yqR9bjy64UqnWYP4wTrpw8RwFqXGQnkhzQRSp11M
 // the moment it confirms.
 export const INITIAL_SUPPLY = 1_000_000_000;
 
+// $PYRE genesis — the precise moment the pump.fun mint instruction
+// confirmed and the token entered the world. Used by the "Genesis"
+// stat card to render the absolute date + the live "N days ago"
+// relative time. Date.UTC's month arg is 0-indexed (April = 3, May = 4).
+export const GENESIS_TS_MS = Date.UTC(2026, 4, 9, 3, 43, 59);
+
 export const isPlaceholder = () => PYRE_MINT_STR.startsWith('PYREMIN');
 
 // Wrapped-SOL mint. The constant Solana cooked into its protocol; never

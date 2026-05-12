@@ -9,7 +9,7 @@
 // stats.js refresh ticks (without it, every 30s tick would clobber a
 // user's chosen range).
 
-import { $ } from './utils.js';
+import { $, isoToFlag, isoToName, parseEmoji } from './utils.js';
 
 // Same cache-bust pattern as stats.js — see §7.1. charts.js is the
 // only non-stable transitive dep here; pulling its V off our own
@@ -19,7 +19,7 @@ const V = (() => {
   catch (_) { return ''; }
 })();
 const _chartsMod = await import(`./charts.js?v=${V}`);
-const { candlestick, histogramBars, horizontalBars, emptyState } = _chartsMod;
+const { candlestick, histogramBars, countryBars, emptyState } = _chartsMod;
 
 // Latest data, kept so toggle clicks can re-render without forcing a
 // full /price-history + /analytics refetch.
@@ -126,7 +126,11 @@ function renderCountriesChart(){
     emptyState(el, analyticsEmptyMessage());
     return;
   }
-  horizontalBars(el, items, { limit: 10 });
+  countryBars(el, items, { limit: 10, isoToFlag, isoToName });
+  // Twemoji parse so the flag emoji become SVGs from jsDelivr — the
+  // alternative (native OS emoji rendering) breaks on Linux + older
+  // Windows where flag glyphs are missing or rendered as boxes.
+  parseEmoji(el);
 }
 
 // Centralized empty-state copy for the two CF-analytics panels. Three

@@ -16,7 +16,7 @@
 // The worker caches /price-history and /analytics for 5 min, so most
 // 30s ticks are local cache hits and don't reach Helius / Gecko / CF.
 
-import { isPlaceholder, INITIAL_SUPPLY, PYRE_MINT_STR, RPC_URL, JUP } from './config.js';
+import { isPlaceholder, INITIAL_SUPPLY, PYRE_MINT_STR, RPC_URL, JUP, GENESIS_TS_MS } from './config.js';
 import { $, fmt } from './utils.js';
 import { getEntries } from './data.js';
 
@@ -311,6 +311,33 @@ function renderMcapBlurb(supply, price, mcap){
     `What does <code>${supplyStr}</code> (the circulating supply, two cards up) multiplied by <code>${priceStr}</code> (the price, card right above this one) equal, children? Very good — <code>${mcapStr}</code>! That, my degens, is <em>the market cap</em>. Say it with reverence. Moves with price and the slow contraction of supply; structurally deflationary because tokens only ever leave the room.`;
 }
 
+// Live "N days ago" suffix for the Genesis stat card. The absolute
+// date + UTC time are static HTML; this only writes the relative
+// part. Updated once on bootstrap and on every updateStats tick so
+// the figure flips from "0 days" → "1 day" → "2 days" as the project
+// ages, without a page reload.
+function renderGenesisRel(){
+  const el = $('s-genesis-rel');
+  if (!el) return;
+  const ms = Date.now() - GENESIS_TS_MS;
+  if (!isFinite(ms) || ms < 0) { el.textContent = ''; return; }
+  const days = Math.floor(ms / 86_400_000);
+  if (days <= 0) {
+    const hours = Math.floor(ms / 3_600_000);
+    if (hours <= 0) el.textContent = '· just now';
+    else if (hours === 1) el.textContent = '· 1 hour ago';
+    else el.textContent = `· ${hours} hours ago`;
+    return;
+  }
+  if (days === 1) { el.textContent = '· 1 day ago'; return; }
+  if (days < 30)  { el.textContent = `· ${days} days ago`; return; }
+  const months = Math.floor(days / 30);
+  if (months === 1) { el.textContent = '· 1 month ago'; return; }
+  if (months < 12)  { el.textContent = `· ${months} months ago`; return; }
+  const years = Math.floor(days / 365);
+  el.textContent = years === 1 ? '· 1 year ago' : `· ${years} years ago`;
+}
+
 function clearAllSparks() {
   ['sp-supply','sp-price','sp-burned','sp-burners','sp-mcap',
    'sp-vol24','sp-avgburn','sp-vis24','sp-vis7d'].forEach(id => {
@@ -321,6 +348,10 @@ function clearAllSparks() {
 // ── main entrypoint ──────────────────────────────────────────────
 
 export async function updateStats(){
+  // Genesis "N days ago" is static-derived; runs in every state
+  // (pre-launch placeholder too) so the card never reads stale.
+  renderGenesisRel();
+
   if (isPlaceholder()) {
     $('s-supply').textContent  = '—';
     $('s-burned').textContent  = '0';

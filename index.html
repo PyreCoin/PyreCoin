@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-31">
+<link rel="stylesheet" href="style.css?v=20260512-32">
 <!-- Twemoji (jdecked fork — the actively-maintained continuation of
      Twitter's archived original). Parses Unicode emoji in rendered
      HTML and swaps them for consistent SVG glyphs from jsDelivr, so
@@ -507,9 +507,27 @@
          all cards so the section reads as a uniform table of metrics
          rather than a marketing wall. -->
     <div class="stats-bar">
-      <!-- Cards 1 → 3 are deliberately ordered to set up the market-cap
+      <!-- Genesis + Initial Mint — origin facts. Static (no sparkline,
+           no live update beyond the relative-time sub-line). The
+           .stat--static modifier collapses the spark column so the
+           cards aren't carrying an empty 380px gutter. -->
+      <div class="stat stat--static">
+        <div class="stat-lbl">Genesis</div>
+        <div class="stat-val">May 9, 2026</div>
+        <div class="stat-change">03:43:59 UTC <span id="s-genesis-rel"></span></div>
+        <div class="stat-blurb">The precise moment the <strong>pump.fun</strong> mint instruction confirmed and $PYRE entered the world. Every $PYRE in existence — burned, held, lost in a stranded wallet — traces back to this one transaction. No pre-mine, no founder allocation, no vesting cliff. The chain has the receipt.</div>
+      </div>
+
+      <div class="stat stat--static">
+        <div class="stat-lbl">Initial Mint</div>
+        <div class="stat-val">1,000,000,000</div>
+        <div class="stat-blurb">The total supply at genesis, before a single token was burned. Pump.fun mints every SPL token at exactly 1B <code>uiAmount</code>, no exceptions, no negotiation — a flat ceiling against which every <code>BurnChecked</code> instruction since has chipped away. Compare with <em>Circulating Supply</em> below: the gap is the cumulative deflation.</div>
+      </div>
+
+      <!-- Cards below are deliberately ordered to set up the market-cap
            blurb's joke: supply × price = mcap, in that visual sequence.
-           Don't reorder these three without rewriting the mcap blurb. -->
+           Don't reorder Circulating Supply → Price → Market Cap without
+           rewriting the mcap blurb. -->
       <div class="stat">
         <div class="stat-lbl">Circulating Supply</div>
         <div class="stat-val" id="s-supply">—</div>
@@ -921,7 +939,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-31"></script>
+<script type="module" src="js/main.js?v=20260512-32"></script>
 
 </body>
 </html>

@@ -333,11 +333,16 @@ export function candlestick(container, ohlcv, opts = {}){
 </svg>`;
 }
 
-// ── horizontal bar chart (used for "Top countries") ──────────────
-// items: [{label, value}, ...] (already sorted desc; renderer takes
-// them as-is and trims to opts.limit).
+// ── country bar list (used for "Top countries") ─────────────────
+// items: [{label, value}, ...] where label is an ISO 3166-1 alpha-2
+// code (CF GraphQL's `countryName` dimension returns codes despite
+// the field name). Renders as HTML rows — NOT SVG — so Twemoji can
+// parse the flag emoji to a consistent SVG glyph across platforms.
+// SVG <text> can't host <img> children, so flag emoji inside an SVG
+// would render as native OS emoji (which fails ungracefully on Linux
+// and older Windows). HTML rows + Twemoji parse = same on every OS.
 
-export function horizontalBars(container, items, opts = {}){
+export function countryBars(container, items, opts = {}){
   if (!container) return;
   if (!Array.isArray(items) || items.length === 0) {
     emptyState(container, 'no visitor data yet · check back once the beacon has data');
@@ -349,40 +354,25 @@ export function horizontalBars(container, items, opts = {}){
   const max = Math.max(...trimmed.map(it => it.value));
   const total = trimmed.reduce((s, it) => s + it.value, 0);
 
-  // SVG-rendered horizontal bars with country label + percentage.
-  // Row height fixed; the panel height in CSS will scroll if too
-  // many rows. With limit 10, all fit comfortably in the 240px panel.
-  const ROW_H = 22, GAP = 4;
-  const n = trimmed.length;
-  const H = n * (ROW_H + GAP) - GAP;
-  const W = 600;
-  const LABEL_W = 130, PCT_W = 60, PAD = 8;
-  const BAR_X = LABEL_W + PAD;
-  const BAR_W_MAX = W - BAR_X - PCT_W - PAD;
+  const isoToFlag = opts.isoToFlag || (() => '');
+  const isoToName = opts.isoToName || (s => s);
 
-  const gid = uid('hbar-grad');
-  const rows = trimmed.map((it, i) => {
-    const y = i * (ROW_H + GAP);
-    const w = (it.value / max) * BAR_W_MAX;
+  const rowsHtml = trimmed.map((it) => {
+    const flag = isoToFlag(it.label);
+    const name = isoToName(it.label);
     const pct = total > 0 ? (it.value / total * 100) : 0;
     const pctTxt = pct >= 10 ? pct.toFixed(0) + '%' : pct.toFixed(1) + '%';
-    return `<g>
-      <text x="0" y="${y + ROW_H/2 + 4}" font-family="DM Mono, monospace" font-size="11" fill="rgba(255,220,170,0.85)" text-anchor="start">${escapeHtml(it.label)}</text>
-      <rect x="${BAR_X}" y="${y + 3}" width="${w.toFixed(2)}" height="${ROW_H - 6}" fill="url(#${gid})" rx="1"/>
-      <text x="${W - PAD}" y="${y + ROW_H/2 + 4}" font-family="DM Mono, monospace" font-size="11" fill="${COLOR.emberSoft}" text-anchor="end">${escapeHtml(pctTxt)}</text>
-    </g>`;
+    const barPct = (it.value / max) * 100;
+    return `
+      <div class="country-row">
+        <span class="country-flag" aria-hidden="true">${flag}</span>
+        <span class="country-name">${escapeHtml(name)}</span>
+        <span class="country-bar-wrap"><span class="country-bar" style="width:${barPct.toFixed(1)}%"></span></span>
+        <span class="country-pct">${escapeHtml(pctTxt)}</span>
+      </div>`;
   }).join('');
 
-  container.innerHTML = `
-<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMin meet" aria-hidden="false" role="img">
-  <defs>
-    <linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="${COLOR.emberFill}" stop-opacity="0.85"/>
-      <stop offset="100%" stop-color="${COLOR.emberSoft}" stop-opacity="0.55"/>
-    </linearGradient>
-  </defs>
-  ${rows}
-</svg>`;
+  container.innerHTML = `<div class="country-list">${rowsHtml}</div>`;
 }
 
 export { emptyState };

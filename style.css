@@ -478,6 +478,17 @@ nav.nav--hidden{
   background:rgba(255,40,0,0.05);
   transform:translateY(-2px);
 }
+/* Static fact cards (Genesis, Initial Mint) — single-column layout,
+   no sparkline gutter. Same chrome as live cards; just drops the
+   right-hand spark area so the prose breathes. */
+.stat.stat--static{
+  grid-template-columns:1fr;
+  grid-template-areas:
+    "lbl"
+    "val"
+    "change"
+    "blurb";
+}
 .stat::before{
   content:'';position:absolute;inset:0;
   background:radial-gradient(ellipse at 100% 0%,rgba(255,80,0,0.10) 0%,transparent 60%);
@@ -2073,6 +2084,76 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .wallet-disconnect:hover{
   color:var(--text);
   background:rgba(255,80,40,0.25);
+}
+
+/* ── COUNTRY BARS ──
+   HTML-based replacement for the SVG horizontalBars renderer in the
+   chart-countries panel. HTML rows let Twemoji parse the flag emoji
+   to consistent SVG glyphs (SVG <text> can't host <img> children, so
+   native OS emoji is the only option there — which fails on Linux
+   and older Windows where flag glyphs render as empty boxes). */
+.country-list{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  width:100%;
+  max-height:100%;
+  overflow-y:auto;
+}
+.country-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-family:var(--mono);
+  font-size:11.5px;
+  line-height:1.2;
+  color:rgba(255,220,170,0.85);
+}
+.country-flag{
+  flex-shrink:0;
+  width:18px;
+  text-align:center;
+  /* Twemoji's img.twemoji rule (height/width:1em) sizes the flag SVG
+     against this span's computed font-size — keep it readable next
+     to the country name. */
+  font-size:14px;
+}
+.country-name{
+  flex:0 0 130px;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  letter-spacing:0.2px;
+}
+.country-bar-wrap{
+  flex:1 1 auto;
+  height:14px;
+  background:rgba(255,100,30,0.06);
+  border:0.5px solid var(--border2);
+  display:flex;
+  align-items:stretch;
+  min-width:0;
+}
+.country-bar{
+  display:block;
+  height:100%;
+  background:linear-gradient(90deg,
+    rgba(255,100,30,0.85) 0%,
+    rgba(255,170,50,0.55) 100%);
+  transition:width .3s ease-out;
+}
+.country-pct{
+  flex:0 0 48px;
+  text-align:right;
+  color:var(--ember2);
+  font-variant-numeric:tabular-nums;
+}
+
+@media(max-width:560px){
+  .country-name{flex:0 0 96px;font-size:11px;}
+  .country-pct{flex:0 0 42px;}
+  .country-flag{width:16px;font-size:13px;}
 }
 
 /* ── TWEMOJI ──
