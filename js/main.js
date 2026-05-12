@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-29';
+const V = '20260512-30';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -38,6 +38,7 @@ const { renderLeaderboard } = lb;
 const { renderInscriptionWall } = await import(`./inscription-wall.js?v=${V}`);
 const { updateStats } = await import(`./stats.js?v=${V}`);
 const { PYRE_MINT_STR } = await import(`./config.js?v=${V}`);
+const { parseEmoji } = await import(`./utils.js?v=${V}`);
 
 // Expose the leaderboard module so burn.js can read minBurnToTakeTop
 // without re-importing the module under a different specifier (which
@@ -74,6 +75,21 @@ async function tick() {
 // the underlying entries are unchanged.
 tick();
 setInterval(tick, 30000);
+
+// One-shot Twemoji parse of every static emoji on the page (CTA
+// viewer-count line eyes/finger, footer ornaments, etc.). The
+// leaderboard + inscription wall renderers parse their own containers
+// after each tick — those don't depend on this one-shot.
+//
+// twemoji.min.js loads with `defer`, so it may not be on window at
+// module-load time. Poll briefly (≤5s) then give up — if the CDN is
+// blocked / down, the page degrades to native emoji.
+function bootEmojiParse(remaining = 50){
+  if (window.twemoji) { parseEmoji(document.body); return; }
+  if (remaining <= 0) return;
+  setTimeout(() => bootEmojiParse(remaining - 1), 100);
+}
+bootEmojiParse();
 
 // Lazy-load burn module — defers heavy Solana lib download. Versioned
 // so post-launch fixes propagate without a hard refresh.
@@ -151,7 +167,7 @@ FIRE_SECTIONS.forEach(id => {
 // Two readouts, both live, both pulled from one Jupiter Price V3 call:
 //
 //   1. SOL cost per inscription: base fee + priority fee + 1-lamport
-//      beacon transfer = 15,001 lamports × SOL/USD.
+//      beacon transfer = INSCRIPTION_FEE_LAMPORTS × SOL/USD.
 //   2. USD-to-take-#1: minBurnToTakeTop() (in $PYRE) × PYRE/USD.
 //      Re-rendered as the leaderboard refreshes, so the number tracks
 //      the live heat. Inscription is free — the burn-to-#1 line is the
@@ -159,17 +175,9 @@ FIRE_SECTIONS.forEach(id => {
 //
 // Refreshes on 60s timer AND inside the main tick() loop after each
 // leaderboard refresh, so the #1 figure stays current.
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
-const PRICE_URL = `https://lite-api.jup.ag/price/v3?ids=${SOL_MINT},${PYRE_MINT_STR}`;
-const INSCRIPTION_LAMPORTS = 15_001; // base(5000) + priority(10000) + beacon(1)
-function fmtUsd(usd){
-  if (!isFinite(usd) || usd <= 0) return '$—';
-  if (usd >= 1000) return '$' + Math.round(usd).toLocaleString();
-  if (usd >= 1)    return '$' + usd.toFixed(2);
-  if (usd >= 0.01) return '$' + usd.toFixed(3);
-  if (usd >= 0.0001) return '$' + usd.toFixed(5);
-  return '$' + usd.toFixed(7);
-}
+const { SOL_MINT_STR, JUP, INSCRIPTION_FEE_LAMPORTS } = await import(`./config.js?v=${V}`);
+const { fmtUsd } = await import(`./utils.js?v=${V}`);
+const PRICE_URL = `${JUP.PRICE}?ids=${SOL_MINT_STR},${PYRE_MINT_STR}`;
 let _solUsd = null;
 let _pyreUsd = null;
 async function refreshPrices(){
@@ -177,7 +185,7 @@ async function refreshPrices(){
     const res = await fetch(PRICE_URL, { cache: 'no-store' });
     if (!res.ok) return;
     const data = await res.json();
-    const s = data?.[SOL_MINT]?.usdPrice;
+    const s = data?.[SOL_MINT_STR]?.usdPrice;
     const p = data?.[PYRE_MINT_STR]?.usdPrice;
     if (typeof s === 'number' && isFinite(s) && s > 0) _solUsd = s;
     if (typeof p === 'number' && isFinite(p) && p > 0) _pyreUsd = p;
@@ -187,7 +195,7 @@ async function refreshPrices(){
 function renderCtaPrices(){
   const costEl = document.getElementById('cta-cost');
   if (costEl && _solUsd != null) {
-    costEl.textContent = fmtUsd((INSCRIPTION_LAMPORTS / 1e9) * _solUsd);
+    costEl.textContent = fmtUsd((INSCRIPTION_FEE_LAMPORTS / 1e9) * _solUsd);
   }
   const topEl = document.getElementById('cta-top-spot');
   if (topEl && _pyreUsd != null && lb?.minBurnToTakeTop) {

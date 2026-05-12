@@ -12,9 +12,9 @@
 // runtime-config.json resolves, so all downstream callers
 // (stats.js, leaderboard.js, burn.js) see consistent values.
 //
-// Stable constants (the Memo Program ID) stay in this file —
-// they're properties of Solana itself, not project state, and
-// don't change.
+// Stable constants (the Memo Program ID, Jupiter endpoints, the SOL
+// wrapped-mint) stay in this file — they're properties of Solana
+// itself, not project state, and don't change.
 
 async function fetchRuntimeConfig() {
   try {
@@ -61,4 +61,46 @@ export const INSCRIPTION_BEACON_STR = '2yqR9bjy64UqnWYP4wTrpw8RwFqXGQnkhzQRSp11M
 // the moment it confirms.
 export const INITIAL_SUPPLY = 1_000_000_000;
 
-export const isPlaceholder = () => PYRE_MINT_STR.startsWith('PYREMINT');
+export const isPlaceholder = () => PYRE_MINT_STR.startsWith('PYREMIN');
+
+// Wrapped-SOL mint. The constant Solana cooked into its protocol; never
+// changes. Used by the buy form, atomic-burn (Jupiter swap-source key)
+// and main.js (CTA price line).
+export const SOL_MINT_STR = 'So11111111111111111111111111111111111111112';
+
+// Jupiter Swap V1 endpoints. lite-api.jup.ag is the free, keyless,
+// CORS-permissive variant; api.jup.ag denies cross-origin browser
+// requests without an x-api-key header. Pricing path is v3.
+export const JUP = Object.freeze({
+  QUOTE:              'https://lite-api.jup.ag/swap/v1/quote',
+  SWAP:               'https://lite-api.jup.ag/swap/v1/swap',
+  SWAP_INSTRUCTIONS:  'https://lite-api.jup.ag/swap/v1/swap-instructions',
+  PRICE:              'https://lite-api.jup.ag/price/v3',
+});
+
+// Jupiter swap defaults shared by the buy form and the atomic-burn
+// builder. 3% static slippage with dynamicSlippage=true is the
+// memecoin-floor combination — 1% fails constantly on illiquid pools.
+// MAX_PRIORITY_LAMPORTS is the hard ceiling on the priority fee per
+// swap (0.002 SOL ≈ $0.40 at $200 SOL).
+export const SWAP_DEFAULTS = Object.freeze({
+  SLIPPAGE_BPS:          300,
+  MAX_PRIORITY_LAMPORTS: 2_000_000,
+});
+
+// Solana fee defaults for the direct-burn path. Base fee is 5,000
+// lamports per signature; we tack on a small priority fee for fast
+// inclusion. BEACON_LAMPORTS is the marker amount transferred to the
+// inscription beacon (an off-curve PDA — irrecoverable, intentionally).
+// INSCRIPTION_FEE_LAMPORTS is the bare-minimum SOL cost of an
+// inscription (base + priority + beacon). Used by the CTA cost line.
+export const BASE_LAMPORTS = 5_000;
+export const PRIORITY_LAMPORTS = 10_000;
+export const BEACON_LAMPORTS = 1;
+export const INSCRIPTION_FEE_LAMPORTS = BASE_LAMPORTS + PRIORITY_LAMPORTS + BEACON_LAMPORTS;
+
+// Stablecoin mints kept here so the buy form, atomic-burn module, and
+// burn.js bill-of-sale all reference the same canonical mint strings.
+// Pump.fun creates Token-2022 mints; USDC/USDT are legacy SPL.
+export const USDC_MINT_STR = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+export const USDT_MINT_STR = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';

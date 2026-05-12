@@ -6,7 +6,7 @@
 // time, optional url, optional X handle, and an inscription-proof
 // Solscan badge ⛓️ at the front. Newest-first; capped at WALL_CAP entries.
 
-import { relTime, utcTooltip, escapeHtml, shortAddr } from './utils.js';
+import { relTime, utcTooltip, escapeHtml, shortAddr, safeHref, parseEmoji } from './utils.js';
 import { getInscriptions } from './data.js';
 
 const WALL_CAP = 50;
@@ -33,8 +33,9 @@ function badgeRow(entry, now){
       <span class="badge-icon">⏰</span><span class="badge-val">${rel}</span>
     </span>`;
 
-  const urlBadge = url ? `
-    <a class="badge badge-url" href="https://${escapeHtml(url)}" target="_blank" rel="noopener noreferrer sponsored ugc"
+  const safeUrl = url ? safeHref(url) : null;
+  const urlBadge = safeUrl ? `
+    <a class="badge badge-url" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer sponsored ugc"
        title="${escapeHtml(url)}">
       <span class="badge-icon">🌐</span><span class="badge-val">${escapeHtml(url)}</span>
     </a>` : '';
@@ -83,4 +84,5 @@ export function renderInscriptionWall(now){
 
   host.innerHTML = '';
   entries.forEach(e => host.appendChild(buildWallSlot(e, now)));
+  parseEmoji(host);
 }

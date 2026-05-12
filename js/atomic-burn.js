@@ -34,32 +34,27 @@
 //     getSignaturesForAddress(beacon) scan.
 
 import {
-  Connection, PublicKey, Transaction, TransactionInstruction, TransactionMessage,
+  PublicKey, Transaction, TransactionInstruction, TransactionMessage,
   VersionedTransaction, AddressLookupTableAccount, SystemProgram, ComputeBudgetProgram
 } from '../vendor/web3.mjs';
 import {
   createBurnCheckedInstruction, getAssociatedTokenAddressSync,
   TOKEN_2022_PROGRAM_ID
 } from '../vendor/spl-token.mjs';
-import { PYRE_MINT_STR, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR } from './config.js';
-
-const JUP_QUOTE = 'https://lite-api.jup.ag/swap/v1/quote';
-const JUP_SWAP_INSTRUCTIONS = 'https://lite-api.jup.ag/swap/v1/swap-instructions';
-const JUP_SWAP = 'https://lite-api.jup.ag/swap/v1/swap';
-
-// 3% static slippage floor + dynamicSlippage:true. Same as the buy
-// form. Memecoin pools have less depth — 1% fails constantly.
-const SLIPPAGE_BPS = 300;
-const MAX_PRIORITY_LAMPORTS = 2_000_000;
+import {
+  PYRE_MINT_STR, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR,
+  SOL_MINT_STR, USDC_MINT_STR, USDT_MINT_STR, JUP, SWAP_DEFAULTS,
+} from './config.js';
+import { scaleToRaw } from './utils.js';
+import { getPyreDecimals } from './data.js';
 
 // Token registry mirrors the buy form; kept here separately so the
 // atomic-burn module is self-contained and importable without the
 // buy UI being loaded.
-const SOL_MINT  = 'So11111111111111111111111111111111111111112';
 export const PAY_TOKENS = {
-  sol:  { mint: SOL_MINT,                                       decimals: 9, symbol: 'SOL'  },
-  usdc: { mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6, symbol: 'USDC' },
-  usdt: { mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', decimals: 6, symbol: 'USDT' },
+  sol:  { mint: SOL_MINT_STR,  decimals: 9, symbol: 'SOL'  },
+  usdc: { mint: USDC_MINT_STR, decimals: 6, symbol: 'USDC' },
+  usdt: { mint: USDT_MINT_STR, decimals: 6, symbol: 'USDT' },
 };
 
 // ─── helpers ─────────────────────────────────────────────────────────
@@ -69,7 +64,7 @@ function base64ToBytes(b64) {
 }
 
 // Jupiter's instruction shape: { programId, accounts:[{pubkey,isSigner,isWritable}], data:base64 }.
-// Convert to a TransactionInstruction. base64 → bytes via atom, NOT Buffer
+// Convert to a TransactionInstruction. base64 → bytes via atob, NOT Buffer
 // (Buffer isn't available in the browser without a polyfill).
 function deserializeJupInstruction(instr) {
   return new TransactionInstruction({
@@ -115,11 +110,11 @@ export async function fetchExactOutQuote(payMint, outAmountRaw) {
     inputMint: payMint,
     outputMint: PYRE_MINT_STR,
     amount: outAmountRaw,
-    slippageBps: String(SLIPPAGE_BPS),
+    slippageBps: String(SWAP_DEFAULTS.SLIPPAGE_BPS),
     swapMode: 'ExactOut',
     restrictIntermediateTokens: 'true',
   });
-  const res = await fetch(`${JUP_QUOTE}?${params}`, { cache: 'no-store' });
+  const res = await fetch(`${JUP.QUOTE}?${params}`, { cache: 'no-store' });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`quote ${res.status}${body ? ' · ' + body.slice(0, 200) : ''}`);
@@ -128,7 +123,7 @@ export async function fetchExactOutQuote(payMint, outAmountRaw) {
 }
 
 async function fetchSwapInstructions(quoteResponse, userPublicKey) {
-  const res = await fetch(JUP_SWAP_INSTRUCTIONS, {
+  const res = await fetch(JUP.SWAP_INSTRUCTIONS, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -140,7 +135,7 @@ async function fetchSwapInstructions(quoteResponse, userPublicKey) {
       prioritizationFeeLamports: {
         priorityLevelWithMaxLamports: {
           priorityLevel: 'veryHigh',
-          maxLamports: MAX_PRIORITY_LAMPORTS,
+          maxLamports: SWAP_DEFAULTS.MAX_PRIORITY_LAMPORTS,
         },
       },
     }),
@@ -152,35 +147,13 @@ async function fetchSwapInstructions(quoteResponse, userPublicKey) {
   return res.json();
 }
 
-// ─── PYRE mint decimals (cached) ────────────────────────────────────
-
-let _pyreDecimalsCache = null;
-async function getPyreDecimals(conn) {
-  if (_pyreDecimalsCache != null) return _pyreDecimalsCache;
-  const info = await conn.getParsedAccountInfo(new PublicKey(PYRE_MINT_STR));
-  const d = info?.value?.data?.parsed?.info?.decimals;
-  if (typeof d !== 'number') throw new Error('Could not read $PYRE decimals');
-  _pyreDecimalsCache = d;
-  return d;
-}
-
-// Scale a UI amount to raw base units via integer math (toFixed +
-// string concat) to avoid 0.1+0.2 floating-point drift on the
-// fractional component. Returns BigInt of the raw amount.
-function scaleToRaw(uiAmount, decimals) {
-  const s = uiAmount.toFixed(decimals);
-  const [whole, frac = ''] = s.split('.');
-  const padded = (frac + '0'.repeat(decimals)).slice(0, decimals);
-  return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(padded || '0');
-}
-
 // Fetch a pre-built Jupiter swap transaction (NOT the instructions
 // shape — this returns a complete v0 tx ready to sign + send). Used
 // by the 2-tx fallback when the atomic instruction-shape variant
 // would exceed Solana's 1232-byte limit. Same defaults as the atomic
 // path (dynamic slippage, very-high priority, 2M lamport cap).
 async function fetchPrebuiltSwap(quoteResponse, userPublicKey) {
-  const res = await fetch(JUP_SWAP, {
+  const res = await fetch(JUP.SWAP, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -192,7 +165,7 @@ async function fetchPrebuiltSwap(quoteResponse, userPublicKey) {
       prioritizationFeeLamports: {
         priorityLevelWithMaxLamports: {
           priorityLevel: 'veryHigh',
-          maxLamports: MAX_PRIORITY_LAMPORTS,
+          maxLamports: SWAP_DEFAULTS.MAX_PRIORITY_LAMPORTS,
         },
       },
     }),
@@ -210,7 +183,7 @@ async function fetchPrebuiltSwap(quoteResponse, userPublicKey) {
  * Build the atomic swap+burn+inscribe VersionedTransaction.
  *
  * @param {object} args
- * @param {Connection} args.conn        — RPC connection
+ * @param {import('../vendor/web3.mjs').Connection} args.conn — RPC connection
  * @param {PublicKey}  args.payer       — user's wallet pubkey
  * @param {string}     args.payMint     — base58 of the pay-with mint (SOL/USDC/USDT)
  * @param {number}     args.totalBurnAmt — $PYRE amount to burn (service fee + leaderboard)
@@ -228,7 +201,7 @@ export async function buildAtomicBurnTx({ conn, payer, payMint, totalBurnAmt, ex
   }
   if (!Number.isFinite(extraPyreAmt) || extraPyreAmt < 0) extraPyreAmt = 0;
 
-  const pyreDecimals = await getPyreDecimals(conn);
+  const pyreDecimals = await getPyreDecimals();
   const burnRawAmount = scaleToRaw(totalBurnAmt, pyreDecimals);
   // Total to ACQUIRE via the swap = the amount we'll burn + any extra
   // the user wants left in their wallet. The burn instruction below
@@ -335,13 +308,13 @@ export async function buildAtomicBurnTx({ conn, payer, payMint, totalBurnAmt, ex
  *
  * @returns {Promise<{tx: VersionedTransaction, lastValidBlockHeight: number, quote: object}>}
  */
-export async function buildSwapOnlyTx({ conn, payer, payMint, totalBurnAmt, extraPyreAmt = 0 }) {
+export async function buildSwapOnlyTx({ payer, payMint, totalBurnAmt, extraPyreAmt = 0 }) {
   if (!(payer instanceof PublicKey)) throw new Error('payer must be a PublicKey');
   if (!Number.isFinite(totalBurnAmt) || totalBurnAmt <= 0) {
     throw new Error('totalBurnAmt must be > 0');
   }
   if (!Number.isFinite(extraPyreAmt) || extraPyreAmt < 0) extraPyreAmt = 0;
-  const pyreDecimals = await getPyreDecimals(conn);
+  const pyreDecimals = await getPyreDecimals();
   const acquireRawAmount = scaleToRaw(totalBurnAmt + extraPyreAmt, pyreDecimals);
 
   // ExactOut quote so the user receives exactly the target $PYRE
@@ -372,7 +345,7 @@ export async function buildBurnOnlyTx({ conn, payer, totalBurnAmt, memoText }) {
   if (!memoText || typeof memoText !== 'string') {
     throw new Error('memoText required');
   }
-  const pyreDecimals = await getPyreDecimals(conn);
+  const pyreDecimals = await getPyreDecimals();
   const burnRawAmount = scaleToRaw(totalBurnAmt, pyreDecimals);
   const mint = new PublicKey(PYRE_MINT_STR);
   const senderAta = getAssociatedTokenAddressSync(mint, payer, false, TOKEN_2022_PROGRAM_ID);

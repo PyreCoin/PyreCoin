@@ -15,7 +15,16 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-29">
+<link rel="stylesheet" href="style.css?v=20260512-30">
+<!-- Twemoji (jdecked fork — the actively-maintained continuation of
+     Twitter's archived original). Parses Unicode emoji in rendered
+     HTML and swaps them for consistent SVG glyphs from jsDelivr, so
+     🔥 ⏰ 👛 etc. look the same on every OS. Version-pinned + SRI'd:
+     a future jsDelivr compromise can't ship a swapped script body.
+     crossorigin="anonymous" is required for SRI to be enforced. -->
+<script defer src="https://cdn.jsdelivr.net/npm/@twemoji/api@17.0.2/dist/twemoji.min.js"
+        integrity="sha384-Pe8SdSjyHDL7CJg3xfmrIoD4qNopbel/GRj/EtoJnq+8S0HkIRilr02Y9OliMlb+"
+        crossorigin="anonymous"></script>
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -819,6 +828,7 @@
       <li><strong>X (formerly Twitter)</strong> — hosts <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a> and the <a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer">live community feed</a>. The blue checkmark is, regrettably, not free. We accept this as the cost of doing memecoin in this (still unfortunate) timeline.</li>
       <li><strong>pump.fun</strong> — minted the SPL token for a one-time fee best described as "a coffee." This is the closest thing the project has to a treasury event.</li>
       <li><strong>Jupiter</strong> — Solana's aggregator. The "Buy $PYRE" button points at <a href="https://jup.ag" target="_blank" rel="noopener noreferrer">jup.ag</a>; the live price + market cap on this page come from their Price API. Free tier, CORS-friendly, no key required.</li>
+      <li><strong>Twemoji</strong> (the <a href="https://github.com/jdecked/twemoji" target="_blank" rel="noopener noreferrer">jdecked fork</a>) — every emoji on this page is rendered as a Twemoji SVG instead of the operating system's native one. Same 🔥 on macOS, Linux, Windows, Android. Twitter retired the original library in 2024; the fork is the actively-maintained continuation. CC-BY 4.0 for the graphics, MIT for the code. Loaded from jsDelivr with a pinned version and a Subresource Integrity hash — a CDN compromise can't ship a swapped script body.</li>
     </ul>
 
     <p>
@@ -911,7 +921,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-29"></script>
+<script type="module" src="js/main.js?v=20260512-30"></script>
 
 </body>
 </html>

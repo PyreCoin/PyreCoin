@@ -121,7 +121,6 @@ nav.nav--hidden{
   backdrop-filter:blur(8px);
   -webkit-backdrop-filter:blur(8px);
   border:0.5px solid rgba(255,100,30,0.4);
-  border-radius:0;
   box-shadow:
     0 14px 40px rgba(0,0,0,0.75),
     0 0 50px rgba(255,80,0,0.18);
@@ -401,7 +400,6 @@ nav.nav--hidden{
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
   border:0.5px dashed rgba(255,100,30,0.3);
-  border-radius:0;
 }
 .lb-cold-title{
   font-family:var(--display);
@@ -449,7 +447,6 @@ nav.nav--hidden{
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
   border:0.5px solid var(--border);
-  border-radius:0;
   overflow:hidden;
   transition:border-color .2s,background .2s,transform .2s;
   /* Two-column grid: text on the left, sparkline on the right. The
@@ -529,7 +526,6 @@ nav.nav--hidden{
   color:var(--ember);
   background:rgba(255,80,0,0.08);
   padding:1px 6px;
-  border-radius:0;
 }
 /* Sparkline slot — populated by js/charts.js with an inline <svg>.
    Spans all four text rows on the left and centers vertically. */
@@ -580,7 +576,6 @@ nav.nav--hidden{
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
   border:0.5px solid var(--border);
-  border-radius:0;
   padding:32px 40px 28px;
   display:flex;flex-direction:column;
   overflow:hidden;
@@ -611,7 +606,6 @@ nav.nav--hidden{
   display:flex;gap:4px;
   background:rgba(0,0,0,0.4);
   border:0.5px solid var(--border2);
-  border-radius:0;
   padding:2px;
 }
 .chart-range{
@@ -622,7 +616,6 @@ nav.nav--hidden{
   padding:5px 12px;
   cursor:pointer;
   text-transform:uppercase;
-  border-radius:0;
   transition:color .15s,background .15s;
 }
 .chart-range:hover{color:var(--ember2);}
@@ -736,7 +729,6 @@ nav.nav--hidden{
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
   border:0.5px solid var(--border);
-  border-radius:0;
   transition:border-color .2s,background .2s,transform .15s;
 }
 .slot:hover{
@@ -789,7 +781,6 @@ nav.nav--hidden{
   color:var(--text2);
   background:rgba(0,0,0,0.5);
   border:0.5px solid var(--border2);
-  border-radius:0;
   text-decoration:none;
   white-space:nowrap;
   max-width:100%;
@@ -891,7 +882,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .backburner-list{
   display:flex;flex-direction:column;gap:0;
   border:0.5px solid var(--border2);
-  border-radius:0;
   background:rgba(0,0,0,0.32);
   overflow:hidden;
 }
@@ -967,7 +957,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:56px 48px;
   background:rgba(10,3,0,0.65);
   border:0.5px solid var(--border);
-  border-radius:0;
   text-align:center;
   position:relative;
   overflow:hidden;
@@ -976,13 +965,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   content:'';position:absolute;inset:0;
   background:radial-gradient(ellipse at 50% 0%,rgba(255,80,0,0.1) 0%,transparent 60%);
   pointer-events:none;
-}
-.heat-math-label{
-  font-family:var(--mono);
-  font-size:11px;letter-spacing:4px;
-  color:var(--text3);text-transform:uppercase;
-  margin-bottom:28px;
-  position:relative;
 }
 .heat-math-formula{
   font-family:var(--mono);
@@ -1090,7 +1072,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
 .btn-primary{
   padding:14px 36px;background:#ff3d00;border:none;
-  border-radius:0;color:#fff;font-size:11px;font-weight:700;
+  color:#fff;font-size:11px;font-weight:700;
   letter-spacing:3px;text-transform:uppercase;cursor:pointer;
   font-family:var(--mono);
   box-shadow:0 0 30px rgba(255,60,0,0.4);
@@ -1099,7 +1081,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .btn-primary:hover{background:#ff5520;box-shadow:0 0 50px rgba(255,80,0,0.7);transform:translateY(-2px);}
 .btn-ghost{
   padding:14px 30px;background:transparent;
-  border:0.5px solid rgba(255,80,20,0.3);border-radius:0;
+  border:0.5px solid rgba(255,80,20,0.3);
   color:var(--text2);font-size:11px;font-weight:500;
   letter-spacing:3px;text-transform:uppercase;cursor:pointer;
   font-family:var(--mono);transition:all .2s;
@@ -1196,7 +1178,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:34px 32px 28px;
   background:#0a0300;
   border:0.5px solid rgba(255,100,30,0.3);
-  border-radius:0;
   box-shadow:0 0 80px rgba(255,80,0,0.3);
   font-family:var(--sans);
   position:relative;
@@ -1265,7 +1246,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   width:100%;
   background:rgba(255,255,255,0.04);
   border:0.5px solid rgba(255,100,30,0.2);
-  border-radius:0;
   padding:10px 12px;
   color:var(--text);
   font-family:var(--mono);
@@ -1330,7 +1310,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 .burn-status{
   margin-top:18px;padding:12px 14px;
-  border-radius:0;
   font-family:var(--mono);
   font-size:11px;line-height:1.55;
   display:none;
@@ -1421,7 +1400,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:5px 9px 5px 8px;
   background:rgba(255,100,30,0.06);
   border:0.5px solid rgba(255,100,30,0.25);
-  border-radius:0;
   color:var(--text);
   font-family:var(--mono);
   font-size:11px;
@@ -1457,7 +1435,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:6px;
   background:#0a0300;
   border:0.5px solid var(--ember);
-  border-radius:0;
   box-shadow:0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(255,80,0,0.18);
   display:flex;flex-direction:column;gap:2px;
 }
@@ -1465,7 +1442,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .burn-pay-picker button{
   display:flex;align-items:center;gap:10px;
   padding:9px 10px;
-  background:transparent;border:none;border-radius:0;
+  background:transparent;border:none;
   cursor:pointer;
   text-align:left;
   font-family:var(--mono);
@@ -1494,7 +1471,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:14px 14px 12px;
   background:rgba(0,0,0,0.4);
   border:0.5px dashed rgba(255,100,30,0.25);
-  border-radius:0;
 }
 .burn-bill-header{
   font-family:var(--mono);
@@ -1575,7 +1551,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:2px 4px;
   background:rgba(255,100,30,0.08);
   border:0.5px solid rgba(255,100,30,0.3);
-  border-radius:0;
   color:#fff;
   font-family:var(--mono);
   font-size:11px;
@@ -1658,7 +1633,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   width:100%;margin-top:20px;
   padding:14px;
   background:#ff3d00;
-  border:none;border-radius:0;
+  border:none;
   color:#fff;
   font-family:var(--mono);
   font-size:11px;font-weight:700;
@@ -1692,7 +1667,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   width:100%;
   background:rgba(255,255,255,0.04);
   border:0.5px solid rgba(255,100,30,0.2);
-  border-radius:0;
   transition:border-color .2s;
   /* Anchor the token picker against this row's bottom-right corner
      rather than the wider .buy-pay-row (which extends past the
@@ -1780,8 +1754,13 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 /* Interactive token chip — button variant. Same shape as the static
    chip, plus a chevron and a hover/focus state. The aria-haspopup
-   pattern keeps it accessible without a separate dropdown wrapper. */
+   pattern keeps it accessible without a separate dropdown wrapper.
+   background:transparent + border:none overrides the browser's
+   default button chrome (ButtonFace fill) so the chip blends into
+   the dark .buy-input-line row like the static .buy-token-chip does. */
 .buy-token-chip-btn{
+  background:transparent;
+  border:none;
   cursor:pointer;
   transition:color .15s,background .15s;
 }
@@ -1818,7 +1797,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   background:#0a0300;
   border:0.5px solid var(--ember);
   border-top:none;
-  border-radius:0;
   box-shadow:0 12px 40px rgba(0,0,0,0.7), 0 0 30px rgba(255,80,0,0.18);
   display:flex;flex-direction:column;gap:2px;
 }
@@ -1826,7 +1804,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .buy-token-picker button{
   display:flex;align-items:center;gap:10px;
   padding:9px 10px;
-  background:transparent;border:none;border-radius:0;
+  background:transparent;border:none;
   cursor:pointer;
   text-align:left;
   font-family:var(--mono);
@@ -1865,7 +1843,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:7px 0;
   background:rgba(255,255,255,0.03);
   border:0.5px solid rgba(255,100,30,0.18);
-  border-radius:0;
   color:var(--text2);
   font-family:var(--mono);
   font-size:10.5px;
@@ -1931,7 +1908,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:14px 14px 12px;
   background:rgba(0,0,0,0.5);
   border:0.5px dashed rgba(255,100,30,0.25);
-  border-radius:0;
   display:flex;
   flex-direction:column;
   gap:14px;
@@ -1961,7 +1937,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:8px 0;
   background:rgba(255,255,255,0.03);
   border:0.5px solid rgba(255,100,30,0.18);
-  border-radius:0;
   color:var(--text2);
   font-family:var(--mono);
   font-size:11px;
@@ -2084,7 +2059,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   display:inline-flex;align-items:center;gap:4px;
   padding:4px 4px 4px 8px;
   border:0.5px solid var(--border);
-  border-radius:0;
   background:rgba(0,0,0,0.4);
   font-family:var(--mono);
   font-size:10px;
@@ -2113,6 +2087,24 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .wallet-disconnect:hover{
   color:var(--text);
   background:rgba(255,80,40,0.25);
+}
+
+/* ── TWEMOJI ──
+   Cross-platform emoji rendering via the jdecked/twemoji fork (the
+   actively-maintained continuation of Twitter's archived original).
+   utils.parseEmoji() is called after every dynamic-content render in
+   leaderboard.js / inscription-wall.js, and once at boot in main.js,
+   so the badges/CTA/flavor pool render the same SVG glyphs on every
+   OS — not Apple's color emoji on macOS, Google's Noto on Linux,
+   Microsoft's Segoe on Windows, etc.
+   Size + alignment so the SVG slots into running text like a glyph.
+   The class is set in utils.parseEmoji's twemoji.parse options. */
+img.twemoji{
+  height:1em;
+  width:1em;
+  vertical-align:-0.125em;
+  display:inline-block;
+  margin:0 0.05em;
 }
 
 /* ── LINGUISTIC FONT (IPA, polytonic Greek, PIE combining marks) ── */
@@ -2144,7 +2136,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   background:rgba(255,248,225,0.96);
   color:#1a0500;
   padding:36px 38px 52px;
-  border-radius:0;
   border:0.5px solid rgba(255,180,80,0.35);
   box-shadow:
     0 0 60px rgba(255,100,20,0.18),
@@ -2226,7 +2217,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 /* ── ETYMOLOGY CHAIN ── */
 .etym-card{
   background:var(--glass);backdrop-filter:blur(20px);
-  border:0.5px solid var(--border);border-radius:0;
+  border:0.5px solid var(--border);
   padding:30px 28px;
 }
 .etym-title{
@@ -2283,7 +2274,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .encyc{
   margin-top:24px;
   background:var(--glass);backdrop-filter:blur(20px);
-  border:0.5px solid var(--border);border-radius:0;
+  border:0.5px solid var(--border);
   padding:34px 36px;
 }
 .encyc-head{
@@ -2331,7 +2322,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   margin-top:24px;
   padding:28px 32px;
   border:0.5px dashed rgba(255,80,20,0.35);
-  border-radius:0;
   background:rgba(255,80,20,0.03);
 }
 .mock-label{
@@ -2364,7 +2354,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
      .section's max-width:1200px; margin:0 auto. The earlier
      `margin:48px 0 24px;` clobbered that, leaving the block left-anchored. */
   margin:48px auto 24px;
-  border-radius:0;
 }
 .disclaimer h2{
   font-family:var(--display);
@@ -2460,7 +2449,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   border-left:1px solid rgba(255,100,30,0.18);
   font-size:12.5px;line-height:1.65;
   background:rgba(255,100,30,0.03);
-  border-radius:0;
 }
 .colophon li strong{color:var(--ember2);font-weight:500;}
 .colophon a{color:var(--ember2);text-decoration:none;border-bottom:0.5px dotted var(--ember2);}
@@ -2468,7 +2456,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .colophon code{
   font-family:var(--mono);font-size:11.5px;
   color:var(--ember);background:rgba(255,100,30,0.08);
-  padding:1px 6px;border-radius:0;
+  padding:1px 6px;
 }
 .colophon-sign{
   font-family:var(--mono);
@@ -2632,7 +2620,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
   border:0.5px solid var(--border);
-  border-radius:0;
 }
 .top-cta-title{
   font-family:var(--display);
@@ -2769,7 +2756,6 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   padding:14px 18px;
   background:rgba(0,0,0,0.45);
   border:0.5px solid var(--border2);
-  border-radius:0;
   transition:border-color .2s,background .2s;
 }
 .wall-slot:hover{

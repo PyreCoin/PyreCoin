@@ -55,3 +55,99 @@ export function hashString(s){
   }
   return h;
 }
+
+// ── money / token formatting ─────────────────────────────────────
+// Single source of truth — used by main.js (CTA), buy.js, burn.js
+// (bill of sale). Variants below; pick by call site.
+
+// Compact USD string. Buckets keep tiny memecoin prices readable
+// (sub-cent gets more decimals) while large totals stay scannable.
+export function fmtUsd(usd){
+  if (!Number.isFinite(usd) || usd <= 0) return '$—';
+  if (usd >= 1000) return '$' + Math.round(usd).toLocaleString();
+  if (usd >= 1)    return '$' + usd.toFixed(2);
+  if (usd >= 0.01) return '$' + usd.toFixed(3);
+  if (usd >= 0.0001) return '$' + usd.toFixed(5);
+  return '$' + usd.toFixed(7);
+}
+
+// Same buckets as fmtUsd, but prefixed "~" — used in the bill of sale
+// where every line is an estimate (network fees, swap prices drift).
+export function fmtUsdApprox(usd){
+  if (!isFinite(usd) || usd <= 0) return '~$0';
+  if (usd >= 1000) return '~$' + Math.round(usd).toLocaleString();
+  if (usd >= 1)    return '~$' + usd.toFixed(2);
+  if (usd >= 0.01) return '~$' + usd.toFixed(3);
+  if (usd >= 0.0001) return '~$' + usd.toFixed(5);
+  return '~$' + usd.toFixed(7);
+}
+
+// Trim trailing zeros + a stranded decimal point from a fixed-decimal
+// numeric string. "1.20000" → "1.2"; "1.00000" → "1"; "1." → "1".
+export function trimDecimals(s){
+  return s.replace(/0+$/, '').replace(/\.$/, '');
+}
+
+// Numeric amount → display string with up to maxDp decimals, trimmed.
+export function fmtAmount(n, maxDp = 6){
+  if (!Number.isFinite(n) || n <= 0) return '0';
+  return trimDecimals(n.toFixed(maxDp));
+}
+
+// Scale a UI amount to raw base units via integer math to avoid
+// 0.1+0.2 floating-point drift on the fractional component. Returns
+// BigInt of the raw amount. Single source of truth used by every
+// module that crafts a token instruction.
+export function scaleToRaw(uiAmount, decimals){
+  const s = uiAmount.toFixed(decimals);
+  const [whole, frac = ''] = s.split('.');
+  const padded = (frac + '0'.repeat(decimals)).slice(0, decimals);
+  return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(padded || '0');
+}
+
+// Twemoji parser shim. The @twemoji/api CDN bundle exposes
+// window.twemoji; renderers call parseEmoji(node) after dropping new
+// HTML into the DOM so emoji characters get swapped to consistent SVG
+// images. No-op when the script hasn't loaded yet (or has been blocked
+// by an extension) so the page degrades gracefully to native emoji.
+//
+// Folder + ext: SVG variant for crisp scaling; the className lets us
+// style every parsed img with one CSS rule (vertical-align + height).
+export function parseEmoji(node) {
+  if (!node) return;
+  const tw = (typeof window !== 'undefined') ? window.twemoji : null;
+  if (!tw || typeof tw.parse !== 'function') return;
+  try {
+    tw.parse(node, { folder: 'svg', ext: '.svg', className: 'twemoji' });
+  } catch (_) { /* defensive: parsing some Unicode sequences can throw */ }
+}
+
+// Defense-in-depth href validator for user-content URLs (leaderboard
+// + inscription wall renderers). The ingest filter is authoritative
+// but renderer-side checking means a single ingest regression can't
+// publish dangerous href values to live visitors.
+//
+// Accept rules: must be a parseable URL (after prepending https:// if
+// the bare-domain form is passed), https only, hostname must contain
+// a dot, no IP-literal hostnames. Returns the canonicalized href on
+// success, or null to signal "render as plain text, not a link."
+export function safeHref(url){
+  if (typeof url !== 'string') return null;
+  const raw = url.trim();
+  if (!raw) return null;
+  // Reject schemes other than http/https outright. We prepend https://
+  // below for bare domains, but any explicit scheme stays as-is for the
+  // protocol check.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(raw) && !/^https?:\/\//i.test(raw)) return null;
+  const candidate = /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
+  let u;
+  try { u = new URL(candidate); } catch { return null; }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+  if (!u.hostname || !u.hostname.includes('.')) return null;
+  // No IP-literal hostnames (per moderation policy).
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(u.hostname)) return null;
+  if (/^\[.*\]$/.test(u.hostname)) return null; // IPv6 bracket form
+  // Force https on the final href — we only ever publish https URLs.
+  u.protocol = 'https:';
+  return u.toString();
+}

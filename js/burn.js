@@ -18,30 +18,39 @@
 // The 1 lamport accumulates there forever; anyone can replicate the
 // shape with their own wallet (no permission needed).
 //
+// Wallet plumbing comes from js/wallet.js (shared with buy.js) so all
+// Wallet-Standard discovery is centralized — one registry, one set of
+// subscribe handlers, one canonical detectProvider().
+//
 // Solana libs are imported from /vendor/ — single-file ESM bundles
 // produced by esbuild against the npm packages and committed to the
 // repo. Zero runtime CDN dependency. See vendor/README.md.
 
 import {
-  Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, ComputeBudgetProgram,
-  VersionedTransaction
+  PublicKey, Transaction, TransactionInstruction, SystemProgram, ComputeBudgetProgram,
 } from '../vendor/web3.mjs';
 import {
   createBurnCheckedInstruction, getAssociatedTokenAddressSync, getAccount,
   TOKEN_2022_PROGRAM_ID
 } from '../vendor/spl-token.mjs';
-// Solana Wallet Standard discovery — picks up Jupiter Mobile/Web, Glow,
-// Magic Eden, OKX, Coinbase, Trust, Bitget, and modern Phantom/Solflare/
-// Backpack via the standard's `register` event protocol instead of the
-// legacy `window.solana` injection. Wrapped in try/catch at call-site so
-// a CDN blip leaves the legacy window-global path working.
-import { getWallets } from '../vendor/wallet-standard.mjs';
 
 import {
-  PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR, isPlaceholder
+  PYRE_MINT_STR, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR, isPlaceholder,
+  SOL_MINT_STR, JUP,
+  BASE_LAMPORTS, PRIORITY_LAMPORTS, BEACON_LAMPORTS, INSCRIPTION_FEE_LAMPORTS,
 } from './config.js';
-import { $, shortAddr, escapeHtml, fmt } from './utils.js';
-import { buildAtomicBurnTx, buildSwapOnlyTx, buildBurnOnlyTx, PAY_TOKENS } from './atomic-burn.js';
+import {
+  $, shortAddr, escapeHtml, fmt, fmtUsdApprox, trimDecimals, scaleToRaw,
+} from './utils.js';
+import {
+  getConnection, getPyreDecimals,
+} from './data.js';
+import {
+  detectProvider, onWalletChange, disconnectWallet,
+} from './wallet.js';
+import {
+  buildAtomicBurnTx, buildSwapOnlyTx, buildBurnOnlyTx, PAY_TOKENS,
+} from './atomic-burn.js';
 
 // ─── PYRE service-fee constant ──────────────────────────────────────
 // Every inscription that goes through pyrecoin.com burns at least
@@ -55,21 +64,19 @@ const SERVICE_FEE_PYRE = 1;
 // that will survive moderation.
 const X_HANDLE_RE = /^[A-Za-z0-9_]{1,15}$/;
 
-// Display-only cost estimate for the modal. Solana base fee is 5,000
-// lamports per signature; we tack on a small priority fee for fast
-// inclusion. Real fee is computed by the wallet at sign time.
-const PRIORITY_LAMPORTS = 10_000;
-const BASE_LAMPORTS     = 5_000;
-const INSCRIPTION_LAMPORTS = 1; // transferred to the beacon as a marker
-const TOTAL_LAMPORTS    = BASE_LAMPORTS + PRIORITY_LAMPORTS + INSCRIPTION_LAMPORTS;
+// pump.fun mints SPL tokens under the Token-2022 program (NOT the
+// legacy Token program). This matters for THREE places: ATA address
+// derivation, getAccount() reading, and transfer/ATA-creation
+// instructions. If we use legacy defaults the ATA address is wrong
+// and balance reads as 0 even when the user holds the token.
+const TOKEN_PROGRAM = TOKEN_2022_PROGRAM_ID;
 
 // Live USD prices for the four tokens the bill of sale needs to value:
 // SOL (network fee + alt pay path), $PYRE (service fee + leaderboard
 // burn), USDC and USDT (alt pay paths). One round-trip per refresh.
 // Cached for 60s so we don't re-fetch on every keystroke.
-const SOL_MINT = 'So11111111111111111111111111111111111111112';
-const BILL_PRICE_MINTS = [SOL_MINT, PYRE_MINT_STR, PAY_TOKENS.usdc.mint, PAY_TOKENS.usdt.mint];
-const JUP_PRICE_URL = 'https://lite-api.jup.ag/price/v3?ids=' + BILL_PRICE_MINTS.join(',');
+const BILL_PRICE_MINTS = [SOL_MINT_STR, PYRE_MINT_STR, PAY_TOKENS.usdc.mint, PAY_TOKENS.usdt.mint];
+const JUP_PRICE_URL = `${JUP.PRICE}?ids=${BILL_PRICE_MINTS.join(',')}`;
 const _priceCache = { ts: 0, prices: { sol: null, pyre: null, usdc: null, usdt: null } };
 async function fetchAllPrices(){
   if (Date.now() - _priceCache.ts < 60_000 && _priceCache.prices.sol != null) {
@@ -79,7 +86,7 @@ async function fetchAllPrices(){
     const res = await fetch(JUP_PRICE_URL, { cache: 'no-store' });
     if (!res.ok) return _priceCache.prices;
     const data = await res.json();
-    const sol  = data?.[SOL_MINT]?.usdPrice;
+    const sol  = data?.[SOL_MINT_STR]?.usdPrice;
     const pyre = data?.[PYRE_MINT_STR]?.usdPrice;
     const usdc = data?.[PAY_TOKENS.usdc.mint]?.usdPrice;
     const usdt = data?.[PAY_TOKENS.usdt.mint]?.usdPrice;
@@ -91,24 +98,13 @@ async function fetchAllPrices(){
   } catch (_) { /* keep last-good prices */ }
   return _priceCache.prices;
 }
-// Back-compat alias for any code path that still asks just for SOL/USD.
-async function fetchSolPriceUsd(){
-  const p = await fetchAllPrices();
-  return p.sol;
-}
 
 // ─── STATE ───────────────────────────────────────────────────────────
 const burnState = {
-  provider: null,        // injected wallet provider (window.solana, etc.)
+  provider: null,        // wallet provider (legacy injection or Wallet-Standard adapter)
   publicKey: null,       // user's wallet pubkey (web3.PublicKey)
   decimals: null,        // PYRE mint's decimals, queried on connect
   balance: null,         // user's $PYRE balance (uiAmount)
-  // Alt-pay balances. Each: { value: number | null }. null means
-  // "we don't know yet" (haven't fetched, or RPC failed); 0 means
-  // "fetched, account doesn't exist or holds nothing".
-  solBalance: null,
-  usdcBalance: null,
-  usdtBalance: null,
   // Pay method — one of: 'pyre' | 'sol' | 'usdc' | 'usdt'. The
   // 'pyre' option uses the user's existing $PYRE balance (no swap);
   // the others use Jupiter to acquire-and-burn atomically.
@@ -117,6 +113,10 @@ const burnState = {
   // false, we auto-suggest min-to-take-#1 on every leaderboard tick.
   // Set true on any input event or X-clear click.
   userEditedAmount: false,
+  // True while a sign-and-submit is in flight. Locks the burn amount
+  // input so the auto-prefill loop can't mutate the visible value
+  // out from under the user mid-signature (see refreshBurnHint).
+  signing: false,
 };
 const PAY_METHOD_KEY = 'pyre.burnPayMethod';
 function loadPayMethod() {
@@ -179,7 +179,7 @@ function clearStatus(){
 // keyframes defined in style.css. Cleared on next input event in
 // that field (see the global 'input' listener below).
 function flagRowError(inputId) {
-  const input = document.getElementById(inputId);
+  const input = $(inputId);
   const row = input?.closest('.burn-form-row');
   if (!row) return;
   // Restart the animation by toggling the class off-then-on across
@@ -195,35 +195,9 @@ function clearAllRowErrors() {
   document.querySelectorAll('.burn-form-row.has-error').forEach(r => r.classList.remove('has-error'));
 }
 
-// Phantom/Solflare/Backpack sometimes inject window.solana 1-2 seconds
-// after the page loads. The retry poller below catches that case so
-// the form's submit button transitions from "Install a Solana wallet"
-// to "Connect wallet" without requiring a page reload.
-let _walletDetectPoller = null;
-function stopWalletDetectPoller(){
-  if (_walletDetectPoller){ clearInterval(_walletDetectPoller); _walletDetectPoller = null; }
-}
-function startWalletDetectPoller(){
-  stopWalletDetectPoller();
-  let retries = 8; // ~2s at 250ms intervals
-  _walletDetectPoller = setInterval(() => {
-    if (detectProvider() || --retries <= 0) {
-      stopWalletDetectPoller();
-      refreshWalletState();
-    }
-  }, 250);
-}
-
-// Populate the form's "min burn to take #1" tip from the live
-// leaderboard module (attached to window by main.js to avoid a
-// dual-import of leaderboard.js — which would spawn a second
-// _liveEntries state and double the leaderboard.json fetch).
-// Exposed on window so main.js's tick() can refresh it on the same
-// 30s cadence as the leaderboard data itself.
 // Auto-prefill the burn amount with min-to-take-#1 IF the user hasn't
-// manually edited the field yet. Runs on every leaderboard tick from
-// main.js. The user's X-clear click also sets userEditedAmount=true so
-// we don't fight them back to a non-zero number.
+// manually edited the field yet AND we're not mid-signature. Runs on
+// every leaderboard tick from main.js.
 function refreshBurnHint() {
   const lb = window.__pyreLeaderboard;
   const hintEl = $('burnHint');
@@ -238,7 +212,14 @@ function refreshBurnHint() {
   // Auto-suggest the take-#1 amount in the input until the user
   // overrides. Empty + auto = pre-fill; >0 + auto = pre-fill; X click
   // sets userEditedAmount and the value sticks at 0.
-  if (!burnState.userEditedAmount) {
+  //
+  // Freeze while signing: the totalBurnAmt is captured at sign-time
+  // in submitBurn, but the visible input keeps being live-updated
+  // by this tick — and a user staring at the wallet popup that says
+  // "burn 10,234" while the page below shows "burn 11,108" is a "what
+  // you see ≠ what you sign" smell. Skip the prefill while the submit
+  // button is disabled (= submission in flight).
+  if (!burnState.userEditedAmount && !burnState.signing) {
     const input = $('burnAmount');
     if (input && count > 0) {
       input.value = String(min);
@@ -320,19 +301,10 @@ document.addEventListener('change', e => {
 // and the bottom-line "you pay" total in both USD and the chosen
 // pay-with token. Re-runs on every input change, every leaderboard
 // tick, every payMethod switch, and every price refresh.
-function fmtBillUsd(usd) {
-  if (!isFinite(usd) || usd <= 0) return '~$0';
-  if (usd >= 1000) return '~$' + Math.round(usd).toLocaleString();
-  if (usd >= 1)    return '~$' + usd.toFixed(2);
-  if (usd >= 0.01) return '~$' + usd.toFixed(3);
-  if (usd >= 0.0001) return '~$' + usd.toFixed(5);
-  return '~$' + usd.toFixed(7);
-}
 function fmtPayAmount(amount, decimals, symbol) {
   if (!isFinite(amount) || amount <= 0) return `&approx; 0 ${symbol}`;
   const dp = decimals === 9 ? 6 : 4;
-  const s = amount.toFixed(dp).replace(/0+$/, '').replace(/\.$/, '');
-  return `&approx; ${s} ${symbol}`;
+  return `&approx; ${trimDecimals(amount.toFixed(dp))} ${symbol}`;
 }
 function recalculateBill() {
   const billEl = $('burnBill');
@@ -341,7 +313,7 @@ function recalculateBill() {
   const leaderboardAmt = (Number.isFinite(rawAmt) && rawAmt > 0) ? rawAmt : 0;
   const totalBurnAmt = SERVICE_FEE_PYRE + leaderboardAmt; // always at least the service fee
   const prices = _priceCache.prices;
-  const solFeeSol = TOTAL_LAMPORTS / 1e9;
+  const solFeeSol = INSCRIPTION_FEE_LAMPORTS / 1e9;
   const solFeeUsd = prices.sol != null ? solFeeSol * prices.sol : null;
   const serviceUsd = prices.pyre != null ? SERVICE_FEE_PYRE * prices.pyre : null;
   const lbUsd = prices.pyre != null ? leaderboardAmt * prices.pyre : null;
@@ -356,13 +328,13 @@ function recalculateBill() {
   const totalUsd = (solFeeUsd ?? 0) + (serviceUsd ?? 0) + (lbUsd ?? 0) + extraUsdValue;
 
   // ── Each line item ──
-  $('burnBillSolFee').textContent = solFeeUsd != null ? fmtBillUsd(solFeeUsd) : '—';
-  $('burnBillService').textContent = serviceUsd != null ? fmtBillUsd(serviceUsd) : '—';
+  $('burnBillSolFee').textContent = solFeeUsd != null ? fmtUsdApprox(solFeeUsd) : '—';
+  $('burnBillService').textContent = serviceUsd != null ? fmtUsdApprox(serviceUsd) : '—';
   const lbRow = $('burnBillLeaderboardRow');
   if (leaderboardAmt > 0) {
     lbRow.hidden = false;
     $('burnBillBurnAmt').textContent = fmt(leaderboardAmt);
-    $('burnBillLeaderboard').textContent = lbUsd != null ? fmtBillUsd(lbUsd) : '—';
+    $('burnBillLeaderboard').textContent = lbUsd != null ? fmtUsdApprox(lbUsd) : '—';
   } else {
     lbRow.hidden = true;
   }
@@ -378,7 +350,7 @@ function recalculateBill() {
     if (inp && parseFloat(inp.value) !== burnState.extraUsd && document.activeElement !== inp) {
       inp.value = burnState.extraUsd;
     }
-    $('burnBillExtra').textContent = extraUsdValue > 0 ? fmtBillUsd(extraUsdValue) : '~$0';
+    $('burnBillExtra').textContent = extraUsdValue > 0 ? fmtUsdApprox(extraUsdValue) : '~$0';
     const pyreEl = $('burnBillExtraPyre');
     if (pyreEl) {
       pyreEl.textContent = extraPyreAmt > 0
@@ -388,7 +360,7 @@ function recalculateBill() {
   }
 
   // ── Total in USD + pay-with-token equivalent ──
-  $('burnBillTotalUsd').textContent = totalUsd > 0 ? fmtBillUsd(totalUsd) : '—';
+  $('burnBillTotalUsd').textContent = totalUsd > 0 ? fmtUsdApprox(totalUsd) : '—';
 
   // Compute the pay-with-token amount. If 'pyre' is the pay method,
   // there's no swap — show just the $PYRE-burned total and the SOL fee
@@ -399,7 +371,7 @@ function recalculateBill() {
   if (payTok === 'pyre') {
     // The user pays SOL for network fees + (1 + N) $PYRE from balance.
     const pyreTotal = totalBurnAmt;
-    totalPayEl.innerHTML = `&approx; ${fmt(pyreTotal)} $PYRE + ${solFeeSol.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')} SOL fee`;
+    totalPayEl.innerHTML = `&approx; ${fmt(pyreTotal)} $PYRE + ${trimDecimals(solFeeSol.toFixed(6))} SOL fee`;
   } else {
     const tokKey = payTok;
     const tokPrice = prices[tokKey];
@@ -417,7 +389,7 @@ function recalculateBill() {
       const dec = PAY_TOKENS[tokKey]?.decimals ?? 6;
       const sym = PAY_TOKENS[tokKey]?.symbol  ?? tokKey.toUpperCase();
       const extra = (tokKey !== 'sol' && solFeeUsd != null && prices.sol > 0)
-        ? ` + ${(solFeeUsd / prices.sol).toFixed(6).replace(/0+$/, '').replace(/\.$/, '')} SOL fee`
+        ? ` + ${trimDecimals((solFeeUsd / prices.sol).toFixed(6))} SOL fee`
         : '';
       totalPayEl.innerHTML = fmtPayAmount(tokAmount, dec, sym) + extra;
     }
@@ -432,179 +404,31 @@ function recalculateBill() {
   }
 }
 
-// ─── WALLET DETECTION ────────────────────────────────────────────────
-// Two-layer detection: Solana Wallet Standard first (Jupiter, Glow,
-// Magic Eden, modern Phantom/Solflare/Backpack/etc.), then legacy
-// window.solana / window.solflare / window.backpack injection as a
-// fallback for older wallets that haven't migrated to the standard.
-//
-// Standard wallets are wrapped in an adapter object that exposes the
-// same { publicKey, isConnected, connect, signTransaction } API as the
-// legacy Phantom-style provider, so the rest of this file is unchanged.
+// ─── WALLET UI ───────────────────────────────────────────────────────
+// Wallet discovery, picking, signing and disconnect all live in
+// js/wallet.js — shared with buy.js so there's exactly one registry
+// and one set of subscribe handlers. We just react to changes.
 
-const _standardRegistry = {
-  inited: false,
-  wallets: [],        // adapted Solana wallets discovered via Wallet Standard
-  selectedName: null, // user's wallet-picker choice (persisted in localStorage)
-};
-
-// localStorage key for the user's wallet pick. Survives reloads so a
-// user who explicitly chose "Jupiter" doesn't get bounced back to
-// Phantom on the next visit.
-const WALLET_PICK_KEY = 'pyre.walletPick';
-
-function isSolanaStandardWallet(w) {
-  // Solana support is signalled by either the chains list or by the
-  // presence of solana:* features. We accept either — some wallets
-  // (e.g. multi-chain ones) leave `chains` empty until connected.
-  const isSolanaChain = (c) => typeof c === 'string' && c.startsWith('solana:');
-  if (Array.isArray(w.chains) && w.chains.some(isSolanaChain)) return true;
-  const f = w.features;
-  if (f && (f['solana:signTransaction'] || f['solana:signAndSendTransaction'])) return true;
-  return false;
+// Phantom/Solflare/Backpack sometimes inject window.solana 1-2 seconds
+// after the page loads. The retry poller below catches that case so
+// the form's submit button transitions from "Install a Solana wallet"
+// to "Connect wallet" without requiring a page reload.
+let _walletDetectPoller = null;
+function stopWalletDetectPoller(){
+  if (_walletDetectPoller){ clearInterval(_walletDetectPoller); _walletDetectPoller = null; }
 }
-
-function adaptStandardWallet(w) {
-  // Wraps a Wallet-Standard wallet to look like a legacy Phantom-style
-  // provider. The legacy API the rest of burn.js uses:
-  //   provider.publicKey                   → PublicKey | null
-  //   provider.isConnected                 → boolean
-  //   provider.connect()                   → Promise<void>
-  //   provider.signTransaction(tx)         → Promise<Transaction>
-  return {
-    _isStandard: true,
-    _wallet: w,
-    name: w.name,
-    icon: w.icon,
-    get publicKey() {
-      const acct = w.accounts?.[0];
-      try { return acct ? new PublicKey(acct.address) : null; }
-      catch { return null; }
-    },
-    get isConnected() {
-      return Array.isArray(w.accounts) && w.accounts.length > 0;
-    },
-    async connect() {
-      const feat = w.features?.['standard:connect'];
-      if (!feat) throw new Error(`${w.name} does not expose standard:connect`);
-      await feat.connect();
-    },
-    async signTransaction(tx) {
-      const feat = w.features?.['solana:signTransaction'];
-      if (!feat) throw new Error(`${w.name} does not expose solana:signTransaction`);
-      const acct = w.accounts?.[0];
-      if (!acct) throw new Error(`No connected account on ${w.name} — connect first`);
-      // Wallet Standard wants the wire bytes (unsigned), not a Transaction
-      // object. requireAllSignatures/verifySignatures false because the
-      // user's signature is exactly what we're asking the wallet to add.
-      const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
-      const results = await feat.signTransaction({
-        transaction: serialized,
-        account: acct,
-        chain: 'solana:mainnet',
-      });
-      const signedBytes = results?.[0]?.signedTransaction;
-      if (!signedBytes) throw new Error(`${w.name} returned no signed transaction`);
-      return Transaction.from(signedBytes);
-    },
-  };
-}
-
-function initStandardRegistry() {
-  if (_standardRegistry.inited) return;
-  _standardRegistry.inited = true;
-  try {
-    const api = getWallets();
-    const refresh = () => {
-      _standardRegistry.wallets = api.get()
-        .filter(isSolanaStandardWallet)
-        .map(adaptStandardWallet);
-      // Late wallet registration is the common case (extensions inject
-      // after our module loads). Re-render the inline form whenever a
-      // wallet appears so the user doesn't have to reload the page to
-      // see the new wallet in the picker.
+function startWalletDetectPoller(){
+  stopWalletDetectPoller();
+  let retries = 8; // ~2s at 250ms intervals
+  _walletDetectPoller = setInterval(() => {
+    if (detectProvider() || --retries <= 0) {
+      stopWalletDetectPoller();
       refreshWalletState();
-    };
-    refresh();
-    api.on('register', refresh);
-    api.on('unregister', refresh);
-    try {
-      _standardRegistry.selectedName = localStorage.getItem(WALLET_PICK_KEY);
-    } catch { /* localStorage disabled — fine, we just won't persist */ }
-  } catch (e) {
-    console.warn('Wallet Standard init failed; falling back to window globals only:', e);
-  }
-}
-initStandardRegistry();
-
-// The "late wallet registration" callback above (in `refresh()`) used to
-// re-render only when the modal was open. With the form always in the
-// DOM, the inline copy of that re-render is unconditional — see the
-// refreshWalletState() call wired to the standard registry's refresh
-// callback below.
-
-function detectLegacyProvider() {
-  // Pre-Wallet-Standard injection points. Kept for older wallet versions.
-  if (window.solana && window.solana.isPhantom) return Object.assign(window.solana, { name: window.solana.name || 'Phantom' });
-  if (window.phantom?.solana) return Object.assign(window.phantom.solana, { name: 'Phantom' });
-  if (window.solflare && window.solflare.isSolflare) return Object.assign(window.solflare, { name: 'Solflare' });
-  if (window.backpack) return Object.assign(window.backpack, { name: 'Backpack' });
-  if (window.solana) return Object.assign(window.solana, { name: window.solana.name || 'Solana wallet' });
-  return null;
+    }
+  }, 250);
 }
 
-function detectAllProviders() {
-  // Standard wallets first (they're the modern path); then legacy
-  // injection, deduped by name so a wallet that supports both paths
-  // doesn't appear twice in the picker.
-  const out = [..._standardRegistry.wallets];
-  const haveNames = new Set(out.map(w => (w.name || '').toLowerCase()));
-  const legacy = detectLegacyProvider();
-  if (legacy && !haveNames.has((legacy.name || '').toLowerCase())) {
-    out.push(legacy);
-  }
-  return out;
-}
-
-function detectProvider() {
-  const all = detectAllProviders();
-  if (all.length === 0) return null;
-  if (_standardRegistry.selectedName) {
-    const picked = all.find(w => (w.name || '').toLowerCase() === _standardRegistry.selectedName.toLowerCase());
-    if (picked) return picked;
-  }
-  return all[0];
-}
-
-window.__pyrePickWallet = function pickWallet(name) {
-  _standardRegistry.selectedName = name || null;
-  try {
-    if (name) localStorage.setItem(WALLET_PICK_KEY, name);
-    else localStorage.removeItem(WALLET_PICK_KEY);
-  } catch { /* localStorage disabled — keep in-memory pick only */ }
-  refreshWalletState();
-};
-
-function renderWalletPickerLine(all, active) {
-  // When more than one wallet is available, render a small switcher
-  // line so the user can pick between e.g. Phantom and Jupiter. Single-
-  // wallet case shows just the active wallet's name (no need to switch).
-  if (!all || all.length <= 1) {
-    return active?.name ? `<span class="wallet-name">via ${escapeHtml(active.name)}</span>` : '';
-  }
-  const opts = all.map(w => {
-    const n = escapeHtml(w.name || 'wallet');
-    const sel = (active && (w.name || '').toLowerCase() === (active.name || '').toLowerCase()) ? ' selected' : '';
-    return `<option value="${n}"${sel}>${n}</option>`;
-  }).join('');
-  return `<span class="wallet-name">via </span>` +
-         `<select class="wallet-picker" ` +
-         `onchange="window.__pyrePickWallet(this.value)" ` +
-         `aria-label="Choose wallet">${opts}</select>`;
-}
-
-async function refreshWalletState() {
-  const all = detectAllProviders();
+function refreshWalletState() {
   const provider = detectProvider();
   const navSlot = $('navWallet');
 
@@ -621,11 +445,13 @@ async function refreshWalletState() {
     if (navSlot) {
       // Address + disconnect only. Users know which wallet they have
       // installed — the "via Phantom" / picker text was redundant.
-      // Multi-wallet users still get a picker inside the form on submit
-      // if needed; the nav badge stays compact.
+      // No inline onclick: the .wallet-disconnect button is wired via
+      // the delegated click listener further down, which calls the
+      // shared disconnectWallet() from wallet.js. Cleaner than an
+      // onclick attribute and CSP-compatible.
       navSlot.innerHTML =
         `<span class="wallet-badge"><span class="wallet-addr" title="${escapeHtml(addr)}">${escapeHtml(shortAddr(addr))}</span>` +
-        `<button type="button" class="wallet-disconnect" onclick="window.__pyreDisconnectWallet()" aria-label="Disconnect wallet" title="Disconnect">×</button></span>`;
+        `<button type="button" class="wallet-disconnect" aria-label="Disconnect wallet" title="Disconnect">&times;</button></span>`;
     }
     $('burnSubmit').textContent = _submitLabel();
     $('burnSubmit').disabled = false;
@@ -638,20 +464,10 @@ async function refreshWalletState() {
   }
 }
 
-window.__pyreDisconnectWallet = async function disconnectWallet(){
-  const p = burnState.provider;
-  if (p && typeof p.disconnect === 'function') {
-    try { await p.disconnect(); } catch (_) { /* some wallets throw on already-disconnected; ignore */ }
-  }
-  // Wallet Standard wallets disconnect via the feature endpoint.
-  if (p?._isStandard) {
-    const feat = p._wallet?.features?.['standard:disconnect'];
-    if (feat) { try { await feat.disconnect(); } catch (_) {} }
-  }
-  burnState.publicKey = null;
-  burnState.balance = null;
-  refreshWalletState();
-};
+// Subscribe to wallet-state changes — register/unregister, pick,
+// disconnect. wallet.js notifies us via this hook so we don't need
+// our own retry loops or registry.
+onWalletChange(() => { refreshWalletState(); });
 
 function _submitLabel(){
   // Every inscription always burns at least the service fee. The label
@@ -662,12 +478,21 @@ function _submitLabel(){
   return `Burn ${fmt(total)} $PYRE & inscribe`;
 }
 
-// X clear button — sets burn amount to 0 and marks the user has
-// edited the field (so auto-prefill won't pull them back to the
-// take-#1 suggestion on the next leaderboard tick). The 1 $PYRE
-// service fee still applies; this just zeros out the OPTIONAL
-// leaderboard layer on top.
+// ── delegated click handler ──
+// One listener handles every clickable inside the write surface:
+//   * clear (×) on the burn-amount input
+//   * snap-back-to-take-#1 link
+//   * pay-with chip toggle
+//   * pay-with option click
+//   * close-on-click-outside for the pay picker
+//   * wallet disconnect (× button in the nav badge — no inline onclick)
 document.addEventListener('click', e => {
+  // Wallet disconnect
+  if (e.target.closest('.wallet-disconnect')) {
+    disconnectWallet().catch(() => {});
+    return;
+  }
+  // Clear ×: drop leaderboard burn to 0 (service fee still applies).
   const clearBtn = e.target.closest('#burnAmountClear');
   if (clearBtn) {
     e.preventDefault();
@@ -676,13 +501,12 @@ document.addEventListener('click', e => {
       input.value = '0';
       burnState.userEditedAmount = true;
       recalculateBill();
-      refreshBurnHint(); // refresh the snap-back-to-#1 link
+      refreshBurnHint();
       input.focus();
     }
     return;
   }
-  // Snap-back-to-take-#1 suggestion link — re-fills the input with
-  // the live target amount and drops back into auto-suggest mode.
+  // Snap-back-to-take-#1
   const topHint = e.target.closest('#burnTopHint');
   if (topHint) {
     e.preventDefault();
@@ -690,9 +514,6 @@ document.addEventListener('click', e => {
     const n = topHint.dataset.takeTop;
     if (input && n) {
       input.value = n;
-      // userEditedAmount=false so future leaderboard ticks keep
-      // tracking the live target. The link will hide itself once
-      // the input matches the current min.
       burnState.userEditedAmount = false;
       recalculateBill();
       refreshBurnHint();
@@ -710,7 +531,7 @@ document.addEventListener('click', e => {
     if (willOpen) renderBurnPayPickerActive();
     return;
   }
-  // Pay-with option click
+  // Pay-with option
   const payOpt = e.target.closest('#burnPayPicker button[data-pay]');
   if (payOpt) {
     const val = payOpt.dataset.pay;
@@ -768,24 +589,16 @@ function renderBurnPayPickerActive() {
   });
 }
 
-// pump.fun mints SPL tokens under the Token-2022 program (NOT the
-// legacy Token program). This matters for THREE places: ATA address
-// derivation, getAccount() reading, and transfer/ATA-creation
-// instructions. If we use legacy defaults the ATA address is wrong
-// and balance reads as 0 even when the user holds the token.
-const TOKEN_PROGRAM = TOKEN_2022_PROGRAM_ID;
-
 async function refreshBalance() {
   if (!burnState.publicKey) return;
   if (isPlaceholder()) return;
   try {
-    const conn = new Connection(RPC_URL, 'confirmed');
+    const conn = getConnection();
     const mint = new PublicKey(PYRE_MINT_STR);
     const ata = getAssociatedTokenAddressSync(mint, burnState.publicKey, false, TOKEN_PROGRAM);
     const acct = await getAccount(conn, ata, undefined, TOKEN_PROGRAM);
     if (burnState.decimals === null) {
-      const mintInfo = await conn.getParsedAccountInfo(mint);
-      burnState.decimals = mintInfo.value.data.parsed.info.decimals;
+      burnState.decimals = await getPyreDecimals();
     }
     burnState.balance = Number(acct.amount) / 10 ** burnState.decimals;
   } catch (e) {
@@ -957,6 +770,7 @@ window.submitBurn = async function submitBurn() {
   }
 
   $('burnSubmit').disabled = true;
+  burnState.signing = true;
   setStatus('Connecting wallet…', 'info');
 
   try {
@@ -983,7 +797,7 @@ window.submitBurn = async function submitBurn() {
 
     setStatus('Building transaction…', 'info');
 
-    const conn = new Connection(RPC_URL, 'confirmed');
+    const conn = getConnection();
     const sender = burnState.publicKey;
 
     // Build memo from non-empty fields, in canonical order url|x|msg.
@@ -1002,11 +816,12 @@ window.submitBurn = async function submitBurn() {
       // inscription wall indexing) in a single signature.
       const mint = new PublicKey(PYRE_MINT_STR);
       if (burnState.decimals === null) {
-        const mintInfo = await conn.getParsedAccountInfo(mint);
-        burnState.decimals = mintInfo.value.data.parsed.info.decimals;
+        burnState.decimals = await getPyreDecimals();
       }
       const senderAta = getAssociatedTokenAddressSync(mint, sender, false, TOKEN_PROGRAM);
-      const rawAmount = BigInt(Math.floor(totalBurnAmt * 10 ** burnState.decimals));
+      // Integer-math scaling avoids 0.1+0.2 float drift on fractional
+      // burn amounts. Shared with atomic-burn.js + buy.js (utils.scaleToRaw).
+      const rawAmount = scaleToRaw(totalBurnAmt, burnState.decimals);
       const legacyTx = new Transaction();
       legacyTx.add(ComputeBudgetProgram.setComputeUnitPrice({
         microLamports: PRIORITY_LAMPORTS * 1000 / 200
@@ -1025,7 +840,7 @@ window.submitBurn = async function submitBurn() {
       legacyTx.add(SystemProgram.transfer({
         fromPubkey: sender,
         toPubkey: new PublicKey(INSCRIPTION_BEACON_STR),
-        lamports: INSCRIPTION_LAMPORTS,
+        lamports: BEACON_LAMPORTS,
       }));
       const bh = await conn.getLatestBlockhash('processed');
       legacyTx.recentBlockhash = bh.blockhash;
@@ -1072,14 +887,14 @@ window.submitBurn = async function submitBurn() {
         );
 
         // tx1: swap only (includes extra-to-wallet PYRE in the acquire)
-        const swap = await buildSwapOnlyTx({ conn, payer: sender, payMint, totalBurnAmt, extraPyreAmt });
+        const swap = await buildSwapOnlyTx({ payer: sender, payMint, totalBurnAmt, extraPyreAmt });
         setStatus('<strong>Sign 1 of 2</strong> in your wallet &mdash; acquire $PYRE&hellip;', 'info');
         const swapSigned = await provider.signTransaction(swap.tx);
         const swapSig = await conn.sendRawTransaction(swapSigned.serialize(), {
           skipPreflight: true, maxRetries: 10, preflightCommitment: 'confirmed',
         });
         setStatus(
-          `Step 1 sent: <a href="https://solscan.io/tx/${swapSig}" target="_blank">${shortAddr(swapSig)} &uarr;</a> ` +
+          `Step 1 sent: <a href="https://solscan.io/tx/${swapSig}" target="_blank" rel="noopener noreferrer">${shortAddr(swapSig)} &uarr;</a> ` +
           '&middot; waiting for $PYRE to land&hellip;', 'info'
         );
         await pollForConfirmation(conn, swapSig, swap.lastValidBlockHeight);
@@ -1094,7 +909,7 @@ window.submitBurn = async function submitBurn() {
           skipPreflight: false, maxRetries: 10, preflightCommitment: 'confirmed',
         });
         setStatus(
-          `Step 2 sent: <a href="https://solscan.io/tx/${burnSig}" target="_blank">${shortAddr(burnSig)} &uarr;</a> ` +
+          `Step 2 sent: <a href="https://solscan.io/tx/${burnSig}" target="_blank" rel="noopener noreferrer">${shortAddr(burnSig)} &uarr;</a> ` +
           '&middot; waiting for confirmation&hellip;', 'info'
         );
         await pollForConfirmation(conn, burnSig, burn.lastValidBlockHeight);
@@ -1102,14 +917,15 @@ window.submitBurn = async function submitBurn() {
         setStatus(
           `🔥 ${fmt(totalBurnAmt)} $PYRE burned across <strong>2 transactions</strong>. ` +
           'Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>' +
-          `<a href="https://solscan.io/tx/${swapSig}" target="_blank">Swap tx &uarr;</a> &middot; ` +
-          `<a href="https://solscan.io/tx/${burnSig}" target="_blank">Burn tx &uarr;</a>`,
+          `<a href="https://solscan.io/tx/${swapSig}" target="_blank" rel="noopener noreferrer">Swap tx &uarr;</a> &middot; ` +
+          `<a href="https://solscan.io/tx/${burnSig}" target="_blank" rel="noopener noreferrer">Burn tx &uarr;</a>`,
           'success'
         );
         await refreshBalance();
         // Done with the 2-tx flow — skip the single-tx sign+send block
         // below by setting tx to null and returning out of the try.
         $('burnSubmit').disabled = false;
+        burnState.signing = false;
         return;
       }
       tx = built.tx;
@@ -1139,7 +955,7 @@ window.submitBurn = async function submitBurn() {
     });
 
     setStatus('Submitted. Waiting for confirmation…<br>' +
-      '<a href="https://solscan.io/tx/' + signature + '" target="_blank">' + shortAddr(signature) + ' ↗</a>', 'info');
+      '<a href="https://solscan.io/tx/' + signature + '" target="_blank" rel="noopener noreferrer">' + shortAddr(signature) + ' ↗</a>', 'info');
 
     // Poll getSignatureStatus directly. We avoid confirmTransaction here
     // because it (a) opens a wss:// subscription that our HTTP-only
@@ -1155,7 +971,7 @@ window.submitBurn = async function submitBurn() {
     setStatus(
       `🔥 ${fmt(totalBurnAmt)} $PYRE burned. ` +
       'Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>' +
-      '<a href="https://solscan.io/tx/' + signature + '" target="_blank">View transaction ↗</a>',
+      '<a href="https://solscan.io/tx/' + signature + '" target="_blank" rel="noopener noreferrer">View transaction ↗</a>',
       'success'
     );
     await refreshBalance();
@@ -1191,6 +1007,7 @@ window.submitBurn = async function submitBurn() {
     setStatus(msg, 'error');
   } finally {
     $('burnSubmit').disabled = false;
+    burnState.signing = false;
   }
 };
 
@@ -1224,19 +1041,20 @@ startWalletDetectPoller();
 // moment burn.js is ready, whether or not the leaderboard data has
 // landed yet. The bill is also re-rendered with the new value.
 //
-// If the leaderboard's data isn't fetched yet, refreshBurnHint sees
-// count=0 and falls back to '1' (the cold-pyre case), which is still
-// better than empty. main.js's tick will refresh to the real
-// minBurnToTakeTop() value within a few seconds.
-//
-// A short retry loop covers the case where __pyreLeaderboard isn't
-// attached to window yet at this exact moment (vanishingly rare —
-// main.js sets it BEFORE awaiting any imports — but defensive).
-function bootstrapAutoSuggest() {
+// Retry-capped: at most 50 attempts (5 seconds at 100ms intervals).
+// If main.js's leaderboard module hasn't attached after 5s, something
+// is broken — failing silent is better than a permanent spin loop.
+function bootstrapAutoSuggest(remaining = 50) {
   if (window.__pyreLeaderboard?.minBurnToTakeTop) {
     refreshBurnHint();
-  } else {
-    setTimeout(bootstrapAutoSuggest, 100);
+    return;
   }
+  if (remaining <= 0) return;
+  setTimeout(() => bootstrapAutoSuggest(remaining - 1), 100);
 }
 bootstrapAutoSuggest();
+
+// Initial bill paint when prices arrive — recalculateBill already
+// renders, but the first call may have run before the price fetch
+// resolved. Re-rendering once on price arrival closes the gap so
+// the bill of sale never shows '—' for a few seconds after load.

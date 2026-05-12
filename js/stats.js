@@ -16,7 +16,7 @@
 // The worker caches /price-history and /analytics for 5 min, so most
 // 30s ticks are local cache hits and don't reach Helius / Gecko / CF.
 
-import { isPlaceholder, INITIAL_SUPPLY, PYRE_MINT_STR, RPC_URL } from './config.js';
+import { isPlaceholder, INITIAL_SUPPLY, PYRE_MINT_STR, RPC_URL, JUP } from './config.js';
 import { $, fmt } from './utils.js';
 import { getEntries } from './data.js';
 
@@ -36,14 +36,11 @@ const _bigChartsMod = await import(`./big-charts.js?v=${V}`);
 const { sparkline }       = _chartsMod;
 const { renderBigCharts } = _bigChartsMod;
 
-// Use lite-api.jup.ag for browser calls. api.jup.ag denies cross-origin
-// browser requests without an `x-api-key` header (CORS: no
-// Access-Control-Allow-Origin returned). lite-api is the free, keyless,
-// CORS-permissive public endpoint Jupiter intends for browser use; the
-// path is identical. If we ever need authenticated quota (paid tier),
-// sign up at portal.jup.ag and switch to api.jup.ag with the key
-// header — but never put a paid key in browser source.
-const JUP_PRICE_URL  = 'https://lite-api.jup.ag/price/v3?ids=';
+// Jupiter Price V3 — see config.js JUP.PRICE for the URL constant
+// shared with main.js, buy.js, and burn.js. (lite-api.jup.ag is the
+// free, keyless, CORS-permissive variant Jupiter intends for browser
+// use; api.jup.ag denies cross-origin browser requests without an
+// x-api-key header.)
 // The worker's public origin. Same host as RPC_URL but rewritten to
 // our two new GET endpoints. RPC_URL is `https://rpc.pyrecoin.com/`
 // in prod and pointed at a placeholder pre-launch — we resolve the
@@ -79,7 +76,7 @@ async function fetchTokenSupply(mint){
 
 async function fetchJupPrice(mint){
   try {
-    const res = await fetch(JUP_PRICE_URL + encodeURIComponent(mint), { cache: 'no-store' });
+    const res = await fetch(`${JUP.PRICE}?ids=${encodeURIComponent(mint)}`, { cache: 'no-store' });
     if (!res.ok) return { price: null, change24h: null };
     const data = await res.json();
     const row = data?.[mint] || {};

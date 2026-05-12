@@ -20,7 +20,7 @@
 //   #bb-container → ranks 17+ (the backburner — same badge style, denser)
 
 import { isPlaceholder } from './config.js';
-import { fmt, hoursSince, relTime, utcTooltip, escapeHtml, shortAddr, hashString } from './utils.js';
+import { fmt, hoursSince, relTime, utcTooltip, escapeHtml, shortAddr, hashString, safeHref, parseEmoji } from './utils.js';
 import { getEntries } from './data.js';
 
 const GRAVITY = 1.5;
@@ -83,6 +83,11 @@ function flavorFor(tx){
 
 // Linkify URLs found in user message text (already HTML-escaped).
 // Conservative TLD check avoids false-positives on "etc." / "e.g.".
+// safeHref is the renderer-side defense-in-depth check: it rejects
+// non-http(s) schemes, IP-literal hosts, and malformed URLs even
+// though the ingest filter (scripts/lib/filter.mjs) is the
+// authoritative gate. A single ingest regression shouldn't be enough
+// to publish a javascript:/data: URL to live visitors.
 const URL_RE = /(?:https?:\/\/[^\s<>"&]+)|(?:\b[a-z0-9](?:[\w\-]*[a-z0-9])?(?:\.[a-z0-9](?:[\w\-]*[a-z0-9])?){1,3}(?:\/[^\s<>"&]*)?)/gi;
 function linkifyMsg(escaped){
   return escaped.replace(URL_RE, (m) => {
@@ -91,8 +96,9 @@ function linkifyMsg(escaped){
     if (lastDot < 0) return m;
     const tld = beforeSlash.slice(lastDot + 1);
     if (!/^[a-z]{2,8}$/i.test(tld)) return m;
-    const href = /^https?:\/\//i.test(m) ? m : 'https://' + m;
-    return `<a class="msg-link" href="${href}" target="_blank" rel="noopener noreferrer ugc">${m}</a>`;
+    const href = safeHref(m);
+    if (!href) return m;
+    return `<a class="msg-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer ugc">${m}</a>`;
   });
 }
 
@@ -133,8 +139,9 @@ function badgeRow(entry, now, variant = 'hero'){
       <span class="badge-icon">⏰</span><span class="badge-val">${rel}</span>
     </span>`;
 
-  const urlBadge = url ? `
-    <a class="badge badge-url" href="https://${escapeHtml(url)}" target="_blank" rel="noopener noreferrer sponsored ugc"
+  const safeUrl = url ? safeHref(url) : null;
+  const urlBadge = safeUrl ? `
+    <a class="badge badge-url" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer sponsored ugc"
        title="${escapeHtml(url)}">
       <span class="badge-icon">🌐</span><span class="badge-val">${escapeHtml(url)}</span>
     </a>` : '';
@@ -197,6 +204,7 @@ function renderBackburner(displaced, now){
   displaced.forEach((e, i) => {
     host.appendChild(buildBackburnerSlot(e, TOP_N + 1 + i, now));
   });
+  parseEmoji(host);
 }
 
 export function renderLeaderboard(now){
@@ -220,6 +228,11 @@ export function renderLeaderboard(now){
     lb.innerHTML = '';
     top16.forEach(e => lb.appendChild(buildSlot(e, now)));
   }
+
+  // Parse emoji to Twemoji SVGs so 🔥 ❤️‍🔥 ⏰ 🌐 👛 etc. render
+  // identically across platforms. No-op if the CDN script is blocked
+  // or hasn't loaded yet — native emoji is the graceful fallback.
+  parseEmoji(lb);
 
   renderBackburner(displaced, now);
 }

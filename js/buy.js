@@ -21,19 +21,17 @@
 // directly to our RPC proxy; Jupiter's contracts are the route, never
 // a middleman we control.
 
+import { VersionedTransaction, PublicKey } from '../vendor/web3.mjs';
 import {
-  Connection, VersionedTransaction, PublicKey
-} from '../vendor/web3.mjs';
-import { PYRE_MINT_STR, RPC_URL, isPlaceholder } from './config.js';
+  PYRE_MINT_STR, isPlaceholder,
+  SOL_MINT_STR, USDC_MINT_STR, USDT_MINT_STR,
+  JUP, SWAP_DEFAULTS,
+} from './config.js';
 import { detectProvider, onWalletChange } from './wallet.js';
-import { $, escapeHtml, fmt } from './utils.js';
+import { $, escapeHtml, fmt, fmtUsd, fmtAmount, trimDecimals, scaleToRaw } from './utils.js';
+import { getConnection, getPyreDecimals } from './data.js';
 
 // ─── constants ──────────────────────────────────────────────────────
-
-const SOL_MINT  = 'So11111111111111111111111111111111111111112';
-const JUP_QUOTE = 'https://lite-api.jup.ag/swap/v1/quote';
-const JUP_SWAP  = 'https://lite-api.jup.ag/swap/v1/swap';
-const JUP_PRICE = 'https://lite-api.jup.ag/price/v3';
 
 // Quote debounce + cache: research says lite-api allows 60 req/min/IP.
 // A 250ms keystroke debounce can briefly burst above that; 600ms keeps
@@ -41,12 +39,6 @@ const JUP_PRICE = 'https://lite-api.jup.ag/price/v3';
 // amount don't re-hit the API at all.
 const QUOTE_DEBOUNCE_MS = 600;
 const QUOTE_CACHE_TTL   = 4000;
-
-// Hard cap on priority fee per swap (0.002 SOL ≈ $0.40 at $200 SOL).
-// Passed to Jupiter as the maxLamports inside priorityLevelWithMaxLamports
-// regardless of which level the user picks — the level controls the
-// percentile, the cap controls the ceiling.
-const MAX_PRIORITY_LAMPORTS = 2_000_000;
 
 // Input-token registry. Output is fixed to PYRE (the whole point of
 // this surface). Adding more here is a one-liner — Jupiter handles
@@ -58,19 +50,19 @@ const MAX_PRIORITY_LAMPORTS = 2_000_000;
 // reserve because the network fee comes out of the wallet's SOL,
 // not the input mint.
 const TOKENS = [
-  { symbol: 'SOL',  name: 'Solana',    mint: SOL_MINT,                                       decimals: 9, isNative: true,  feeReserve: 0.01, dotClass: 'buy-token-chip-dot-sol'  },
-  { symbol: 'USDC', name: 'USD Coin',  mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6, isNative: false, feeReserve: 0,    dotClass: 'buy-token-chip-dot-usdc' },
-  { symbol: 'USDT', name: 'Tether',    mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', decimals: 6, isNative: false, feeReserve: 0,    dotClass: 'buy-token-chip-dot-usdt' },
+  { symbol: 'SOL',  name: 'Solana',    mint: SOL_MINT_STR,  decimals: 9, isNative: true,  feeReserve: 0.01, dotClass: 'buy-token-chip-dot-sol'  },
+  { symbol: 'USDC', name: 'USD Coin',  mint: USDC_MINT_STR, decimals: 6, isNative: false, feeReserve: 0,    dotClass: 'buy-token-chip-dot-usdc' },
+  { symbol: 'USDT', name: 'Tether',    mint: USDT_MINT_STR, decimals: 6, isNative: false, feeReserve: 0,    dotClass: 'buy-token-chip-dot-usdt' },
 ];
 
 // ─── settings (persisted) ───────────────────────────────────────────
 
 const SETTINGS_KEY = 'pyre.swapSettings';
 const DEFAULT_SETTINGS = {
-  slippageBps: 300,          // 3% static floor (memecoin-appropriate)
-  dynamicSlippage: true,     // Jupiter caps slippage between static + on-chain reality
-  priorityLevel: 'veryHigh', // 'medium' | 'high' | 'veryHigh'
-  inputMint: SOL_MINT,
+  slippageBps: SWAP_DEFAULTS.SLIPPAGE_BPS, // 3% static floor (memecoin-appropriate)
+  dynamicSlippage: true,                   // Jupiter caps slippage between static + on-chain reality
+  priorityLevel: 'veryHigh',               // 'medium' | 'high' | 'veryHigh'
+  inputMint: SOL_MINT_STR,
 };
 function loadSettings() {
   try {
@@ -99,7 +91,7 @@ const settings = loadSettings();
 
 // ─── state ──────────────────────────────────────────────────────────
 
-const connection = new Connection(RPC_URL, 'confirmed');
+const connection = getConnection();
 
 let currentToken = TOKENS.find(t => t.mint === settings.inputMint) || TOKENS[0];
 
@@ -108,7 +100,6 @@ const buyState = {
   publicKey: null,
   inputBalance: null,        // UI units of currentToken
   inputUsdPrice: null,       // USD price of currentToken from Jupiter
-  pyreDecimals: null,
   lastQuote: null,
   quoting: false,
   swapping: false,
@@ -137,47 +128,12 @@ function setSubmit(label, disabled = false) {
   btn.disabled = disabled;
 }
 
-function fmtUsd(usd) {
-  if (!Number.isFinite(usd) || usd <= 0) return '$—';
-  if (usd >= 1000) return '$' + Math.round(usd).toLocaleString();
-  if (usd >= 1)    return '$' + usd.toFixed(2);
-  if (usd >= 0.01) return '$' + usd.toFixed(3);
-  if (usd >= 0.0001) return '$' + usd.toFixed(5);
-  return '$' + usd.toFixed(7);
-}
-function fmtAmount(n, maxDp = 6) {
-  if (!Number.isFinite(n) || n <= 0) return '0';
-  return n.toFixed(maxDp).replace(/0+$/, '').replace(/\.$/, '');
-}
 function toUiAmount(rawStr, decimals) {
   const raw = BigInt(rawStr);
   const denom = 10n ** BigInt(decimals);
   const whole = raw / denom;
   const frac = raw % denom;
   return Number(whole) + Number(frac) / Number(denom);
-}
-function toRawAmount(uiAmount, decimals) {
-  // Scale via integer math to avoid 0.1+0.2 floating-point drift.
-  const s = uiAmount.toFixed(decimals);
-  const [whole, frac = ''] = s.split('.');
-  const padded = (frac + '0'.repeat(decimals)).slice(0, decimals);
-  return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(padded || '0');
-}
-
-// ─── mint metadata (PYRE decimals, cached) ──────────────────────────
-
-let _pyreDecimalsPromise = null;
-async function getPyreDecimals() {
-  if (buyState.pyreDecimals != null) return buyState.pyreDecimals;
-  if (_pyreDecimalsPromise) return _pyreDecimalsPromise;
-  _pyreDecimalsPromise = (async () => {
-    const info = await connection.getParsedAccountInfo(new PublicKey(PYRE_MINT_STR));
-    const d = info?.value?.data?.parsed?.info?.decimals;
-    if (typeof d !== 'number') throw new Error('Could not read $PYRE decimals from mint');
-    buyState.pyreDecimals = d;
-    return d;
-  })();
-  return _pyreDecimalsPromise;
 }
 
 // ─── Jupiter API ────────────────────────────────────────────────────
@@ -197,7 +153,7 @@ async function fetchQuote(amountRaw) {
     swapMode: 'ExactIn',
     restrictIntermediateTokens: 'true',
   });
-  const res = await fetch(`${JUP_QUOTE}?${params}`, { cache: 'no-store' });
+  const res = await fetch(`${JUP.QUOTE}?${params}`, { cache: 'no-store' });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`quote ${res.status}${body ? ' · ' + body.slice(0, 160) : ''}`);
@@ -208,7 +164,7 @@ async function fetchQuote(amountRaw) {
 }
 
 async function fetchSwap(quoteResponse, userPublicKey) {
-  const res = await fetch(JUP_SWAP, {
+  const res = await fetch(JUP.SWAP, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -220,7 +176,7 @@ async function fetchSwap(quoteResponse, userPublicKey) {
       prioritizationFeeLamports: {
         priorityLevelWithMaxLamports: {
           priorityLevel: settings.priorityLevel,
-          maxLamports: MAX_PRIORITY_LAMPORTS,
+          maxLamports: SWAP_DEFAULTS.MAX_PRIORITY_LAMPORTS,
         },
       },
     }),
@@ -236,7 +192,7 @@ async function fetchInputUsdPrice() {
   // One USD price per active input token. Cached on buyState; refreshed
   // on token switch and when MAX/percentage paths recompute USD value.
   try {
-    const res = await fetch(`${JUP_PRICE}?ids=${currentToken.mint}`, { cache: 'no-store' });
+    const res = await fetch(`${JUP.PRICE}?ids=${currentToken.mint}`, { cache: 'no-store' });
     if (!res.ok) return;
     const data = await res.json();
     const p = data?.[currentToken.mint]?.usdPrice;
@@ -505,7 +461,7 @@ async function runQuote() {
     setSubmit(buttonLabelForCurrentState(), false);
     return;
   }
-  const rawAmount = toRawAmount(amt, currentToken.decimals).toString();
+  const rawAmount = scaleToRaw(amt, currentToken.decimals).toString();
   buyState.quoting = true;
   setSubmit('Quoting…', true);
   try {
@@ -575,7 +531,7 @@ async function submitBuy() {
 
   try {
     setStatus('Confirming route…', 'info');
-    const rawAmount = toRawAmount(amt, currentToken.decimals).toString();
+    const rawAmount = scaleToRaw(amt, currentToken.decimals).toString();
     const freshQuote = await fetchQuote(rawAmount);
     buyState.lastQuote = freshQuote;
 
@@ -630,6 +586,11 @@ async function submitBuy() {
   }
 }
 window.submitBuy = submitBuy;
+
+// trimDecimals is imported but unused here directly — kept in utils.js
+// for the burn.js bill of sale. (no-op reference suppresses unused-
+// import lint if anyone runs one in the future)
+void trimDecimals;
 
 // ─── event wiring ───────────────────────────────────────────────────
 
