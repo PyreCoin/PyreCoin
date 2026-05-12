@@ -2322,16 +2322,47 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   color:var(--text2);
   line-height:1.7;
   margin-bottom:22px;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  align-items:center;
 }
-/* Second line of the sub — the optional burn-to-#1 call-out. Slightly
-   ember-tinted so it whispers "this is the cool optional part" without
-   shouting. #cta-top-spot inside it inherits the tint. */
+/* Each line of the sub is its own block-level span — keeps line
+   wrapping clean when the viewport narrows. The [hidden] override
+   restores the HTML attribute's intended display:none, since the
+   blanket display:block above would otherwise win the cascade. */
+.top-cta-sub > span{display:block;}
+.top-cta-sub > span[hidden]{display:none;}
+/* Viewer count "social proof" line, top of the stack. The eyeball
+   emoji is centered inline with the count text. Slightly larger and
+   warmer than the surrounding lines so eyes land on it first. */
+.top-cta-sub-viewers{
+  color:#fff;
+  font-weight:500;
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.cta-eyes{
+  display:inline-block;
+  margin-right:6px;
+  filter:drop-shadow(0 0 8px rgba(255,180,80,0.5));
+  vertical-align:-2px;
+}
+#cta-viewers{
+  color:var(--ember2);
+  font-weight:700;
+}
+/* The "ember-tinted optional take-#1" line. cta-top-spot inside it
+   stays white so the dollar figure pops. */
 .top-cta-sub-burn{
   color:rgba(255,180,110,0.85);
 }
 .top-cta-sub-burn #cta-top-spot{
   color:#fff;
-  font-weight:400;
+  font-weight:500;
 }
 .top-cta-btns{
   display:flex;

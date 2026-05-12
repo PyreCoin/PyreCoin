@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-12';
+const V = '20260512-13';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -63,6 +63,10 @@ async function tick() {
   // CTA "burn ~$X to take #1" line — same cadence, no new fetch (uses
   // cached PYRE/USD price + freshly-rendered entries).
   window.__pyreRenderCtaPrices?.();
+  // Mirror the visitor count card into the CTA. stats.js wrote #s-vis7d
+  // a microtask ago (updateStats is awaited above), so the value is
+  // ready to read.
+  renderViewerCount();
 }
 
 // Initial render + steady cadence. Heat visibly decays between ticks
@@ -190,6 +194,26 @@ function renderCtaPrices(){
     const pyreAmount = lb.minBurnToTakeTop(Date.now());
     topEl.textContent = fmtUsd(pyreAmount * _pyreUsd);
   }
+}
+
+// Mirror the visitor count from the existing #s-vis7d stat card (which
+// stats.js populates from Cloudflare Web Analytics every 30s) into the
+// top CTA's social-proof line. The CF endpoint rounds counts for
+// privacy at small N — stats.js prefixes with '~' which we surface
+// verbatim. Hidden until we have a real number so we don't render
+// "— degens this week" on first paint.
+function renderViewerCount(){
+  const src = document.getElementById('s-vis7d');
+  const line = document.getElementById('cta-viewers-line');
+  const dst = document.getElementById('cta-viewers');
+  if (!src || !line || !dst) return;
+  const txt = (src.textContent || '').trim();
+  if (!txt || txt === '—') {
+    line.hidden = true;
+    return;
+  }
+  dst.textContent = txt;
+  line.hidden = false;
 }
 refreshPrices();
 setInterval(refreshPrices, 60_000);
