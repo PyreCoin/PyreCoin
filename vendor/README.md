@@ -22,9 +22,9 @@ no duplicate bytes shipped to the browser.
 ## SHA-384 hashes
 
 ```
-web3.mjs            sha384-TkssWdOXzFgvq3pQCrjkYY0ZrTeAVZpNpTPqvP64MaSsgJgheUYpHLyz55BGJc3M
-spl-token.mjs       sha384-vBk4ODjHMatMq18XxkWHKhXiE+JmIzYvB4InzYzRB2L6asxC3T/7/xXUvo+9UllV
-wallet-standard.mjs sha384-4a5T1vIp45ddoDk5yiJZSGZIPvQJGX/i65hYpE9P/rFMceqab6bMiDaymeuPZfWJ
+web3.mjs            sha384-mNAmmeWi94kJbuNRZQjd8RRRT8FD8QYzCgxQYDIlKH47ViQBxTzIx1V7nAp/LZlN
+spl-token.mjs       sha384-7zfyP491VEnUAMgnIIM2Ns4xxCsyN5By4yMyet2fVL5vDILo4Pw2dddfMA1UoEuA
+wallet-standard.mjs sha384-BDFfaJBugxfgBrwdgkiWAqXK5zkzvmAl4kkws1ch5IwAI1xnQfrMnwJJgPnsF5Ux
 ```
 
 Recompute with:
