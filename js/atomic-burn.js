@@ -34,8 +34,8 @@
 //     getSignaturesForAddress(beacon) scan.
 
 import {
-  Connection, PublicKey, TransactionInstruction, TransactionMessage,
-  VersionedTransaction, AddressLookupTableAccount, SystemProgram
+  Connection, PublicKey, Transaction, TransactionInstruction, TransactionMessage,
+  VersionedTransaction, AddressLookupTableAccount, SystemProgram, ComputeBudgetProgram
 } from '../vendor/web3.mjs';
 import {
   createBurnCheckedInstruction, getAssociatedTokenAddressSync,
@@ -45,6 +45,7 @@ import { PYRE_MINT_STR, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR } from './co
 
 const JUP_QUOTE = 'https://lite-api.jup.ag/swap/v1/quote';
 const JUP_SWAP_INSTRUCTIONS = 'https://lite-api.jup.ag/swap/v1/swap-instructions';
+const JUP_SWAP = 'https://lite-api.jup.ag/swap/v1/swap';
 
 // 3% static slippage floor + dynamicSlippage:true. Same as the buy
 // form. Memecoin pools have less depth — 1% fails constantly.
@@ -163,6 +164,46 @@ async function getPyreDecimals(conn) {
   return d;
 }
 
+// Scale a UI amount to raw base units via integer math (toFixed +
+// string concat) to avoid 0.1+0.2 floating-point drift on the
+// fractional component. Returns BigInt of the raw amount.
+function scaleToRaw(uiAmount, decimals) {
+  const s = uiAmount.toFixed(decimals);
+  const [whole, frac = ''] = s.split('.');
+  const padded = (frac + '0'.repeat(decimals)).slice(0, decimals);
+  return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(padded || '0');
+}
+
+// Fetch a pre-built Jupiter swap transaction (NOT the instructions
+// shape — this returns a complete v0 tx ready to sign + send). Used
+// by the 2-tx fallback when the atomic instruction-shape variant
+// would exceed Solana's 1232-byte limit. Same defaults as the atomic
+// path (dynamic slippage, very-high priority, 2M lamport cap).
+async function fetchPrebuiltSwap(quoteResponse, userPublicKey) {
+  const res = await fetch(JUP_SWAP, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      quoteResponse,
+      userPublicKey,
+      wrapAndUnwrapSol: true,
+      dynamicComputeUnitLimit: true,
+      dynamicSlippage: true,
+      prioritizationFeeLamports: {
+        priorityLevelWithMaxLamports: {
+          priorityLevel: 'veryHigh',
+          maxLamports: MAX_PRIORITY_LAMPORTS,
+        },
+      },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`swap ${res.status}${body ? ' · ' + body.slice(0, 200) : ''}`);
+  }
+  return res.json();
+}
+
 // ─── core builder ───────────────────────────────────────────────────
 
 /**
@@ -185,12 +226,7 @@ export async function buildAtomicBurnTx({ conn, payer, payMint, totalBurnAmt, me
   }
 
   const pyreDecimals = await getPyreDecimals(conn);
-  // Scale the burn amount to raw units via integer math (toFixed +
-  // string concat) to avoid 0.1+0.2 floating-point drift.
-  const s = totalBurnAmt.toFixed(pyreDecimals);
-  const [whole, frac = ''] = s.split('.');
-  const padded = (frac + '0'.repeat(pyreDecimals)).slice(0, pyreDecimals);
-  const burnRawAmount = BigInt(whole) * 10n ** BigInt(pyreDecimals) + BigInt(padded || '0');
+  const burnRawAmount = scaleToRaw(totalBurnAmt, pyreDecimals);
 
   // 1. Quote: ExactOut N PYRE.
   const quote = await fetchExactOutQuote(payMint, burnRawAmount.toString());
@@ -267,4 +303,89 @@ export async function buildAtomicBurnTx({ conn, payer, payMint, totalBurnAmt, me
   const maxInputAmount = BigInt(quote.otherAmountThreshold || quote.inAmount);
 
   return { tx, lastValidBlockHeight, maxInputAmount, sizeBytes, quote };
+}
+
+// ─── 2-tx fallback builders ─────────────────────────────────────────
+// When the atomic single-tx form exceeds Solana's 1232-byte limit
+// (heavy Jupiter routes through illiquid pools, etc.), submitBurn
+// falls back to a sequenced 2-tx flow: first acquire the $PYRE, then
+// burn + inscribe. Each tx fits comfortably under the limit because
+// the swap is on its own and our burn-only tx is tiny.
+//
+// Partial-fill behaviour: if the user signs tx1 and cancels tx2,
+// they keep the freshly-acquired $PYRE in their wallet. No refund
+// path — they can burn it later via the direct-PYRE path or just
+// hold it. The caller is responsible for warning the user about the
+// 2-step ceremony before kicking it off.
+
+/**
+ * Build a swap-only VersionedTransaction (no burn, no memo). Uses
+ * Jupiter's /swap endpoint (which returns a pre-built tx) instead of
+ * /swap-instructions, because we're not splicing anything in.
+ *
+ * @returns {Promise<{tx: VersionedTransaction, lastValidBlockHeight: number, quote: object}>}
+ */
+export async function buildSwapOnlyTx({ conn, payer, payMint, totalBurnAmt }) {
+  if (!(payer instanceof PublicKey)) throw new Error('payer must be a PublicKey');
+  if (!Number.isFinite(totalBurnAmt) || totalBurnAmt <= 0) {
+    throw new Error('totalBurnAmt must be > 0');
+  }
+  const pyreDecimals = await getPyreDecimals(conn);
+  const burnRawAmount = scaleToRaw(totalBurnAmt, pyreDecimals);
+
+  // ExactOut quote so the user receives exactly the target $PYRE
+  // amount (within slippage on the INPUT side). The follow-up burn
+  // tx can then burn exactly that amount with no balance-check race.
+  const quote = await fetchExactOutQuote(payMint, burnRawAmount.toString());
+  const data = await fetchPrebuiltSwap(quote, payer.toBase58());
+
+  const txBytes = Uint8Array.from(atob(data.swapTransaction), c => c.charCodeAt(0));
+  const tx = VersionedTransaction.deserialize(txBytes);
+
+  return { tx, lastValidBlockHeight: data.lastValidBlockHeight, quote };
+}
+
+/**
+ * Build a burn-only legacy Transaction: BurnChecked + Memo + 1-lamport
+ * beacon. Burns the exact `totalBurnAmt` $PYRE the swap delivered.
+ * Stays a legacy Transaction (not v0) because it's small and the wallet
+ * adapter handles both types — no need for ALTs at this size.
+ *
+ * @returns {Promise<{tx: Transaction, lastValidBlockHeight: number}>}
+ */
+export async function buildBurnOnlyTx({ conn, payer, totalBurnAmt, memoText }) {
+  if (!(payer instanceof PublicKey)) throw new Error('payer must be a PublicKey');
+  if (!Number.isFinite(totalBurnAmt) || totalBurnAmt <= 0) {
+    throw new Error('totalBurnAmt must be > 0');
+  }
+  if (!memoText || typeof memoText !== 'string') {
+    throw new Error('memoText required');
+  }
+  const pyreDecimals = await getPyreDecimals(conn);
+  const burnRawAmount = scaleToRaw(totalBurnAmt, pyreDecimals);
+  const mint = new PublicKey(PYRE_MINT_STR);
+  const senderAta = getAssociatedTokenAddressSync(mint, payer, false, TOKEN_2022_PROGRAM_ID);
+
+  const tx = new Transaction();
+  // Small priority fee — helps the burn land fast after the swap
+  // confirms. Static value (matches the direct-burn path constants).
+  tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }));
+  tx.add(createBurnCheckedInstruction(
+    senderAta, mint, payer, burnRawAmount, pyreDecimals, [], TOKEN_2022_PROGRAM_ID
+  ));
+  tx.add(new TransactionInstruction({
+    keys: [{ pubkey: payer, isSigner: true, isWritable: false }],
+    programId: new PublicKey(MEMO_PROGRAM_ID_STR),
+    data: new TextEncoder().encode(memoText),
+  }));
+  tx.add(SystemProgram.transfer({
+    fromPubkey: payer,
+    toPubkey: new PublicKey(INSCRIPTION_BEACON_STR),
+    lamports: 1,
+  }));
+
+  const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('processed');
+  tx.recentBlockhash = blockhash;
+  tx.feePayer = payer;
+  return { tx, lastValidBlockHeight };
 }

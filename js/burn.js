@@ -41,7 +41,7 @@ import {
   PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR, isPlaceholder
 } from './config.js';
 import { $, shortAddr, escapeHtml, fmt } from './utils.js';
-import { buildAtomicBurnTx, PAY_TOKENS } from './atomic-burn.js';
+import { buildAtomicBurnTx, buildSwapOnlyTx, buildBurnOnlyTx, PAY_TOKENS } from './atomic-burn.js';
 
 // ─── PYRE service-fee constant ──────────────────────────────────────
 // Every inscription that goes through pyrecoin.com burns at least
@@ -924,22 +924,68 @@ window.submitBurn = async function submitBurn() {
         totalBurnAmt,
         memoText,
       });
-      // Hard cap: Solana txs are 1232 bytes max. If Jupiter's route is
-      // too dense to fit alongside the burn+memo+beacon, surface a
-      // clear error — the user can try a different pay token or smaller
-      // burn amount. (Two-tx fallback is a future enhancement; for now
-      // we refuse oversize to keep atomicity airtight.)
       if (built.sizeBytes > 1232) {
-        throw new Error(
-          'Route too dense to fit in one transaction (' + built.sizeBytes + ' bytes, max 1232). ' +
-          'Try a smaller burn amount or a different pay-with token.'
+        // ── 2-TX FALLBACK ── Jupiter's route is too dense to fit
+        // alongside our burn+memo+beacon in a single 1232-byte tx.
+        // Split into two: first acquire the $PYRE (Jupiter swap only),
+        // then burn + memo + beacon as a small follow-up tx. The user
+        // signs twice. If they cancel the second sig, they keep the
+        // freshly-acquired $PYRE in their wallet — no refund path.
+        if (typeof provider.signTransaction !== 'function') {
+          throw new Error('Your wallet does not expose signTransaction. Try Phantom, Jupiter, Solflare, or Backpack.');
+        }
+        setStatus(
+          `Route too dense for one tx (${built.sizeBytes} bytes &gt; 1232 limit) &mdash; ` +
+          'switching to <strong>2-signature mode</strong>. You\'ll sign once to acquire ' +
+          'the $PYRE, then again to burn + inscribe.', 'info'
         );
+
+        // tx1: swap only
+        const swap = await buildSwapOnlyTx({ conn, payer: sender, payMint, totalBurnAmt });
+        setStatus('<strong>Sign 1 of 2</strong> in your wallet &mdash; acquire $PYRE&hellip;', 'info');
+        const swapSigned = await provider.signTransaction(swap.tx);
+        const swapSig = await conn.sendRawTransaction(swapSigned.serialize(), {
+          skipPreflight: true, maxRetries: 10, preflightCommitment: 'confirmed',
+        });
+        setStatus(
+          `Step 1 sent: <a href="https://solscan.io/tx/${swapSig}" target="_blank">${shortAddr(swapSig)} &uarr;</a> ` +
+          '&middot; waiting for $PYRE to land&hellip;', 'info'
+        );
+        await pollForConfirmation(conn, swapSig, swap.lastValidBlockHeight);
+
+        // tx2: burn + memo + beacon. Built AFTER tx1 confirms so the
+        // blockhash is fresh and the user's ATA definitely has the
+        // requested $PYRE.
+        const burn = await buildBurnOnlyTx({ conn, payer: sender, totalBurnAmt, memoText });
+        setStatus('<strong>Sign 2 of 2</strong> in your wallet &mdash; burn + inscribe&hellip;', 'info');
+        const burnSigned = await provider.signTransaction(burn.tx);
+        const burnSig = await conn.sendRawTransaction(burnSigned.serialize(), {
+          skipPreflight: false, maxRetries: 10, preflightCommitment: 'confirmed',
+        });
+        setStatus(
+          `Step 2 sent: <a href="https://solscan.io/tx/${burnSig}" target="_blank">${shortAddr(burnSig)} &uarr;</a> ` +
+          '&middot; waiting for confirmation&hellip;', 'info'
+        );
+        await pollForConfirmation(conn, burnSig, burn.lastValidBlockHeight);
+
+        setStatus(
+          `🔥 ${fmt(totalBurnAmt)} $PYRE burned across <strong>2 transactions</strong>. ` +
+          'Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>' +
+          `<a href="https://solscan.io/tx/${swapSig}" target="_blank">Swap tx &uarr;</a> &middot; ` +
+          `<a href="https://solscan.io/tx/${burnSig}" target="_blank">Burn tx &uarr;</a>`,
+          'success'
+        );
+        await refreshBalance();
+        // Done with the 2-tx flow — skip the single-tx sign+send block
+        // below by setting tx to null and returning out of the try.
+        $('burnSubmit').disabled = false;
+        return;
       }
       tx = built.tx;
       lastValidBlockHeight = built.lastValidBlockHeight;
     }
 
-    setStatus('Confirm in your wallet…', 'info');
+    setStatus('Confirm in your wallet&hellip;', 'info');
 
     // Both paths have already baked their blockhash + payer into the
     // tx (legacy: tx.recentBlockhash / tx.feePayer; v0: TransactionMessage
