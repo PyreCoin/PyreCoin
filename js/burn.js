@@ -18,22 +18,24 @@
 // The 1 lamport accumulates there forever; anyone can replicate the
 // shape with their own wallet (no permission needed).
 //
-// Solana libs are imported directly from esm.sh as ES modules.
+// Solana libs are imported from /vendor/ — single-file ESM bundles
+// produced by esbuild against the npm packages and committed to the
+// repo. Zero runtime CDN dependency. See vendor/README.md.
 
 import {
   Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram, ComputeBudgetProgram,
   VersionedTransaction
-} from 'https://esm.sh/@solana/web3.js@1.98.4';
+} from '../vendor/web3.mjs';
 import {
   createBurnCheckedInstruction, getAssociatedTokenAddressSync, getAccount,
   TOKEN_2022_PROGRAM_ID
-} from 'https://esm.sh/@solana/spl-token@0.4.14';
+} from '../vendor/spl-token.mjs';
 // Solana Wallet Standard discovery — picks up Jupiter Mobile/Web, Glow,
 // Magic Eden, OKX, Coinbase, Trust, Bitget, and modern Phantom/Solflare/
 // Backpack via the standard's `register` event protocol instead of the
 // legacy `window.solana` injection. Wrapped in try/catch at call-site so
 // a CDN blip leaves the legacy window-global path working.
-import { getWallets } from 'https://esm.sh/@wallet-standard/app@1.1.0';
+import { getWallets } from '../vendor/wallet-standard.mjs';
 
 import {
   PYRE_MINT_STR, RPC_URL, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR, isPlaceholder

@@ -36,11 +36,11 @@
 import {
   Connection, PublicKey, TransactionInstruction, TransactionMessage,
   VersionedTransaction, AddressLookupTableAccount, SystemProgram
-} from 'https://esm.sh/@solana/web3.js@1.98.4';
+} from '../vendor/web3.mjs';
 import {
   createBurnCheckedInstruction, getAssociatedTokenAddressSync,
   TOKEN_2022_PROGRAM_ID
-} from 'https://esm.sh/@solana/spl-token@0.4.14';
+} from '../vendor/spl-token.mjs';
 import { PYRE_MINT_STR, MEMO_PROGRAM_ID_STR, INSCRIPTION_BEACON_STR } from './config.js';
 
 const JUP_QUOTE = 'https://lite-api.jup.ag/swap/v1/quote';

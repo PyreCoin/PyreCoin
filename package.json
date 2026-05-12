@@ -15,5 +15,10 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@solana/spl-token": "^0.4.14",
+    "@wallet-standard/app": "^1.1.0",
+    "esbuild": "^0.28.0"
   }
 }

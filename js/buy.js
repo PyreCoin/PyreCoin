@@ -23,7 +23,7 @@
 
 import {
   Connection, VersionedTransaction, PublicKey
-} from 'https://esm.sh/@solana/web3.js@1.98.4';
+} from '../vendor/web3.mjs';
 import { PYRE_MINT_STR, RPC_URL, isPlaceholder } from './config.js';
 import { detectProvider, onWalletChange } from './wallet.js';
 import { $, escapeHtml, fmt } from './utils.js';

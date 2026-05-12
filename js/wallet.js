@@ -19,8 +19,8 @@
 
 import {
   Transaction, VersionedTransaction, PublicKey
-} from 'https://esm.sh/@solana/web3.js@1.98.4';
-import { getWallets } from 'https://esm.sh/@wallet-standard/app@1.1.0';
+} from '../vendor/web3.mjs';
+import { getWallets } from '../vendor/wallet-standard.mjs';
 
 // localStorage key for the user's wallet pick. Survives reloads so a
 // user who explicitly chose "Jupiter" doesn't get bounced back to

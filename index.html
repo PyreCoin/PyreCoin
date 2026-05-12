@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-15">
+<link rel="stylesheet" href="style.css?v=20260512-16">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -756,7 +756,7 @@
       <li><strong>Solana</strong> — provides the chain, the protocol-level <code>BurnChecked</code> instruction that actually destroys the tokens, and the entire concept of an on-chain receipt. Network fee per burn: a fraction of a cent, priority included. The most expensive thing about this project is the prefix to that sentence.</li>
       <li><strong>Helius</strong> — provides the RPC that lets the cron see new burns. Free tier. Never paid. Never asked. If they're reading: thank you, sorry about the volume, please don't change anything.</li>
       <li><strong>Cloudflare</strong> — DNS for <code>pyrecoin.com</code>, email forwarding for <code>admin@pyrecoin.com</code>, and the Worker at <code>rpc.pyrecoin.com</code> that proxies the burn modal's Solana RPC calls (so our API key isn't sitting in this very HTML). All on the free tier.</li>
-      <li><strong>esm.sh</strong> — serves <code>@solana/web3.js</code> and <code>@solana/spl-token</code> as ES modules straight to the browser. No build step, no bundler, no signup, no rate limit we have ever come close to. Approximately the only npm CDN we trust unprompted.</li>
+      <li><strong>esbuild</strong> — one-time local bundler that takes <code>@solana/web3.js</code>, <code>@solana/spl-token</code>, and <code>@wallet-standard/app</code> straight from npm and writes single-file ESM bundles into <code>vendor/</code>. The browser then imports them from our own origin, not from any CDN — zero third-party network dependency at runtime, smaller blast radius if anyone in the supply chain ever has a bad day. See <code>vendor/README.md</code> for versions + SHA-384 audit hashes.</li>
       <li><strong>X (formerly Twitter)</strong> — hosts <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a> and the <a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer">live community feed</a>. The blue checkmark is, regrettably, not free. We accept this as the cost of doing memecoin in this (still unfortunate) timeline.</li>
       <li><strong>pump.fun</strong> — minted the SPL token for a one-time fee best described as "a coffee." This is the closest thing the project has to a treasury event.</li>
       <li><strong>Jupiter</strong> — Solana's aggregator. The "Buy $PYRE" button points at <a href="https://jup.ag" target="_blank" rel="noopener noreferrer">jup.ag</a>; the live price + market cap on this page come from their Price API. Free tier, CORS-friendly, no key required.</li>
@@ -852,7 +852,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-15"></script>
+<script type="module" src="js/main.js?v=20260512-16"></script>
 
 </body>
 </html>
