@@ -222,26 +222,36 @@ export function candlestick(container, ohlcv, opts = {}){
   // flash-spike wick stretch the scale and crush every other candle
   // into a thin band at the bottom — common in memecoin OHLC where
   // the bulk of action sits in a tight range and one trade briefly
-  // pushes the wick 2–3× higher. Use percentile clipping instead:
-  // the chart frames the bulk of price action; outlier wicks get
-  // visually clamped to the chart edge but their true values still
-  // surface in the tooltip (and are preserved in the underlying data).
-  // P3/P97 trims ~7% of extremes — aggressive enough to ignore real
-  // outliers, conservative enough to keep "normal volatility" wicks
-  // fully visible.
+  // pushes the wick 2–3× higher. Use IQR-based Tukey fences to clip
+  // outliers: anything past Q3 + 1.5·IQR gets visually clamped to
+  // the chart edge (the OHLC tooltip still shows true values, and
+  // the underlying data is unchanged). Pure percentile clipping
+  // (e.g. P3/P97) collapses to min/max for small N — IQR works
+  // robustly down to ~4 candles because Q1/Q3 are well-defined
+  // there, while P3 is just `arr[0]`.
   const allLo = rows.map(r => r[3]).sort((a, b) => a - b);
   const allHi = rows.map(r => r[2]).sort((a, b) => a - b);
+  const pooled = allLo.concat(allHi).sort((a, b) => a - b);
   const pctile = (arr, p) => {
     const i = Math.max(0, Math.min(arr.length - 1, Math.floor(arr.length * p)));
     return arr[i];
   };
-  let lo = pctile(allLo, 0.03);
-  let hi = pctile(allHi, 0.97);
-  // Guard against degenerate bounds (e.g. all candles flat at the
-  // same price): fall back to true min/max so we don't divide by zero.
+  const q1  = pctile(pooled, 0.25);
+  const q3  = pctile(pooled, 0.75);
+  const iqr = q3 - q1;
+  // Tukey fence at 1.5·IQR is the standard outlier definition. Cap
+  // the fence to the actual data extremes so we never extend the
+  // chart past real prices.
+  const trueLo = allLo[0];
+  const trueHi = allHi[allHi.length - 1];
+  let lo = Math.max(q1 - 1.5 * iqr, trueLo);
+  let hi = Math.min(q3 + 1.5 * iqr, trueHi);
+  // Degenerate cases: zero IQR (all candles flat at one price), or
+  // bounds that came out inverted somehow → fall back to true min/max
+  // so we don't divide by zero or hide everything.
   if (!(hi > lo)) {
-    lo = allLo[0];
-    hi = allHi[allHi.length - 1];
+    lo = trueLo;
+    hi = trueHi;
   }
   const pad = (hi - lo) * 0.06 || hi * 0.06 || 1;
   lo -= pad; hi += pad;
