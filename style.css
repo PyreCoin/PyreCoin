@@ -1532,6 +1532,88 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   color:var(--text);
   font-variant-numeric:tabular-nums;
 }
+/* Extra-PYRE-to-wallet bill line. The whole row is interactive — the
+   <label> wraps the checkbox + inline USD input so clicking anywhere
+   on the label toggles or activates the relevant control. The USD
+   input is small and inline, mid-sentence; styled to look like part
+   of the running text. */
+.burn-bill-row-extra{
+  align-items:center;
+}
+.burn-bill-row-extra[hidden]{display:none;}
+.burn-bill-extra-label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+  flex:1 1 auto;
+  min-width:0;
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--text2);
+  letter-spacing:0.2px;
+  line-height:1.5;
+}
+.burn-bill-extra-label input[type="checkbox"]{
+  width:13px;height:13px;
+  flex-shrink:0;
+  accent-color:var(--ember);
+  cursor:pointer;
+}
+.burn-bill-extra-text{
+  display:inline;
+}
+.burn-bill-extra-input-wrap{
+  display:inline-flex;
+  align-items:center;
+  margin:0 2px;
+  color:var(--text);
+}
+.burn-bill-extra-input{
+  width:48px;
+  margin-left:1px;
+  padding:2px 4px;
+  background:rgba(255,100,30,0.08);
+  border:0.5px solid rgba(255,100,30,0.3);
+  border-radius:2px;
+  color:#fff;
+  font-family:var(--mono);
+  font-size:11px;
+  font-weight:600;
+  text-align:center;
+  outline:none;
+  /* Strip the inner-spinner so the small inline width looks clean. */
+  -moz-appearance:textfield;
+  appearance:textfield;
+  transition:border-color .15s,background .15s;
+}
+.burn-bill-extra-input::-webkit-outer-spin-button,
+.burn-bill-extra-input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0;
+}
+.burn-bill-extra-input:focus{
+  border-color:var(--ember);
+  background:rgba(255,100,30,0.18);
+}
+/* Disable visual when checkbox is off — the row stays clickable but
+   shows it's currently off. JS toggles .is-off based on burnState. */
+.burn-bill-row-extra.is-off .burn-bill-extra-label,
+.burn-bill-row-extra.is-off .burn-bill-cost{
+  opacity:0.45;
+}
+.burn-bill-row-extra.is-off .burn-bill-extra-input{
+  opacity:0.7;
+}
+.burn-bill-extra-pyre{
+  display:block;
+  margin-top:1px;
+  color:var(--text3);
+  font-size:9.5px;
+  font-style:italic;
+  letter-spacing:0.2px;
+}
+.burn-bill-extra-pyre:empty{display:none;}
+
 .burn-bill-divider{
   height:0.5px;
   margin:8px 0 6px;

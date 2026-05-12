@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-23">
+<link rel="stylesheet" href="style.css?v=20260512-24">
 <!-- CF Web Analytics beacon. Cookieless, GDPR-compliant by default
      per Cloudflare's docs (see project policy §4 — analytics here is
      explicitly approved as the cookieless variety, never the cookied
@@ -255,6 +255,28 @@
           <div class="burn-bill-row" id="burnBillLeaderboardRow" hidden>
             <span class="burn-bill-label">Leaderboard burn &middot; <span id="burnBillBurnAmt">0</span> $PYRE</span>
             <span class="burn-bill-cost"><span class="burn-bill-usd" id="burnBillLeaderboard">~$0</span></span>
+          </div>
+          <!-- Optional "extra PYRE to your wallet" line. Defaults to
+               $10 worth of $PYRE swapped (NOT burned) into the user's
+               ATA alongside the burn — same atomic tx. Hidden when
+               pay method is "pyre" (user is spending their own
+               balance, not buying). Checkbox + USD input for full
+               user control. -->
+          <div class="burn-bill-row burn-bill-row-extra" id="burnBillExtraRow">
+            <label class="burn-bill-extra-label">
+              <input type="checkbox" id="burnExtraEnabled" checked>
+              <span class="burn-bill-extra-text">
+                Plus
+                <span class="burn-bill-extra-input-wrap">
+                  $<input type="number" id="burnExtraUsd" class="burn-bill-extra-input" value="10" min="0" step="1" inputmode="decimal" autocomplete="off">
+                </span>
+                of $PYRE to your wallet
+              </span>
+            </label>
+            <span class="burn-bill-cost">
+              <span class="burn-bill-usd" id="burnBillExtra">~$10</span>
+              <span class="burn-bill-extra-pyre" id="burnBillExtraPyre"></span>
+            </span>
           </div>
           <div class="burn-bill-divider"></div>
           <div class="burn-bill-row burn-bill-total">
@@ -889,7 +911,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-23"></script>
+<script type="module" src="js/main.js?v=20260512-24"></script>
 
 </body>
 </html>

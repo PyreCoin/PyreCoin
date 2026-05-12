@@ -131,6 +131,38 @@ function savePayMethod(v) {
 }
 burnState.payMethod = loadPayMethod();
 
+// ── Extra $PYRE to user's wallet ──
+// Optional add-on: the same atomic tx acquires N more $PYRE on top of
+// the burn amount and leaves it in the user's ATA (not burned). Default
+// $10 USD-equivalent, on by default. Disabled automatically when the
+// pay method is 'pyre' (you can't "buy more" if you're spending your
+// own balance — show the row hidden in that case).
+const EXTRA_ENABLED_KEY = 'pyre.burnExtraEnabled';
+const EXTRA_USD_KEY = 'pyre.burnExtraUsd';
+function loadExtraEnabled() {
+  try {
+    const v = localStorage.getItem(EXTRA_ENABLED_KEY);
+    if (v === 'false') return false;
+    if (v === 'true') return true;
+  } catch {}
+  return true; // default on
+}
+function loadExtraUsd() {
+  try {
+    const v = parseFloat(localStorage.getItem(EXTRA_USD_KEY));
+    if (Number.isFinite(v) && v >= 0) return v;
+  } catch {}
+  return 10; // default $10
+}
+function saveExtraEnabled(v) {
+  try { localStorage.setItem(EXTRA_ENABLED_KEY, String(!!v)); } catch {}
+}
+function saveExtraUsd(v) {
+  try { localStorage.setItem(EXTRA_USD_KEY, String(v)); } catch {}
+}
+burnState.extraEnabled = loadExtraEnabled();
+burnState.extraUsd = loadExtraUsd();
+
 // ─── UI HELPERS ──────────────────────────────────────────────────────
 function setStatus(msg, kind = 'info') {
   const el = $('burnStatus');
@@ -254,11 +286,31 @@ document.addEventListener('input', e => {
   if (e.target.id === 'burnAmount') {
     burnState.userEditedAmount = true;
     recalculateBill();
+    refreshBurnHint(); // refresh the snap-back link state
+  }
+  // Extra-PYRE USD input. Accept any non-negative number; let the
+  // checkbox handle the "off" case explicitly.
+  if (e.target.id === 'burnExtraUsd') {
+    const v = parseFloat(e.target.value);
+    if (Number.isFinite(v) && v >= 0) {
+      burnState.extraUsd = v;
+      saveExtraUsd(v);
+      recalculateBill();
+    }
   }
   // Always clear an error glow on this row when the user types.
   const row = e.target.closest?.('.burn-form-row');
   if (row && row.classList.contains('has-error')) {
     row.classList.remove('has-error');
+  }
+});
+
+// Checkbox state change — toggle the extra-PYRE-to-wallet row on/off.
+document.addEventListener('change', e => {
+  if (e.target.id === 'burnExtraEnabled') {
+    burnState.extraEnabled = !!e.target.checked;
+    saveExtraEnabled(burnState.extraEnabled);
+    recalculateBill();
   }
 });
 
@@ -293,7 +345,15 @@ function recalculateBill() {
   const solFeeUsd = prices.sol != null ? solFeeSol * prices.sol : null;
   const serviceUsd = prices.pyre != null ? SERVICE_FEE_PYRE * prices.pyre : null;
   const lbUsd = prices.pyre != null ? leaderboardAmt * prices.pyre : null;
-  const totalUsd = (solFeeUsd ?? 0) + (serviceUsd ?? 0) + (lbUsd ?? 0);
+  // Extra-PYRE-to-wallet line: $X swapped (not burned) into the user's
+  // ATA alongside the burn. Only applies when the pay method is a
+  // swap-source (SOL/USDC/USDT) — direct $PYRE pay method has no
+  // swap step to piggyback on, so we hide the row entirely there.
+  const extraEnabledNow = burnState.extraEnabled && burnState.payMethod !== 'pyre';
+  const extraUsdValue = extraEnabledNow ? (burnState.extraUsd || 0) : 0;
+  const extraPyreAmt = (extraUsdValue > 0 && prices.pyre != null && prices.pyre > 0)
+    ? (extraUsdValue / prices.pyre) : 0;
+  const totalUsd = (solFeeUsd ?? 0) + (serviceUsd ?? 0) + (lbUsd ?? 0) + extraUsdValue;
 
   // ── Each line item ──
   $('burnBillSolFee').textContent = solFeeUsd != null ? fmtBillUsd(solFeeUsd) : '—';
@@ -305,6 +365,26 @@ function recalculateBill() {
     $('burnBillLeaderboard').textContent = lbUsd != null ? fmtBillUsd(lbUsd) : '—';
   } else {
     lbRow.hidden = true;
+  }
+  // Extra-PYRE-to-wallet row state — hide entirely when payMethod=pyre;
+  // dim when checkbox is off; show the PYRE-equivalent below the USD.
+  const extraRow = $('burnBillExtraRow');
+  if (extraRow) {
+    extraRow.hidden = burnState.payMethod === 'pyre';
+    extraRow.classList.toggle('is-off', !burnState.extraEnabled);
+    const cb = $('burnExtraEnabled');
+    if (cb && cb.checked !== burnState.extraEnabled) cb.checked = burnState.extraEnabled;
+    const inp = $('burnExtraUsd');
+    if (inp && parseFloat(inp.value) !== burnState.extraUsd && document.activeElement !== inp) {
+      inp.value = burnState.extraUsd;
+    }
+    $('burnBillExtra').textContent = extraUsdValue > 0 ? fmtBillUsd(extraUsdValue) : '~$0';
+    const pyreEl = $('burnBillExtraPyre');
+    if (pyreEl) {
+      pyreEl.textContent = extraPyreAmt > 0
+        ? `≈ ${fmt(extraPyreAmt)} $PYRE`
+        : '';
+    }
   }
 
   // ── Total in USD + pay-with-token equivalent ──
@@ -955,12 +1035,21 @@ window.submitBurn = async function submitBurn() {
       // the memo, all signed once. See js/atomic-burn.js.
       const payMint = PAY_TOKENS[payMethod]?.mint;
       if (!payMint) throw new Error('Invalid pay method: ' + payMethod);
+      // Compute the extra-PYRE-to-wallet amount from the user's
+      // checkbox/USD input + the live $PYRE price. The atomic builder
+      // acquires (burn + extra) and burns only the burn portion; the
+      // extra stays in the user's ATA.
+      const prices = _priceCache.prices;
+      const extraPyreAmt = (burnState.extraEnabled && (burnState.extraUsd || 0) > 0
+        && prices.pyre != null && prices.pyre > 0)
+        ? (burnState.extraUsd / prices.pyre) : 0;
       setStatus('Quoting Jupiter swap…', 'info');
       const built = await buildAtomicBurnTx({
         conn,
         payer: sender,
         payMint,
         totalBurnAmt,
+        extraPyreAmt,
         memoText,
       });
       if (built.sizeBytes > 1232) {
@@ -979,8 +1068,8 @@ window.submitBurn = async function submitBurn() {
           'the $PYRE, then again to burn + inscribe.', 'info'
         );
 
-        // tx1: swap only
-        const swap = await buildSwapOnlyTx({ conn, payer: sender, payMint, totalBurnAmt });
+        // tx1: swap only (includes extra-to-wallet PYRE in the acquire)
+        const swap = await buildSwapOnlyTx({ conn, payer: sender, payMint, totalBurnAmt, extraPyreAmt });
         setStatus('<strong>Sign 1 of 2</strong> in your wallet &mdash; acquire $PYRE&hellip;', 'info');
         const swapSigned = await provider.signTransaction(swap.tx);
         const swapSig = await conn.sendRawTransaction(swapSigned.serialize(), {

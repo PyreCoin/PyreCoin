@@ -213,23 +213,31 @@ async function fetchPrebuiltSwap(quoteResponse, userPublicKey) {
  * @param {Connection} args.conn        — RPC connection
  * @param {PublicKey}  args.payer       — user's wallet pubkey
  * @param {string}     args.payMint     — base58 of the pay-with mint (SOL/USDC/USDT)
- * @param {number}     args.totalBurnAmt — total $PYRE to acquire-and-burn (service fee + leaderboard)
+ * @param {number}     args.totalBurnAmt — $PYRE amount to burn (service fee + leaderboard)
+ * @param {number}     [args.extraPyreAmt=0] — extra $PYRE to acquire on top of the burn
+ *                                              and leave in the user's ATA (optional add-on).
  * @param {string}     args.memoText    — non-empty memo to attach as the Memo Program payload
  *
  * @returns {Promise<{tx: VersionedTransaction, lastValidBlockHeight: number, maxInputAmount: bigint, sizeBytes: number}>}
  */
-export async function buildAtomicBurnTx({ conn, payer, payMint, totalBurnAmt, memoText }) {
+export async function buildAtomicBurnTx({ conn, payer, payMint, totalBurnAmt, extraPyreAmt = 0, memoText }) {
   if (!(payer instanceof PublicKey)) throw new Error('payer must be a PublicKey');
   if (!payMint || typeof payMint !== 'string') throw new Error('payMint required');
   if (!Number.isFinite(totalBurnAmt) || totalBurnAmt <= 0) {
     throw new Error('totalBurnAmt must be > 0');
   }
+  if (!Number.isFinite(extraPyreAmt) || extraPyreAmt < 0) extraPyreAmt = 0;
 
   const pyreDecimals = await getPyreDecimals(conn);
   const burnRawAmount = scaleToRaw(totalBurnAmt, pyreDecimals);
+  // Total to ACQUIRE via the swap = the amount we'll burn + any extra
+  // the user wants left in their wallet. The burn instruction below
+  // only burns `burnRawAmount`; the extra naturally stays in the ATA.
+  const totalAcquire = totalBurnAmt + extraPyreAmt;
+  const acquireRawAmount = scaleToRaw(totalAcquire, pyreDecimals);
 
-  // 1. Quote: ExactOut N PYRE.
-  const quote = await fetchExactOutQuote(payMint, burnRawAmount.toString());
+  // 1. Quote: ExactOut N PYRE for the FULL acquire amount.
+  const quote = await fetchExactOutQuote(payMint, acquireRawAmount.toString());
 
   // 2. Instructions for the swap. Body shape per Jupiter Swap V1 ref.
   const swapData = await fetchSwapInstructions(quote, payer.toBase58());
@@ -321,22 +329,25 @@ export async function buildAtomicBurnTx({ conn, payer, payMint, totalBurnAmt, me
 /**
  * Build a swap-only VersionedTransaction (no burn, no memo). Uses
  * Jupiter's /swap endpoint (which returns a pre-built tx) instead of
- * /swap-instructions, because we're not splicing anything in.
+ * /swap-instructions, because we're not splicing anything in. The
+ * follow-up burn tx (buildBurnOnlyTx) burns only `totalBurnAmt`; the
+ * extra acquired stays in the user's ATA.
  *
  * @returns {Promise<{tx: VersionedTransaction, lastValidBlockHeight: number, quote: object}>}
  */
-export async function buildSwapOnlyTx({ conn, payer, payMint, totalBurnAmt }) {
+export async function buildSwapOnlyTx({ conn, payer, payMint, totalBurnAmt, extraPyreAmt = 0 }) {
   if (!(payer instanceof PublicKey)) throw new Error('payer must be a PublicKey');
   if (!Number.isFinite(totalBurnAmt) || totalBurnAmt <= 0) {
     throw new Error('totalBurnAmt must be > 0');
   }
+  if (!Number.isFinite(extraPyreAmt) || extraPyreAmt < 0) extraPyreAmt = 0;
   const pyreDecimals = await getPyreDecimals(conn);
-  const burnRawAmount = scaleToRaw(totalBurnAmt, pyreDecimals);
+  const acquireRawAmount = scaleToRaw(totalBurnAmt + extraPyreAmt, pyreDecimals);
 
   // ExactOut quote so the user receives exactly the target $PYRE
   // amount (within slippage on the INPUT side). The follow-up burn
-  // tx can then burn exactly that amount with no balance-check race.
-  const quote = await fetchExactOutQuote(payMint, burnRawAmount.toString());
+  // tx burns only the burn portion; the extra stays in their ATA.
+  const quote = await fetchExactOutQuote(payMint, acquireRawAmount.toString());
   const data = await fetchPrebuiltSwap(quote, payer.toBase58());
 
   const txBytes = Uint8Array.from(atob(data.swapTransaction), c => c.charCodeAt(0));
