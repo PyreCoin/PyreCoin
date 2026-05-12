@@ -218,12 +218,30 @@ export function candlestick(container, ohlcv, opts = {}){
   );
   if (rows.length === 0) { emptyState(container, 'no valid price data'); return; }
 
-  // Min/max across all wick prices, with a tiny pad so candles never
-  // touch the chart edge.
-  let lo = Infinity, hi = -Infinity;
-  for (const r of rows) {
-    if (r[3] < lo) lo = r[3];
-    if (r[2] > hi) hi = r[2];
+  // Robust y-axis bounds. Pure min/max of all wicks lets a single
+  // flash-spike wick stretch the scale and crush every other candle
+  // into a thin band at the bottom — common in memecoin OHLC where
+  // the bulk of action sits in a tight range and one trade briefly
+  // pushes the wick 2–3× higher. Use percentile clipping instead:
+  // the chart frames the bulk of price action; outlier wicks get
+  // visually clamped to the chart edge but their true values still
+  // surface in the tooltip (and are preserved in the underlying data).
+  // P3/P97 trims ~7% of extremes — aggressive enough to ignore real
+  // outliers, conservative enough to keep "normal volatility" wicks
+  // fully visible.
+  const allLo = rows.map(r => r[3]).sort((a, b) => a - b);
+  const allHi = rows.map(r => r[2]).sort((a, b) => a - b);
+  const pctile = (arr, p) => {
+    const i = Math.max(0, Math.min(arr.length - 1, Math.floor(arr.length * p)));
+    return arr[i];
+  };
+  let lo = pctile(allLo, 0.03);
+  let hi = pctile(allHi, 0.97);
+  // Guard against degenerate bounds (e.g. all candles flat at the
+  // same price): fall back to true min/max so we don't divide by zero.
+  if (!(hi > lo)) {
+    lo = allLo[0];
+    hi = allHi[allHi.length - 1];
   }
   const pad = (hi - lo) * 0.06 || hi * 0.06 || 1;
   lo -= pad; hi += pad;
@@ -247,7 +265,13 @@ export function candlestick(container, ohlcv, opts = {}){
   const bodyW = Math.max(1, slotW * 0.7);
   const wickW = Math.max(0.5, Math.min(1.5, slotW * 0.15));
 
-  const yFor = p => TOP_PAD + (innerH - ((p - lo) / range) * innerH);
+  // yFor maps a price to the chart's pixel y-coord; clampY pins it to
+  // the drawable area so wicks past the percentile bounds stop at the
+  // chart edge instead of escaping the SVG and looking broken.
+  const Y_TOP = TOP_PAD;
+  const Y_BOT = TOP_PAD + innerH;
+  const clampY = y => Math.max(Y_TOP, Math.min(Y_BOT, y));
+  const yFor = p => clampY(TOP_PAD + (innerH - ((p - lo) / range) * innerH));
 
   // Memecoin-friendly price formatting. Anything sub-tenth-of-a-cent
   // gets scientific notation — six-leading-zero strings like
