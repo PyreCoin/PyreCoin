@@ -2778,13 +2778,25 @@ img.twemoji{
 .top-cta-sub{
   font-family:var(--sans);
   font-size:14px;font-weight:300;
-  color:var(--text2);
+  /* Brighter than the prior --text2 default — at 60% alpha the dim
+     warm-cream blended into the fire glow behind the CTA and the
+     sub-line read as washed out. ~85% alpha keeps the copy readable
+     while leaving room for the bright-white dollar figures inside
+     (#cta-cost and #cta-top-spot) to still pop. */
+  color:rgba(255,220,170,0.88);
   line-height:1.7;
   margin-bottom:22px;
   display:flex;
   flex-direction:column;
   gap:2px;
   align-items:center;
+}
+/* Both dollar figures in the sub-lines render in bright white so the
+   number is the thing that registers; the surrounding copy stays in
+   the muted warm-cream above. */
+#cta-cost{
+  color:#fff;
+  font-weight:500;
 }
 /* Each line of the sub is its own block-level span — keeps line
    wrapping clean when the viewport narrows. The [hidden] override
