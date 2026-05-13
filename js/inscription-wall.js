@@ -65,11 +65,10 @@ function buildWallSlot(entry, now){
   return div;
 }
 
-const EMPTY_HTML = `
-  <div class="wall-empty">
-    <div class="wall-empty-title">The wall is bare.</div>
-    <div class="wall-empty-sub">Inscribe yours for a fraction of a cent in SOL.</div>
-  </div>`;
+// One tight line — the intro paragraph above already explains what
+// this section is. A big orange "THE WALL IS BARE" hero monopolised
+// the page when the section was new; a small uppercase ack is enough.
+const EMPTY_HTML = `<div class="wall-empty">No inscriptions yet. Be the first.</div>`;
 
 export function renderInscriptionWall(now){
   const host = document.getElementById('wall-container');

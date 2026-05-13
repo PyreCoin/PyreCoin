@@ -201,10 +201,8 @@ function clearAllRowErrors() {
 function refreshBurnHint() {
   const lb = window.__pyreLeaderboard;
   const hintEl = $('burnHint');
-  const topBtn = $('burnTopHint');
   if (!lb || typeof lb.minBurnToTakeTop !== 'function') {
     if (hintEl) hintEl.innerHTML = '';
-    if (topBtn) topBtn.hidden = true;
     return;
   }
   const min = lb.minBurnToTakeTop(new Date());
@@ -227,29 +225,23 @@ function refreshBurnHint() {
       input.value = '1';
     }
   }
+  // Single hint line: render the take-#1 dollar amount as a clickable
+  // snap-link when the input doesn't match it (snap = re-fill + drop
+  // back into auto-suggest mode); render the same amount as plain
+  // text when the input is already on target. The hint copy stays the
+  // same either way so the layout never reflows when state toggles.
   if (hintEl) {
     if (count === 0) {
-      hintEl.innerHTML = 'tip · the pyre is cold — any burn takes #1.';
+      hintEl.innerHTML = 'The pyre is cold — any burn takes <strong>#1</strong>.';
     } else {
-      hintEl.innerHTML = `tip · burn <strong>&ge; ${escapeHtml(fmt(min))} $PYRE</strong> right now to take #1.`;
-    }
-  }
-  // Snap-back link: only displayed when the user has edited the input
-  // AWAY from the live take-#1 target. Clicking it re-fills the input
-  // with the current N and re-enters auto-suggest mode (so future
-  // leaderboard ticks keep tracking the live target).
-  if (topBtn) {
-    const input = $('burnAmount');
-    const cur = parseFloat(input?.value);
-    const showLink = count > 0 && (
-      burnState.userEditedAmount && cur !== min
-    );
-    topBtn.hidden = !showLink;
-    if (showLink) {
-      topBtn.dataset.takeTop = String(min);
-      topBtn.innerHTML =
-        `<span class="burn-top-hint-link">Burn ${escapeHtml(fmt(min))} $PYRE</span> ` +
-        'to grab the top of the pyrecoin.com leaderboard';
+      const input = $('burnAmount');
+      const cur = parseFloat(input?.value);
+      const onTarget = Number.isFinite(cur) && cur === min;
+      const amt = `${escapeHtml(fmt(min))} $PYRE`;
+      hintEl.dataset.takeTop = String(min);
+      hintEl.innerHTML = onTarget
+        ? `<strong>${amt}</strong> takes <strong>#1</strong> right now.`
+        : `<button type="button" class="burn-hint-snap" data-snap="1">${amt}</button> takes <strong>#1</strong> right now.`;
     }
   }
   recalculateBill();
@@ -327,30 +319,53 @@ function recalculateBill() {
     ? (extraUsdValue / prices.pyre) : 0;
   const totalUsd = (solFeeUsd ?? 0) + (serviceUsd ?? 0) + (lbUsd ?? 0) + extraUsdValue;
 
+  // Render a USD cost split into integer + fractional spans so the
+  // decimal points line up vertically in the bill column even when
+  // magnitudes vary by 6+ orders ($0.0000040 ↔ $10.00). The integer
+  // span is right-aligned to a fixed-width track in CSS; the
+  // fractional span is left-aligned. Result: every `.` lands on the
+  // same x.
+  const setCostUsd = (id, usd) => {
+    const el = $(id);
+    if (!el) return;
+    if (usd == null) { el.textContent = '—'; return; }
+    const s = fmtUsdApprox(usd);
+    const dot = s.indexOf('.');
+    if (dot === -1) {
+      el.innerHTML = `<span class="bb-int">${escapeHtml(s)}</span><span class="bb-frac"></span>`;
+    } else {
+      el.innerHTML =
+        `<span class="bb-int">${escapeHtml(s.slice(0, dot))}</span>` +
+        `<span class="bb-frac">${escapeHtml(s.slice(dot))}</span>`;
+    }
+  };
+
   // ── Each line item ──
-  $('burnBillSolFee').textContent = solFeeUsd != null ? fmtUsdApprox(solFeeUsd) : '—';
-  $('burnBillService').textContent = serviceUsd != null ? fmtUsdApprox(serviceUsd) : '—';
+  setCostUsd('burnBillSolFee', solFeeUsd);
+  setCostUsd('burnBillService', serviceUsd);
   const lbRow = $('burnBillLeaderboardRow');
   if (leaderboardAmt > 0) {
     lbRow.hidden = false;
     $('burnBillBurnAmt').textContent = fmt(leaderboardAmt);
-    $('burnBillLeaderboard').textContent = lbUsd != null ? fmtUsdApprox(lbUsd) : '—';
+    setCostUsd('burnBillLeaderboard', lbUsd);
   } else {
     lbRow.hidden = true;
   }
-  // Extra-PYRE-to-wallet row state — hide entirely when payMethod=pyre;
-  // dim when checkbox is off; show the PYRE-equivalent below the USD.
-  const extraRow = $('burnBillExtraRow');
-  if (extraRow) {
-    extraRow.hidden = burnState.payMethod === 'pyre';
-    extraRow.classList.toggle('is-off', !burnState.extraEnabled);
+  // Extra-PYRE-to-wallet — toggle now lives ABOVE the bill in its own
+  // .burn-extra block; the bill carries only the cost line. Hide the
+  // entire toggle (and the bill row) when payMethod=pyre.
+  const extraToggle = $('burnBillExtraRow');
+  const extraBillRow = $('burnBillExtraBillRow');
+  const hideExtra = burnState.payMethod === 'pyre';
+  if (extraToggle) {
+    extraToggle.hidden = hideExtra;
+    extraToggle.classList.toggle('is-off', !burnState.extraEnabled);
     const cb = $('burnExtraEnabled');
     if (cb && cb.checked !== burnState.extraEnabled) cb.checked = burnState.extraEnabled;
     const inp = $('burnExtraUsd');
     if (inp && parseFloat(inp.value) !== burnState.extraUsd && document.activeElement !== inp) {
       inp.value = burnState.extraUsd;
     }
-    $('burnBillExtra').textContent = extraUsdValue > 0 ? fmtUsdApprox(extraUsdValue) : '~$0';
     const pyreEl = $('burnBillExtraPyre');
     if (pyreEl) {
       pyreEl.textContent = extraPyreAmt > 0
@@ -358,9 +373,14 @@ function recalculateBill() {
         : '';
     }
   }
+  if (extraBillRow) {
+    // Show the bill row only when toggle is enabled AND has a > 0 value.
+    extraBillRow.hidden = hideExtra || !burnState.extraEnabled || !(extraUsdValue > 0);
+    setCostUsd('burnBillExtra', extraUsdValue > 0 ? extraUsdValue : null);
+  }
 
   // ── Total in USD + pay-with-token equivalent ──
-  $('burnBillTotalUsd').textContent = totalUsd > 0 ? fmtUsdApprox(totalUsd) : '—';
+  setCostUsd('burnBillTotalUsd', totalUsd > 0 ? totalUsd : null);
 
   // Compute the pay-with-token amount. If 'pyre' is the pay method,
   // there's no swap — show just the $PYRE-burned total and the SOL fee
@@ -395,12 +415,12 @@ function recalculateBill() {
     }
   }
 
-  // Submit button label — describes the action precisely.
+  // Submit button label — describes the action without restating the
+  // burn amount (the bill above the button already itemizes it). Keep
+  // the CTA verbal: action + outcome, no numbers.
   const btn = $('burnSubmit');
   if (btn && !btn.disabled && burnState.publicKey) {
-    btn.textContent = totalBurnAmt > 1
-      ? `Burn ${fmt(totalBurnAmt)} $PYRE & inscribe`
-      : `Burn 1 $PYRE & inscribe`;
+    btn.textContent = 'Burn & inscribe';
   }
 }
 
@@ -470,12 +490,10 @@ function refreshWalletState() {
 onWalletChange(() => { refreshWalletState(); });
 
 function _submitLabel(){
-  // Every inscription always burns at least the service fee. The label
-  // reflects total burn (service fee + optional leaderboard amount).
-  const amt = parseFloat($('burnAmount')?.value);
-  const lb = (Number.isFinite(amt) && amt > 0) ? amt : 0;
-  const total = SERVICE_FEE_PYRE + lb;
-  return `Burn ${fmt(total)} $PYRE & inscribe`;
+  // The numeric burn amount is shown in the bill of sale right above
+  // the button; the button itself stays a clean verb phrase so the
+  // CTA's job (commit the action) is what registers.
+  return 'Burn & inscribe';
 }
 
 // ── delegated click handler ──
@@ -506,12 +524,13 @@ document.addEventListener('click', e => {
     }
     return;
   }
-  // Snap-back-to-take-#1
-  const topHint = e.target.closest('#burnTopHint');
-  if (topHint) {
+  // Snap-back-to-take-#1: the dollar amount inside .burn-hint renders
+  // as a button whenever the input value doesn't match the live target.
+  const snap = e.target.closest('.burn-hint-snap');
+  if (snap) {
     e.preventDefault();
     const input = $('burnAmount');
-    const n = topHint.dataset.takeTop;
+    const n = $('burnHint')?.dataset?.takeTop;
     if (input && n) {
       input.value = n;
       burnState.userEditedAmount = false;

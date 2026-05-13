@@ -15,7 +15,7 @@
 <meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-32">
+<link rel="stylesheet" href="style.css?v=20260512-34">
 <!-- Twemoji (jdecked fork — the actively-maintained continuation of
      Twitter's archived original). Parses Unicode emoji in rendered
      HTML and swaps them for consistent SVG glyphs from jsDelivr, so
@@ -183,34 +183,34 @@
       <form onsubmit="event.preventDefault();submitBurn();">
         <div class="burn-form-row">
           <label for="burnMsg">
-            <span>Message <span class="hint" title="Anything goes — a quote, a confession, a joke, a manifesto, last words. Up to 280 characters. Once the transaction confirms it lives on the Solana chain forever and is mirrored by every major explorer (Solscan, Solana Explorer, Helius, etc.).">?</span></span>
+            <span>Message</span>
             <span class="label-meta"><span id="msgCount">0</span> / 280</span>
           </label>
           <input id="burnMsg" type="text" maxlength="280" placeholder="Say something the chain will keep forever." autocomplete="off">
         </div>
         <div class="burn-form-row">
           <label for="burnUrl">
-            <span>URL <span class="hint" title="A site you want people to visit when they click your slot — a portfolio, a project, a song, a manifesto, whatever. You can leave off the https:// — we add it. Max 200 characters. We reject IP-literals, link shorteners, and non-HTTPS URLs.">?</span></span>
+            <span>URL</span>
           </label>
-          <input id="burnUrl" type="text" maxlength="200" placeholder="yoursite.xyz" autocomplete="off">
+          <input id="burnUrl" type="text" maxlength="200" placeholder="https://yoursite.xyz" autocomplete="off">
         </div>
         <div class="burn-form-row">
           <label for="burnX">
-            <span><svg class="x-inline" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg> handle <span class="hint" title="Your X.com (Twitter) username — letters, numbers, underscores; 1–15 chars. With or without the @ — we strip it. Your handle becomes a clickable badge on your slot that links to x.com/yourhandle.">?</span></span>
+            <span><svg class="x-inline" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg> &nbsp;Handle</span>
           </label>
           <input id="burnX" type="text" maxlength="16" placeholder="@yourhandle" autocomplete="off">
         </div>
         <div class="burn-form-row burn-amount-row">
           <label for="burnAmount">
-            <span>$PYRE to burn <span class="hint" title="$PYRE you want to burn on top of the 1 $PYRE service fee. Auto-suggested at the amount needed to take #1 on the leaderboard above. Click the × to drop to 0 and pay only the service fee (inscription only). The total burn is service fee + this amount, charged in your selected pay-with token via an atomic Jupiter swap if you don't already hold enough $PYRE.">?</span></span>
+            <span>Burn</span>
             <span class="label-meta">You have <span id="burnPyreBalance">&mdash;</span> $PYRE</span>
           </label>
           <div class="burn-amount-line">
-            <input id="burnAmount" type="number" min="0" step="any" placeholder="0">
-            <button type="button" class="burn-amount-clear" id="burnAmountClear" aria-label="Drop to 0" title="Drop the leaderboard burn to 0 (you'll still pay the 1 $PYRE service fee)">&times;</button>
+            <input id="burnAmount" type="number" min="0" step="any" placeholder="0 — service fee only">
+            <button type="button" class="burn-amount-clear" id="burnAmountClear" aria-label="Clear" title="Drop the leaderboard burn back to 0">&times;</button>
           </div>
           <div class="burn-pay-row">
-            <span class="burn-pay-label">paid with</span>
+            <span class="burn-pay-label">pay with</span>
             <button type="button" class="burn-pay-chip" id="burnPayToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="burnPayPicker" title="Pay with $PYRE balance, SOL, USDC, or USDT">
               <span class="buy-token-chip-dot buy-token-chip-dot-sol" id="burnPayDot"></span>
               <span id="burnPayLabel">SOL</span>
@@ -239,60 +239,62 @@
               </button>
             </div>
           </div>
+          <!-- Live take-#1 prompt. When the input value matches the
+               current target, the dollar amount renders as plain text.
+               When it differs, the amount becomes a clickable snap-link
+               that re-fills the input with the live target and drops
+               back into auto-suggest mode. One element, one message,
+               no duplication. -->
           <div class="burn-hint" id="burnHint"></div>
-          <!-- Snap-back-to-take-#1 link. burn.js renders the live target
-               amount into .burn-top-hint-link; click sets the input to
-               that amount and drops back into auto-suggest mode. Hidden
-               whenever the input already equals the live take-#1 target. -->
-          <button type="button" class="burn-top-hint" id="burnTopHint" hidden></button>
+        </div>
+
+        <!-- Optional buy-on-top toggle. Defaults to $10 of $PYRE swapped
+             (NOT burned) into the user's ATA alongside the burn — same
+             atomic tx. Hidden when pay method is "pyre". Lives ABOVE
+             the bill because it's an option (not a fee), so the bill
+             below itemizes a clean list of charges the user actually
+             incurs. -->
+        <div class="burn-extra" id="burnBillExtraRow">
+          <label class="burn-extra-label">
+            <input type="checkbox" id="burnExtraEnabled" checked>
+            <span class="burn-extra-text">
+              Also buy
+              <span class="burn-extra-input-wrap">$<input type="number" id="burnExtraUsd" class="burn-extra-input" value="10" min="0" step="1" inputmode="decimal" autocomplete="off"></span>
+              of $PYRE for my wallet
+            </span>
+            <span class="burn-extra-pyre" id="burnBillExtraPyre"></span>
+          </label>
         </div>
 
         <!-- Bill of sale. Re-rendered on every input change and every
              leaderboard tick (PYRE price drift). All values come from
-             Jupiter Price V3 (USD reference) — see js/burn.js. Lines
-             gracefully hide when their amount is 0. -->
+             Jupiter Price V3 (USD reference) — see js/burn.js. Costs
+             are split into integer / fractional spans so decimal points
+             line up across rows of vastly different magnitudes. -->
         <div class="burn-bill" id="burnBill">
-          <div class="burn-bill-header">your bill</div>
+          <div class="burn-bill-header">Bill</div>
           <div class="burn-bill-row">
             <span class="burn-bill-label">Solana network fee</span>
-            <span class="burn-bill-cost"><span class="burn-bill-usd" id="burnBillSolFee">~$0.003</span></span>
+            <span class="burn-bill-cost" id="burnBillSolFee">~$0.003</span>
           </div>
           <div class="burn-bill-row" id="burnBillServiceRow">
-            <span class="burn-bill-label">Service fee &middot; 1 $PYRE buy + burn</span>
-            <span class="burn-bill-cost"><span class="burn-bill-usd" id="burnBillService">~$0.000003</span></span>
+            <span class="burn-bill-label">Service fee · 1 $PYRE buy + burn</span>
+            <span class="burn-bill-cost" id="burnBillService">~$0.000003</span>
           </div>
           <div class="burn-bill-row" id="burnBillLeaderboardRow" hidden>
-            <span class="burn-bill-label">Leaderboard burn &middot; <span id="burnBillBurnAmt">0</span> $PYRE</span>
-            <span class="burn-bill-cost"><span class="burn-bill-usd" id="burnBillLeaderboard">~$0</span></span>
+            <span class="burn-bill-label">Leaderboard burn · <span id="burnBillBurnAmt">0</span> $PYRE</span>
+            <span class="burn-bill-cost" id="burnBillLeaderboard">~$0</span>
           </div>
-          <!-- Optional "extra PYRE to your wallet" line. Defaults to
-               $10 worth of $PYRE swapped (NOT burned) into the user's
-               ATA alongside the burn — same atomic tx. Hidden when
-               pay method is "pyre" (user is spending their own
-               balance, not buying). Checkbox + USD input for full
-               user control. -->
-          <div class="burn-bill-row burn-bill-row-extra" id="burnBillExtraRow">
-            <label class="burn-bill-extra-label">
-              <input type="checkbox" id="burnExtraEnabled" checked>
-              <span class="burn-bill-extra-text">
-                Plus
-                <span class="burn-bill-extra-input-wrap">
-                  $<input type="number" id="burnExtraUsd" class="burn-bill-extra-input" value="10" min="0" step="1" inputmode="decimal" autocomplete="off">
-                </span>
-                of $PYRE to your wallet
-              </span>
-            </label>
-            <span class="burn-bill-cost">
-              <span class="burn-bill-usd" id="burnBillExtra">~$10</span>
-              <span class="burn-bill-extra-pyre" id="burnBillExtraPyre"></span>
-            </span>
+          <div class="burn-bill-row burn-bill-row-extra" id="burnBillExtraBillRow">
+            <span class="burn-bill-label">Buy $PYRE to wallet</span>
+            <span class="burn-bill-cost" id="burnBillExtra">~$10</span>
           </div>
           <div class="burn-bill-divider"></div>
           <div class="burn-bill-row burn-bill-total">
-            <span class="burn-bill-label">You pay total</span>
-            <span class="burn-bill-cost">
+            <span class="burn-bill-label">You pay</span>
+            <span class="burn-bill-cost burn-bill-total-cost">
               <span class="burn-bill-total-usd" id="burnBillTotalUsd">~$0.003</span>
-              <span class="burn-bill-total-pay" id="burnBillTotalPay">&approx; 0.000015 SOL</span>
+              <span class="burn-bill-total-pay" id="burnBillTotalPay">≈ 0.000015 SOL</span>
             </span>
           </div>
         </div>
@@ -939,7 +941,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-32"></script>
+<script type="module" src="js/main.js?v=20260512-34"></script>
 
 </body>
 </html>

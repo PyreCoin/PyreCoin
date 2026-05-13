@@ -412,7 +412,7 @@ nav.nav--hidden{
   background:rgba(0,0,0,0.55);
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
-  border:0.5px dashed rgba(255,100,30,0.3);
+  border:0.5px solid rgba(255,100,30,0.25);
 }
 .lb-cold-title{
   font-family:var(--display);
@@ -609,7 +609,7 @@ nav.nav--hidden{
   gap:14px;
   padding-bottom:18px;
   margin-bottom:14px;
-  border-bottom:0.5px dashed var(--border2);
+  border-bottom:0.5px solid var(--border2);
   position:relative;
 }
 .chart-panel-title{
@@ -694,7 +694,7 @@ nav.nav--hidden{
   font-size:10px;letter-spacing:1px;
   color:var(--text3);
   margin-top:14px;padding-top:12px;
-  border-top:0.5px dashed var(--border2);
+  border-top:0.5px solid var(--border2);
   text-transform:lowercase;
   position:relative;
 }
@@ -720,7 +720,11 @@ nav.nav--hidden{
   color:var(--text);
   text-transform:uppercase;
   line-height:1;
-  text-shadow:0 0 32px rgba(255,120,20,0.35);
+  /* Subtle warm halo — keeps the title legible over the fire glow
+     behind the hero without competing with the nav-logo's signature
+     bright halo. Reduced from 32px/0.35 alpha to 18px/0.2 for a
+     calmer Bauhaus weight. */
+  text-shadow:0 0 18px rgba(255,120,20,0.2);
 }
 .section-line{flex:1;height:0.5px;background:var(--border);margin-bottom:8px;}
 
@@ -902,7 +906,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   grid-template-columns:42px 1fr;
   gap:10px;align-items:start;
   padding:10px 14px;
-  border-bottom:0.5px dashed rgba(255,100,30,0.08);
+  border-bottom:0.5px solid rgba(255,100,30,0.10);
   filter:saturate(0.55);
   transition:filter .2s,background .2s;
 }
@@ -1016,7 +1020,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   color:var(--text2);letter-spacing:2px;
   text-transform:uppercase;
   padding-top:24px;
-  border-top:0.5px dashed rgba(255,100,30,0.2);
+  border-top:0.5px solid rgba(255,100,30,0.2);
   position:relative;
 }
 
@@ -1142,7 +1146,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 .cta-block .footer-quote{
   max-width:620px;margin:0 auto;
   padding-top:22px;
-  border-top:0.5px dashed rgba(255,100,30,0.12);
+  border-top:0.5px solid rgba(255,100,30,0.12);
   text-align:center;
   display:flex;flex-direction:column;gap:8px;
 }
@@ -1187,138 +1191,130 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   width:100%;
   max-width:520px;
   margin:0 auto;
-  padding:34px 32px 28px;
+  padding:32px 28px 24px;
   background:#0a0300;
   border:0.5px solid rgba(255,100,30,0.3);
-  box-shadow:0 0 80px rgba(255,80,0,0.3);
+  /* Reduced glow — the previous 80px halo lit up the surrounding
+     dead-zone on wide viewports and pulled focus away from the form
+     content itself. A tighter halo keeps the card readable as a card. */
+  box-shadow:0 0 40px rgba(255,80,0,0.18);
   font-family:var(--sans);
   position:relative;
 }
 .form-note{
   font-family:var(--mono);
-  font-size:9px;letter-spacing:1px;
+  font-size:9.5px;letter-spacing:1.5px;
   color:var(--text3);
   text-transform:uppercase;
   margin-bottom:14px;
   padding-bottom:10px;
-  border-bottom:0.5px dashed var(--border2);
+  border-bottom:0.5px solid var(--border2);
 }
-.burn-form-row{margin-bottom:12px;}
+.burn-form-row{margin-bottom:14px;}
 .burn-form-row label{
   display:flex;
   justify-content:space-between;
   align-items:baseline;
   gap:8px;
   font-family:var(--mono);
-  font-size:9px;letter-spacing:2px;
-  color:var(--text3);text-transform:uppercase;
+  font-size:10px;letter-spacing:2.5px;
+  color:var(--text2);text-transform:uppercase;
   margin-bottom:6px;
+  font-weight:500;
 }
 .burn-form-row label .label-meta{
-  font-size:9px;letter-spacing:0.5px;
+  font-size:9.5px;letter-spacing:0.4px;
   color:var(--text3);
   text-transform:none;
   font-variant-numeric:tabular-nums;
+  font-weight:400;
 }
 /* Inline X logo, sized to sit visually next to label text. fill set
    here (not currentColor) because the label is uppercase-spaced and
    the logo would otherwise look weak/blended. */
 .x-inline{
-  width:11px;height:11px;
+  width:10px;height:10px;
   fill:var(--text2);
-  vertical-align:-1px;
-  margin-right:2px;
+  vertical-align:0px;
+  margin-right:1px;
 }
-/* Question-mark hint icon — hover reveals the native browser tooltip
-   from the title attribute. Subtle until hovered. */
-.hint{
-  display:inline-flex;
-  align-items:center;justify-content:center;
-  width:13px;height:13px;
-  border-radius:50%;
-  background:rgba(255,140,60,0.08);
-  border:0.5px solid rgba(255,140,60,0.3);
-  color:var(--text2);
-  font-family:var(--sans);
-  font-size:9px;
-  font-weight:500;
-  letter-spacing:0;
-  text-transform:none;
-  cursor:help;
-  margin-left:4px;
-  vertical-align:0;
-  transition:color .15s,border-color .15s,background .15s;
-}
-.hint:hover{
-  color:var(--text);
-  border-color:var(--ember2);
-  background:rgba(255,140,60,0.22);
-}
+/* (No question-mark hint icons — labels and placeholders carry the
+   meaning; a well-designed form needs no "?" affordance. Removed in
+   the 2026-05 Bauhaus pass; keeping the rule here would catch any
+   accidental future re-introduction with a hard no-display.) */
+.hint{display:none !important;}
 .burn-form-row input{
   width:100%;
   background:rgba(255,255,255,0.04);
   border:0.5px solid rgba(255,100,30,0.2);
-  padding:10px 12px;
+  padding:11px 12px;
   color:var(--text);
   font-family:var(--mono);
   font-size:13px;
   outline:none;
-  transition:border-color .2s;
+  transition:border-color .2s,background .2s;
 }
 .burn-form-row input:focus{
   border-color:var(--ember);
   background:rgba(255,100,30,0.04);
 }
 .burn-form-row input::placeholder{color:var(--text3);}
+/* Strip native number-input spinners on the burn-amount field — the
+   custom × clear button to the right of the input is the only control
+   the form wants exposed. Native step-arrows compete with the × for
+   the right edge of the input on focus. */
+.burn-form-row input[type="number"]{
+  -moz-appearance:textfield;
+  appearance:textfield;
+}
+.burn-form-row input[type="number"]::-webkit-outer-spin-button,
+.burn-form-row input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
 .burn-form-row .helper{
   font-family:var(--mono);
   font-size:9px;color:var(--text3);
   margin-top:4px;letter-spacing:0.5px;
 }
-/* Live "min burn to take #1" tip, populated by burn.js's
-   refreshBurnHint() on modal open. Hidden when empty (e.g. before
-   the leaderboard module has attached to window). */
+/* Single live take-#1 hint. One line, always visible (when the
+   leaderboard module has attached). Renders the dollar amount as a
+   button (.burn-hint-snap) when the input doesn't match the target,
+   plain <strong> when it does — same vertical footprint either way
+   so the form doesn't reflow when state toggles. */
 .burn-hint{
-  margin-top:6px;
+  margin-top:10px;
   font-family:var(--mono);
-  font-size:10px;
+  font-size:11px;
   letter-spacing:0.3px;
   color:var(--text2);
   line-height:1.5;
 }
 .burn-hint:empty{display:none;}
-.burn-hint strong{color:var(--ember2);font-weight:500;}
-
-/* Snap-back-to-take-#1 suggestion. Renders as a button styled like
-   an inline-flow paragraph so it reads as conversational copy with
-   a clickable verb-phrase at the start. Only visible when the user
-   has edited the input away from the live take-#1 target. */
-.burn-top-hint{
-  display:block;
-  width:100%;
-  margin-top:6px;
+.burn-hint strong{
+  color:var(--ember2);
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+}
+.burn-hint-snap{
+  display:inline;
   padding:0;
   background:transparent;
   border:none;
-  text-align:left;
-  font-family:var(--mono);
-  font-size:10.5px;
-  letter-spacing:0.3px;
-  color:var(--text2);
-  line-height:1.55;
-  cursor:pointer;
-}
-.burn-top-hint[hidden]{display:none;}
-.burn-top-hint-link{
   color:var(--ember2);
+  font:inherit;
   font-weight:600;
+  font-variant-numeric:tabular-nums;
   text-decoration:underline;
-  text-underline-offset:2px;
+  text-underline-offset:3px;
+  text-decoration-thickness:1px;
+  cursor:pointer;
   transition:color .15s;
 }
-.burn-top-hint:hover .burn-top-hint-link,
-.burn-top-hint:focus .burn-top-hint-link{
+.burn-hint-snap:hover,
+.burn-hint-snap:focus-visible{
   color:#fff;
+  outline:none;
 }
 .burn-status{
   margin-top:18px;padding:12px 14px;
@@ -1365,45 +1361,49 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   /* Reserve right padding for the X clear button */
   padding-right:36px;
 }
+/* Flat × glyph at the right of the burn-amount input. The previous
+   design was a circular chip with a bright orange fill — too much
+   visual weight for a utility clear control, especially next to a
+   numeric input where the digits already carry the focus. Now it's
+   just a glyph with a subtle hover state. */
 .burn-amount-clear{
   position:absolute;
-  right:6px;top:50%;
+  right:8px;top:50%;
   transform:translateY(-50%);
-  width:24px;height:24px;
+  width:22px;height:22px;
   display:inline-flex;
   align-items:center;justify-content:center;
-  background:rgba(255,100,30,0.10);
-  border:0.5px solid rgba(255,100,30,0.3);
-  border-radius:50%;
-  color:var(--text2);
+  background:transparent;
+  border:none;
+  color:var(--text3);
   font-family:var(--sans);
-  font-size:16px;font-weight:500;
+  font-size:18px;font-weight:300;
   line-height:1;
   cursor:pointer;
-  transition:all .15s;
-  /* Squelch the focus ring on the input from masking the button */
+  transition:color .15s;
   z-index:2;
 }
-.burn-amount-clear:hover{
-  background:rgba(255,100,30,0.25);
-  border-color:var(--ember);
-  color:#fff;
+.burn-amount-clear:hover,
+.burn-amount-clear:focus-visible{
+  color:var(--ember2);
+  outline:none;
 }
 
-/* Pay-with row: small italic label + interactive token chip + popover.
-   Sits below the amount input and above the bill of sale. */
+/* Pay-with row: small label + interactive token chip + popover.
+   Sits below the amount input and above the take-#1 hint. */
 .burn-pay-row{
   position:relative;
   display:flex;
   align-items:center;
-  gap:8px;
-  margin-top:8px;
+  gap:10px;
+  margin-top:10px;
 }
 .burn-pay-label{
   font-family:var(--mono);
-  font-size:9.5px;letter-spacing:1.5px;
-  color:var(--text3);
+  font-size:10px;letter-spacing:2.5px;
+  color:var(--text2);
   text-transform:uppercase;
+  font-weight:500;
 }
 .burn-pay-chip{
   display:inline-flex;
@@ -1485,193 +1485,238 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   top:calc(100% + 4px);
 }
 
-/* ── BILL OF SALE ─────────────────────────────────────────────────
-   Itemized cost breakdown that re-renders on every burn-amount input
-   change and every leaderboard tick. Each line: descriptive label
-   left, USD cost right. Hidden when amount is 0. Total line is
-   visually distinct (bigger, brighter, double-line of cost). */
-.burn-bill{
+/* ── EXTRA-PYRE-TO-WALLET TOGGLE ─────────────────────────────────
+   Optional "also buy $X of $PYRE for my wallet" line. Lives ABOVE
+   the bill (which itemizes fees) because it's a feature opt-in,
+   not a charge. One clickable row: square checkbox + inline USD
+   input + helper "≈ N $PYRE" trailing. */
+.burn-extra{
   margin-top:18px;
-  padding:14px 14px 12px;
+  padding:11px 14px;
+  background:rgba(255,100,30,0.04);
+  border:0.5px solid rgba(255,100,30,0.18);
+}
+.burn-extra[hidden]{display:none;}
+.burn-extra.is-off{opacity:0.55;}
+.burn-extra-label{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  cursor:pointer;
+  font-family:var(--mono);
+  font-size:11.5px;
+  letter-spacing:0.2px;
+  color:var(--text2);
+  line-height:1.5;
+}
+.burn-extra-label input[type="checkbox"]{
+  width:13px;height:13px;
+  flex-shrink:0;
+  accent-color:var(--ember);
+  cursor:pointer;
+  /* Solid square — Bauhaus accent on geometry. */
+  border-radius:0;
+}
+.burn-extra-text{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  flex-wrap:wrap;
+  color:var(--text);
+}
+.burn-extra-input-wrap{
+  display:inline-flex;
+  align-items:center;
+  color:var(--text);
+}
+.burn-extra-input{
+  width:50px;
+  margin-left:1px;
+  padding:3px 5px;
+  background:rgba(255,100,30,0.08);
+  border:0.5px solid rgba(255,100,30,0.3);
+  color:#fff;
+  font-family:var(--mono);
+  font-size:11.5px;
+  font-weight:600;
+  text-align:center;
+  outline:none;
+  -moz-appearance:textfield;
+  appearance:textfield;
+  font-variant-numeric:tabular-nums;
+  transition:border-color .15s,background .15s;
+}
+.burn-extra-input::-webkit-outer-spin-button,
+.burn-extra-input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0;
+}
+.burn-extra-input:focus{
+  border-color:var(--ember);
+  background:rgba(255,100,30,0.18);
+}
+.burn-extra-pyre{
+  margin-left:auto;
+  color:var(--text3);
+  font-size:10px;
+  letter-spacing:0.3px;
+  font-style:italic;
+  font-variant-numeric:tabular-nums;
+}
+.burn-extra-pyre:empty{display:none;}
+.burn-extra.is-off .burn-extra-input{opacity:0.75;}
+
+/* ── BILL OF SALE ─────────────────────────────────────────────────
+   Itemized cost breakdown rendered with a two-column grid:
+   label flexes, cost is fixed-width and decimal-aligned via the
+   .bb-int / .bb-frac split. Each line: descriptive label left,
+   USD cost right. Hidden when amount is 0. Total line: USD prominent,
+   pay-token equivalent muted below. */
+.burn-bill{
+  margin-top:10px;
+  padding:14px 16px 12px;
   background:rgba(0,0,0,0.4);
-  border:0.5px dashed rgba(255,100,30,0.25);
+  /* Solid hairline — dashed read as "preliminary draft," but this
+     IS the final bill. Sharp lines suit the form's discipline. */
+  border:0.5px solid rgba(255,100,30,0.22);
 }
 .burn-bill-header{
   font-family:var(--mono);
-  font-size:9px;letter-spacing:2.5px;
+  font-size:9.5px;letter-spacing:2.5px;
   color:var(--text3);
   text-transform:uppercase;
   margin-bottom:10px;
   padding-bottom:8px;
-  border-bottom:0.5px solid var(--border2);
+  border-bottom:0.5px solid rgba(255,100,30,0.12);
+  font-weight:500;
 }
 .burn-bill-row{
-  display:flex;
-  justify-content:space-between;
+  display:grid;
+  grid-template-columns:1fr auto;
   align-items:baseline;
   gap:12px;
   padding:4px 0;
   font-family:var(--mono);
-  font-size:11px;
+  font-size:11.5px;
   line-height:1.5;
 }
 .burn-bill-row[hidden]{display:none;}
 .burn-bill-label{
   color:var(--text2);
   letter-spacing:0.2px;
-  /* Wrap long labels (long PYRE amounts) cleanly without pushing the
-     cost column off-screen. */
   min-width:0;
-  flex:1 1 auto;
 }
 .burn-bill-cost{
-  flex-shrink:0;
-  text-align:right;
-}
-.burn-bill-usd{
   color:var(--text);
+  white-space:nowrap;
+  /* Inline-grid with two FIXED-width columns so the int/frac split
+     produces vertically-aligned decimals across every bill row. The
+     int column (4ch) fits ~$10 — the practical max for our line items.
+     The frac column (8ch) fits .0000041 — the widest sub-cent decimal
+     fmtUsdApprox produces. Each row is its own grid, but because every
+     grid has the same template, every column boundary lands at the
+     same x relative to the cost cell's left edge — and the cost cells
+     all right-align to their row's right edge via the row-level grid.
+     Net result: a single shared decimal-point column for the whole bill. */
+  display:inline-grid;
+  grid-template-columns:4ch 8ch;
   font-variant-numeric:tabular-nums;
 }
-/* Extra-PYRE-to-wallet bill line. The whole row is interactive — the
-   <label> wraps the checkbox + inline USD input so clicking anywhere
-   on the label toggles or activates the relevant control. The USD
-   input is small and inline, mid-sentence; styled to look like part
-   of the running text. */
-.burn-bill-row-extra{
-  align-items:center;
+.bb-int{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
 }
-.burn-bill-row-extra[hidden]{display:none;}
-.burn-bill-extra-label{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  cursor:pointer;
-  flex:1 1 auto;
-  min-width:0;
-  font-family:var(--mono);
-  font-size:11px;
-  color:var(--text2);
-  letter-spacing:0.2px;
-  line-height:1.5;
+.bb-frac{
+  text-align:left;
+  font-variant-numeric:tabular-nums;
 }
-.burn-bill-extra-label input[type="checkbox"]{
-  width:13px;height:13px;
-  flex-shrink:0;
-  accent-color:var(--ember);
-  cursor:pointer;
-}
-.burn-bill-extra-text{
-  display:inline;
-}
-.burn-bill-extra-input-wrap{
-  display:inline-flex;
-  align-items:center;
-  margin:0 2px;
-  color:var(--text);
-}
-.burn-bill-extra-input{
-  width:48px;
-  margin-left:1px;
-  padding:2px 4px;
-  background:rgba(255,100,30,0.08);
-  border:0.5px solid rgba(255,100,30,0.3);
-  color:#fff;
-  font-family:var(--mono);
-  font-size:11px;
-  font-weight:600;
-  text-align:center;
-  outline:none;
-  /* Strip the inner-spinner so the small inline width looks clean. */
-  -moz-appearance:textfield;
-  appearance:textfield;
-  transition:border-color .15s,background .15s;
-}
-.burn-bill-extra-input::-webkit-outer-spin-button,
-.burn-bill-extra-input::-webkit-inner-spin-button{
-  -webkit-appearance:none;margin:0;
-}
-.burn-bill-extra-input:focus{
-  border-color:var(--ember);
-  background:rgba(255,100,30,0.18);
-}
-/* Disable visual when checkbox is off — the row stays clickable but
-   shows it's currently off. JS toggles .is-off based on burnState. */
-.burn-bill-row-extra.is-off .burn-bill-extra-label,
-.burn-bill-row-extra.is-off .burn-bill-cost{
-  opacity:0.45;
-}
-.burn-bill-row-extra.is-off .burn-bill-extra-input{
-  opacity:0.7;
-}
-.burn-bill-extra-pyre{
-  display:block;
-  margin-top:1px;
-  color:var(--text3);
-  font-size:9.5px;
-  font-style:italic;
-  letter-spacing:0.2px;
-}
-.burn-bill-extra-pyre:empty{display:none;}
 
 .burn-bill-divider{
   height:0.5px;
-  margin:8px 0 6px;
+  margin:10px 0 4px;
   background:rgba(255,100,30,0.18);
 }
 .burn-bill-total{
-  font-size:12px;
+  font-size:12.5px;
   padding:6px 0 2px;
 }
 .burn-bill-total .burn-bill-label{
   color:var(--ember2);
   font-weight:600;
-  letter-spacing:1px;
+  letter-spacing:2px;
   text-transform:uppercase;
-  font-size:10.5px;
+  font-size:11px;
+  align-self:center;
+}
+.burn-bill-total-cost{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:2px;
 }
 .burn-bill-total-usd{
-  display:block;
   color:#fff;
-  font-size:16px;
+  font-size:18px;
   font-weight:600;
   letter-spacing:0.5px;
-  text-shadow:0 0 12px rgba(255,180,80,0.4);
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+  display:inline-grid;
+  grid-template-columns:4ch 8ch;
 }
+.burn-bill-total-usd .bb-int{text-align:right;}
+.burn-bill-total-usd .bb-frac{text-align:left;}
 .burn-bill-total-pay{
-  display:block;
-  margin-top:2px;
   color:var(--text3);
   font-size:10px;
   letter-spacing:0.3px;
-  font-style:italic;
+  font-variant-numeric:tabular-nums;
 }
 
 @media(max-width:480px){
   .burn-bill{padding:12px 12px 10px;}
+  .burn-bill-row{font-size:11px;}
+  .burn-bill-total{font-size:12px;}
+  .burn-bill-total-usd{font-size:15.5px;}
+  .burn-extra{padding:10px 12px;}
+  .burn-extra-label{font-size:11px;}
+  .burn-extra-pyre{margin-left:0;width:100%;text-align:left;}
+}
+@media(max-width:340px){
   .burn-bill-row{font-size:10.5px;}
-  .burn-bill-total{font-size:11.5px;}
-  .burn-bill-total-usd{font-size:14.5px;}
+  .burn-bill-label{
+    /* Labels can be long ("Service fee · 1 $PYRE buy + burn") — let
+       them wrap rather than push the cost column off-screen. */
+    word-break:break-word;
+  }
 }
 
 .write-form-submit{
-  width:100%;margin-top:20px;
-  padding:14px;
+  width:100%;margin-top:18px;
+  padding:15px;
   background:#ff3d00;
   border:none;
   color:#fff;
   font-family:var(--mono);
-  font-size:11px;font-weight:700;
+  font-size:11.5px;font-weight:700;
   letter-spacing:3px;text-transform:uppercase;
   cursor:pointer;
-  transition:all .2s;
-  box-shadow:0 0 24px rgba(255,60,0,0.35);
+  /* Sharp block — Bauhaus prefers geometry to atmosphere. The earlier
+     24px halo softened the rectangle into a glow; a tighter shadow
+     keeps the button readable as a rectangle while still flagging it
+     as the page's primary action. */
+  transition:background .2s,box-shadow .2s,transform .1s;
+  box-shadow:0 0 14px rgba(255,60,0,0.22);
 }
 .write-form-submit:hover:not(:disabled){
   background:#ff5520;
-  box-shadow:0 0 40px rgba(255,80,0,0.55);
+  box-shadow:0 0 22px rgba(255,80,0,0.35);
+}
+.write-form-submit:active:not(:disabled){
+  transform:translateY(1px);
 }
 .write-form-submit:disabled{
-  opacity:0.5;cursor:not-allowed;box-shadow:none;
+  opacity:0.55;cursor:not-allowed;box-shadow:none;
 }
 
 /* ── BUY FORM (custom Jupiter Swap V1 surface) ────────────────────
@@ -1904,7 +1949,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   margin:-10px -6px 18px;
   padding:14px 14px 12px;
   background:rgba(0,0,0,0.5);
-  border:0.5px dashed rgba(255,100,30,0.25);
+  border:0.5px solid rgba(255,100,30,0.25);
   display:flex;
   flex-direction:column;
   gap:14px;
@@ -1992,7 +2037,9 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   gap:14px 18px;
   margin-top:14px;
   padding-top:12px;
-  border-top:0.5px dashed var(--border2);
+  /* Solid hairline to match the bill border treatment — dashed read
+     as preliminary/draft, but these are live settings. */
+  border-top:0.5px solid rgba(255,100,30,0.12);
   font-family:var(--mono);
   font-size:10px;
   letter-spacing:0.5px;
@@ -2301,7 +2348,7 @@ img.twemoji{
   grid-template-columns:90px 1fr;
   gap:14px;align-items:start;
   padding:12px 0;
-  border-bottom:0.5px dashed var(--border2);
+  border-bottom:0.5px solid var(--border2);
 }
 .etym-step:last-child{border:none;}
 .etym-era{
@@ -2414,7 +2461,9 @@ img.twemoji{
 
 /* ── DISCLAIMER ── */
 .disclaimer{
-  border:0.5px dashed rgba(255,100,30,0.22);
+  /* Solid border — the disclaimer is legal copy, not informal copy;
+     dashed reads as preliminary/joking. */
+  border:0.5px solid rgba(255,100,30,0.22);
   background:rgba(8,2,0,0.55);
   padding:36px 32px;
   /* `auto` on the horizontal axis preserves the centring inherited from
@@ -2451,7 +2500,7 @@ img.twemoji{
   font-size:11px;color:var(--ember);
   text-transform:uppercase;letter-spacing:1.5px;
   padding-top:18px;margin-top:18px;
-  border-top:0.5px dashed rgba(255,100,30,0.2);
+  border-top:0.5px solid rgba(255,100,30,0.2);
   text-align:center;
 }
 
@@ -2690,7 +2739,10 @@ img.twemoji{
   line-height:1.05;
   letter-spacing:1.5px;
   color:var(--ember);
-  text-shadow:0 0 22px rgba(255,100,20,0.45);
+  /* Tighter halo — the headline carries enough weight on its own at
+     this size; the prior 22px/0.45 halo bled into the typewriter
+     cursor and the sub-line below. */
+  text-shadow:0 0 14px rgba(255,100,20,0.28);
   margin-bottom:14px;
   font-weight:400;
 }
@@ -2833,17 +2885,22 @@ img.twemoji{
   word-break:break-word;
   overflow-wrap:anywhere;
 }
+/* Empty wall: a single tight line, not an oversized hero. Earlier
+   versions rendered a big orange "THE WALL IS BARE." block that
+   monopolised the page when the section was new. The intro paragraph
+   already tells the user what this section is; the empty state just
+   needs to say "nothing yet" without claiming the page. */
 .wall-empty{
-  padding:32px 16px;
-  text-align:center;
-  color:var(--text2);
+  padding:8px 0 0;
+  text-align:left;
+  color:var(--text3);
+  font-family:var(--mono);
+  font-size:11.5px;
+  letter-spacing:1px;
+  text-transform:uppercase;
 }
-.wall-empty-title{
-  font-family:var(--display);
-  font-size:22px;letter-spacing:1px;
-  color:var(--ember);margin-bottom:6px;
-}
-.wall-empty-sub{font-size:13px;color:var(--text3);}
+.wall-empty-title{display:none;}
+.wall-empty-sub{display:none;}
 
 @media(max-width:560px){
   .wall-slot{padding:12px 14px;gap:8px;}
