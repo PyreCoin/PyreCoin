@@ -963,7 +963,13 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
   letter-spacing:0.15px;
   color:var(--text2);
   line-height:1.85;
-  margin:0 0 32px;
+  /* Center the paragraph BLOCK while keeping its text left-aligned —
+     left-aligned text is easier to scan; centered text breaks reading
+     flow. On widescreen the section is 1200px while the intro is
+     ~72ch (~580px); margin:auto pulls the paragraph to the visual
+     centre of the section so it sits over the centered form below
+     (write/buy) and over the centered card grid (numbers, math). */
+  margin:0 auto 32px;
   max-width:72ch;
 }
 .section-intro em{
