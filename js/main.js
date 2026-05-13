@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260513-40';
+const V = '20260513-41';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -176,7 +176,7 @@ FIRE_SECTIONS.forEach(id => {
 // Refreshes on 60s timer AND inside the main tick() loop after each
 // leaderboard refresh, so the #1 figure stays current.
 const { SOL_MINT_STR, JUP, INSCRIPTION_FEE_LAMPORTS } = await import(`./config.js?v=${V}`);
-const { fmtUsd } = await import(`./utils.js?v=${V}`);
+const { fmtUsd, fmtUsdApprox } = await import(`./utils.js?v=${V}`);
 const PRICE_URL = `${JUP.PRICE}?ids=${SOL_MINT_STR},${PYRE_MINT_STR}`;
 let _solUsd = null;
 let _pyreUsd = null;
@@ -202,7 +202,15 @@ function renderCtaPrices(){
     // until the PYRE price loads — typically a sub-second gap.
     const solFee = (INSCRIPTION_FEE_LAMPORTS / 1e9) * _solUsd;
     const pyreFee = _pyreUsd != null ? _pyreUsd : 0;
-    costEl.textContent = fmtUsd(solFee + pyreFee);
+    costEl.textContent = fmtUsdApprox(solFee + pyreFee);
+    // Live hover-tooltip — same breakdown the bill in the form below
+    // itemizes, so a user who wonders "what's in that number?" gets the
+    // answer without scrolling. Numbers update on every price refresh.
+    const solLine  = `${fmtUsdApprox(solFee)} Solana network fee`;
+    const pyreLine = _pyreUsd != null
+      ? `${fmtUsdApprox(pyreFee)} service fee (1 PYRE acquired and burned in one transaction)`
+      : 'service fee (1 PYRE — price still loading)';
+    costEl.title = `${solLine}\n+ ${pyreLine}\n\nLive USD estimate; drifts with SOL and PYRE prices.`;
   }
   const topEl = document.getElementById('cta-top-spot');
   if (topEl && _pyreUsd != null && lb?.minBurnToTakeTop) {
