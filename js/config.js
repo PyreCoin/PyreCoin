@@ -55,13 +55,13 @@ export const MEMO_PROGRAM_ID_STR = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'
 export const INSCRIPTION_BEACON_STR = '2yqR9bjy64UqnWYP4wTrpw8RwFqXGQnkhzQRSp11MmDi';
 
 // Pump.fun creates SPL tokens with a fixed 1B (uiAmount) initial supply.
-// We compute the "$PYRE Burned" stat as INITIAL_SUPPLY − getTokenSupply()
+// We compute the "PYRE Burned" stat as INITIAL_SUPPLY − getTokenSupply()
 // rather than summing leaderboard entries — supply is the chain's source
 // of truth, doesn't lag the ingest cron, and surfaces every BurnChecked
 // the moment it confirms.
 export const INITIAL_SUPPLY = 1_000_000_000;
 
-// $PYRE genesis — the precise moment the pump.fun mint instruction
+// PYRE genesis — the precise moment the pump.fun mint instruction
 // confirmed and the token entered the world. Used by the "Genesis"
 // stat card to render the absolute date + the live "N days ago"
 // relative time. Date.UTC's month arg is 0-indexed (April = 3, May = 4).

@@ -85,7 +85,7 @@ export async function getPyreDecimals() {
     const conn = getConnection();
     const info = await conn.getParsedAccountInfo(new PublicKey(PYRE_MINT_STR));
     const d = info?.value?.data?.parsed?.info?.decimals;
-    if (typeof d !== 'number') throw new Error('Could not read $PYRE decimals');
+    if (typeof d !== 'number') throw new Error('Could not read PYRE decimals');
     _state.pyreDecimals = d;
     return d;
   })().finally(() => { _state.pyreDecimalsPromise = null; });

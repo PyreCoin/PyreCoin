@@ -16,7 +16,7 @@ Every decision is logged in `moderation-log.jsonl` (append-only).
 
 ## Burn memo format
 
-Burns are Token-2022 `BurnChecked` instructions on the $PYRE mint
+Burns are Token-2022 `BurnChecked` instructions on the PYRE mint
 paired (in the same transaction) with a Memo Program instruction of
 the form:
 
@@ -28,7 +28,7 @@ The pyrecoin.com burn modal builds this transaction for you. To
 construct it manually, use any Solana SDK with `createBurnCheckedInstruction`
 plus a Memo Program instruction; the indexer watches the mint
 account for any tx where one or more `Burn`/`BurnChecked` instructions
-target the $PYRE mint and a memo of the above shape is also present.
+target the PYRE mint and a memo of the above shape is also present.
 
 Constraints (enforced by the ingest filter):
 

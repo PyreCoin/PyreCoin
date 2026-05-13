@@ -111,7 +111,7 @@ function renderBurnsChart(){
   const trimmed = series.slice(-range);
   histogramBars(el, trimmed, {
     height: el.clientHeight || 240,
-    formatTooltip: (i, v) => `bucket ${i}: ${Math.round(v).toLocaleString()} $PYRE`,
+    formatTooltip: (i, v) => `bucket ${i}: ${Math.round(v).toLocaleString()} PYRE`,
     formatY: v => v >= 1e6 ? (v/1e6).toFixed(1) + 'M'
                 : v >= 1e3 ? (v/1e3).toFixed(0) + 'K'
                 : Math.round(v).toString(),
@@ -171,7 +171,7 @@ function renderFoot(target){
   const map = {
     'chart-price':    [`${label} · USD · pump-fun pool · data via geckoterminal.com`, 'chart-price-foot'],
     'chart-visitors': [`${label} · page views per hour · cookieless, via cloudflare web analytics`, 'chart-visitors-foot'],
-    'chart-burns':    [`${label} · $PYRE burned per hour · derived from leaderboard.json`, 'chart-burns-foot'],
+    'chart-burns':    [`${label} · PYRE burned per hour · derived from leaderboard.json`, 'chart-burns-foot'],
   };
   const entry = map[target];
   if (!entry) return;

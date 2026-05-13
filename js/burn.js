@@ -2,15 +2,15 @@
 // Unified write surface. One inline form (in the #write section), one
 // submit handler, two transaction shapes:
 //
-//   INSCRIBE  ($PYRE = 0): 1-lamport transfer to INSCRIPTION_BEACON +
+//   INSCRIBE  (PYRE = 0): 1-lamport transfer to INSCRIPTION_BEACON +
 //             Memo Program payload. Permanent on chain, indexed by
 //             every Solana explorer. Costs ~5,000 lamport base fee +
 //             ~10,000 lamport priority fee ≈ $0.003 at SOL = $200.
 //
-//   BURN+INSCRIBE  ($PYRE > 0): Token-2022 BurnChecked + Memo Program
-//             payload. Destroys $PYRE at the protocol layer (mint
+//   BURN+INSCRIBE  (PYRE > 0): Token-2022 BurnChecked + Memo Program
+//             payload. Destroys PYRE at the protocol layer (mint
 //             supply decreases — verifiable on every aggregator).
-//             Costs the same SOL fees + the burned $PYRE. Lands on
+//             Costs the same SOL fees + the burned PYRE. Lands on
 //             the leaderboard, ranked by time-decayed heat.
 //
 // The beacon address is a PDA derived from "pyrecoin:inscriptions:v1"
@@ -54,7 +54,7 @@ import {
 
 // ─── PYRE service-fee constant ──────────────────────────────────────
 // Every inscription that goes through pyrecoin.com burns at least
-// this much $PYRE (buy + burn atomically if the user doesn't already
+// this much PYRE (buy + burn atomically if the user doesn't already
 // hold any). Transparent line item in the bill of sale; framed as a
 // service fee for using the website, not as a token utility claim.
 const SERVICE_FEE_PYRE = 1;
@@ -72,7 +72,7 @@ const X_HANDLE_RE = /^[A-Za-z0-9_]{1,15}$/;
 const TOKEN_PROGRAM = TOKEN_2022_PROGRAM_ID;
 
 // Live USD prices for the four tokens the bill of sale needs to value:
-// SOL (network fee + alt pay path), $PYRE (service fee + leaderboard
+// SOL (network fee + alt pay path), PYRE (service fee + leaderboard
 // burn), USDC and USDT (alt pay paths). One round-trip per refresh.
 // Cached for 60s so we don't re-fetch on every keystroke.
 const BILL_PRICE_MINTS = [SOL_MINT_STR, PYRE_MINT_STR, PAY_TOKENS.usdc.mint, PAY_TOKENS.usdt.mint];
@@ -104,9 +104,9 @@ const burnState = {
   provider: null,        // wallet provider (legacy injection or Wallet-Standard adapter)
   publicKey: null,       // user's wallet pubkey (web3.PublicKey)
   decimals: null,        // PYRE mint's decimals, queried on connect
-  balance: null,         // user's $PYRE balance (uiAmount)
+  balance: null,         // user's PYRE balance (uiAmount)
   // Pay method — one of: 'pyre' | 'sol' | 'usdc' | 'usdt'. The
-  // 'pyre' option uses the user's existing $PYRE balance (no swap);
+  // 'pyre' option uses the user's existing PYRE balance (no swap);
   // the others use Jupiter to acquire-and-burn atomically.
   payMethod: 'sol',
   // Whether the user has manually edited the burn amount input. When
@@ -131,8 +131,8 @@ function savePayMethod(v) {
 }
 burnState.payMethod = loadPayMethod();
 
-// ── Extra $PYRE to user's wallet ──
-// Optional add-on: the same atomic tx acquires N more $PYRE on top of
+// ── Extra PYRE to user's wallet ──
+// Optional add-on: the same atomic tx acquires N more PYRE on top of
 // the burn amount and leaves it in the user's ATA (not burned). Default
 // $10 USD-equivalent, on by default. Disabled automatically when the
 // pay method is 'pyre' (you can't "buy more" if you're spending your
@@ -237,7 +237,7 @@ function refreshBurnHint() {
       const input = $('burnAmount');
       const cur = parseFloat(input?.value);
       const onTarget = Number.isFinite(cur) && cur === min;
-      const amt = `${escapeHtml(fmt(min))} $PYRE`;
+      const amt = `${escapeHtml(fmt(min))} PYRE`;
       hintEl.dataset.takeTop = String(min);
       hintEl.innerHTML = onTarget
         ? `<strong>${amt}</strong> takes <strong>#1</strong> right now.`
@@ -289,7 +289,7 @@ document.addEventListener('change', e => {
 
 // ─── BILL OF SALE ─────────────────────────────────────────────────
 // Renders the itemized cost breakdown beneath the form: Solana fee,
-// service fee (1 $PYRE buy+burn), leaderboard burn (N $PYRE buy+burn),
+// service fee (1 PYRE buy+burn), leaderboard burn (N PYRE buy+burn),
 // and the bottom-line "you pay" total in both USD and the chosen
 // pay-with token. Re-runs on every input change, every leaderboard
 // tick, every payMethod switch, and every price refresh.
@@ -311,7 +311,7 @@ function recalculateBill() {
   const lbUsd = prices.pyre != null ? leaderboardAmt * prices.pyre : null;
   // Extra-PYRE-to-wallet line: $X swapped (not burned) into the user's
   // ATA alongside the burn. Only applies when the pay method is a
-  // swap-source (SOL/USDC/USDT) — direct $PYRE pay method has no
+  // swap-source (SOL/USDC/USDT) — direct PYRE pay method has no
   // swap step to piggyback on, so we hide the row entirely there.
   const extraEnabledNow = burnState.extraEnabled && burnState.payMethod !== 'pyre';
   const extraUsdValue = extraEnabledNow ? (burnState.extraUsd || 0) : 0;
@@ -369,7 +369,7 @@ function recalculateBill() {
     const pyreEl = $('burnBillExtraPyre');
     if (pyreEl) {
       pyreEl.textContent = extraPyreAmt > 0
-        ? `≈ ${fmt(extraPyreAmt)} $PYRE`
+        ? `≈ ${fmt(extraPyreAmt)} PYRE`
         : '';
     }
   }
@@ -383,15 +383,15 @@ function recalculateBill() {
   setCostUsd('burnBillTotalUsd', totalUsd > 0 ? totalUsd : null);
 
   // Compute the pay-with-token amount. If 'pyre' is the pay method,
-  // there's no swap — show just the $PYRE-burned total and the SOL fee
+  // there's no swap — show just the PYRE-burned total and the SOL fee
   // separately. For SOL/USDC/USDT we add the SOL network fee + the
   // swap cost (USD value / token price).
   const payTok = burnState.payMethod;
   const totalPayEl = $('burnBillTotalPay');
   if (payTok === 'pyre') {
-    // The user pays SOL for network fees + (1 + N) $PYRE from balance.
+    // The user pays SOL for network fees + (1 + N) PYRE from balance.
     const pyreTotal = totalBurnAmt;
-    totalPayEl.innerHTML = `&approx; ${fmt(pyreTotal)} $PYRE + ${trimDecimals(solFeeSol.toFixed(6))} SOL fee`;
+    totalPayEl.innerHTML = `&approx; ${fmt(pyreTotal)} PYRE + ${trimDecimals(solFeeSol.toFixed(6))} SOL fee`;
   } else {
     const tokKey = payTok;
     const tokPrice = prices[tokKey];
@@ -590,7 +590,7 @@ document.addEventListener('keydown', e => {
 });
 
 const PAY_VISUALS = {
-  pyre: { label: '$PYRE', dotClass: 'buy-token-chip-dot-pyre' },
+  pyre: { label: 'PYRE', dotClass: 'buy-token-chip-dot-pyre' },
   sol:  { label: 'SOL',   dotClass: 'buy-token-chip-dot-sol'  },
   usdc: { label: 'USDC',  dotClass: 'buy-token-chip-dot-usdc' },
   usdt: { label: 'USDT',  dotClass: 'buy-token-chip-dot-usdt' },
@@ -731,7 +731,7 @@ async function pollForConfirmation(conn, signature, lastValidBlockHeight) {
 window.submitBurn = async function submitBurn() {
   clearStatus();
   if (isPlaceholder()) {
-    setStatus('$PYRE has not launched yet. The inscribe/burn buttons activate once the token mint is configured.', 'error');
+    setStatus('PYRE has not launched yet. The inscribe/burn buttons activate once the token mint is configured.', 'error');
     return;
   }
 
@@ -739,7 +739,7 @@ window.submitBurn = async function submitBurn() {
   clearAllRowErrors();
 
   // Read content fields. At least one of msg/url/xh is required — the
-  // 1 $PYRE service fee alone isn't a reason to inscribe (otherwise
+  // 1 PYRE service fee alone isn't a reason to inscribe (otherwise
   // every page reload could spam an empty memo into the wall).
   const rawUrl = $('burnUrl')?.value || '';
   const url    = rawUrl.trim() ? normalizeBurnUrl(rawUrl) : '';
@@ -805,11 +805,11 @@ window.submitBurn = async function submitBurn() {
       // If not, point them at switching the pay method instead of failing.
       await refreshBalance();
       if (burnState.balance === null) {
-        throw new Error('Couldn\'t verify your $PYRE balance (RPC failed). Try again in a moment.');
+        throw new Error('Couldn\'t verify your PYRE balance (RPC failed). Try again in a moment.');
       }
       if (totalBurnAmt > burnState.balance) {
         throw new Error('You only have ' + burnState.balance.toLocaleString() +
-          ' $PYRE — not enough to cover the ' + fmt(totalBurnAmt) + ' $PYRE burn. ' +
+          ' PYRE — not enough to cover the ' + fmt(totalBurnAmt) + ' PYRE burn. ' +
           'Switch the pay-with chip to SOL/USDC/USDT to acquire-and-burn atomically.');
       }
     }
@@ -830,7 +830,7 @@ window.submitBurn = async function submitBurn() {
     let lastValidBlockHeight;     // for confirmation timeout
 
     if (isDirectPyre) {
-      // ── DIRECT PATH ── legacy Transaction; user has enough $PYRE
+      // ── DIRECT PATH ── legacy Transaction; user has enough PYRE
       // already. One BurnChecked + Memo + 1-lamport beacon (for
       // inscription wall indexing) in a single signature.
       const mint = new PublicKey(PYRE_MINT_STR);
@@ -873,7 +873,7 @@ window.submitBurn = async function submitBurn() {
       const payMint = PAY_TOKENS[payMethod]?.mint;
       if (!payMint) throw new Error('Invalid pay method: ' + payMethod);
       // Compute the extra-PYRE-to-wallet amount from the user's
-      // checkbox/USD input + the live $PYRE price. The atomic builder
+      // checkbox/USD input + the live PYRE price. The atomic builder
       // acquires (burn + extra) and burns only the burn portion; the
       // extra stays in the user's ATA.
       const prices = _priceCache.prices;
@@ -892,35 +892,35 @@ window.submitBurn = async function submitBurn() {
       if (built.sizeBytes > 1232) {
         // ── 2-TX FALLBACK ── Jupiter's route is too dense to fit
         // alongside our burn+memo+beacon in a single 1232-byte tx.
-        // Split into two: first acquire the $PYRE (Jupiter swap only),
+        // Split into two: first acquire the PYRE (Jupiter swap only),
         // then burn + memo + beacon as a small follow-up tx. The user
         // signs twice. If they cancel the second sig, they keep the
-        // freshly-acquired $PYRE in their wallet — no refund path.
+        // freshly-acquired PYRE in their wallet — no refund path.
         if (typeof provider.signTransaction !== 'function') {
           throw new Error('Your wallet does not expose signTransaction. Try Phantom, Jupiter, Solflare, or Backpack.');
         }
         setStatus(
           `Route too dense for one tx (${built.sizeBytes} bytes &gt; 1232 limit) &mdash; ` +
           'switching to <strong>2-signature mode</strong>. You\'ll sign once to acquire ' +
-          'the $PYRE, then again to burn + inscribe.', 'info'
+          'the PYRE, then again to burn + inscribe.', 'info'
         );
 
         // tx1: swap only (includes extra-to-wallet PYRE in the acquire)
         const swap = await buildSwapOnlyTx({ payer: sender, payMint, totalBurnAmt, extraPyreAmt });
-        setStatus('<strong>Sign 1 of 2</strong> in your wallet &mdash; acquire $PYRE&hellip;', 'info');
+        setStatus('<strong>Sign 1 of 2</strong> in your wallet &mdash; acquire PYRE&hellip;', 'info');
         const swapSigned = await provider.signTransaction(swap.tx);
         const swapSig = await conn.sendRawTransaction(swapSigned.serialize(), {
           skipPreflight: true, maxRetries: 10, preflightCommitment: 'confirmed',
         });
         setStatus(
           `Step 1 sent: <a href="https://solscan.io/tx/${swapSig}" target="_blank" rel="noopener noreferrer">${shortAddr(swapSig)} &uarr;</a> ` +
-          '&middot; waiting for $PYRE to land&hellip;', 'info'
+          '&middot; waiting for PYRE to land&hellip;', 'info'
         );
         await pollForConfirmation(conn, swapSig, swap.lastValidBlockHeight);
 
         // tx2: burn + memo + beacon. Built AFTER tx1 confirms so the
         // blockhash is fresh and the user's ATA definitely has the
-        // requested $PYRE.
+        // requested PYRE.
         const burn = await buildBurnOnlyTx({ conn, payer: sender, totalBurnAmt, memoText });
         setStatus('<strong>Sign 2 of 2</strong> in your wallet &mdash; burn + inscribe&hellip;', 'info');
         const burnSigned = await provider.signTransaction(burn.tx);
@@ -934,7 +934,7 @@ window.submitBurn = async function submitBurn() {
         await pollForConfirmation(conn, burnSig, burn.lastValidBlockHeight);
 
         setStatus(
-          `🔥 ${fmt(totalBurnAmt)} $PYRE burned across <strong>2 transactions</strong>. ` +
+          `🔥 ${fmt(totalBurnAmt)} PYRE burned across <strong>2 transactions</strong>. ` +
           'Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>' +
           `<a href="https://solscan.io/tx/${swapSig}" target="_blank" rel="noopener noreferrer">Swap tx &uarr;</a> &middot; ` +
           `<a href="https://solscan.io/tx/${burnSig}" target="_blank" rel="noopener noreferrer">Burn tx &uarr;</a>`,
@@ -988,7 +988,7 @@ window.submitBurn = async function submitBurn() {
     // sees the beacon transfer. Both indexers pick it up on the next
     // 5-minute ingest cycle.
     setStatus(
-      `🔥 ${fmt(totalBurnAmt)} $PYRE burned. ` +
+      `🔥 ${fmt(totalBurnAmt)} PYRE burned. ` +
       'Your slot will appear on the leaderboard within ~10 minutes once the indexer picks it up.<br>' +
       '<a href="https://solscan.io/tx/' + signature + '" target="_blank" rel="noopener noreferrer">View transaction ↗</a>',
       'success'

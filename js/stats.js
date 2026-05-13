@@ -171,10 +171,10 @@ function dailyBurnCount(entries, nowMs){
   return buckets;
 }
 
-// Cumulative-burned series — the running total of $PYRE burned over
+// Cumulative-burned series — the running total of PYRE burned over
 // time. Sorted by ts ascending, then carried forward over 10 daily
 // buckets. The final value matches s-burned (modulo on-chain supply
-// drift, which is tiny). Used as the sparkline for the "$PYRE Burned"
+// drift, which is tiny). Used as the sparkline for the "PYRE Burned"
 // card.
 function cumulativeBurnedDaily(entries, nowMs){
   const sorted = entries.slice().sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));

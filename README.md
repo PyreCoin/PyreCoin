@@ -2,17 +2,17 @@
 
 **[pyrecoin.com](https://pyrecoin.com)** | [@PYREcoin](https://x.com/PYREcoin) | [pump.fun](https://pump.fun/coin/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump) | [Jupiter](https://jup.ag/tokens/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump) | [DexScreener](https://dexscreener.com/solana/64QkPGe9mHHMTByEJoDgPjoJKzLqZgEGX8xW7o1rpump)
 
-> A Solana memecoin with a single mechanic: burn $PYRE to put your URL
+> A Solana memecoin with a single mechanic: burn PYRE to put your URL
 > on a public leaderboard ranked by **time-decayed heat**. Old burns
 > fade. Fresh burns climb. Feed the pyre to stay on top.
 
 ---
 
-## What is $PYRE?
+## What is PYRE?
 
-$PYRE is a Solana memecoin (a *digital collectible* under the SEC/CFTC
+PYRE is a Solana memecoin (a *digital collectible* under the SEC/CFTC
 joint guidance of March 17, 2026). The site at [pyrecoin.com](https://pyrecoin.com) is a
-public, on-chain billboard: anyone can burn $PYRE with a memo
+public, on-chain billboard: anyone can burn PYRE with a memo
 containing a URL and a message, and the leaderboard renders the top 16
 slots ranked by heat.
 
@@ -41,7 +41,7 @@ ranks 2–16 the live leaderboard; ranks 17+ the backburner.
 
 ## How to participate
 
-1. **Buy $PYRE** on pump.fun.
+1. **Buy PYRE** on pump.fun.
 2. **Burn through [pyrecoin.com](https://pyrecoin.com).** The site's burn modal builds a
    Token-2022 `BurnChecked` instruction (which destroys the tokens at
    the protocol layer — supply actually decreases) plus a Memo Program
@@ -106,7 +106,7 @@ filter + reactive human removal.
 
 ## Compliance
 
-$PYRE is treated as a "digital collectible" under the SEC/CFTC joint
+PYRE is treated as a "digital collectible" under the SEC/CFTC joint
 interpretive release of March 17, 2026 (Release Nos. 33-11412;
 34-105020) — generally not a security when purchased for entertainment
 or cultural purposes. Site copy avoids price predictions, return
@@ -116,7 +116,7 @@ human takedown for illegal content.
 
 ## Disclaimer
 
-$PYRE is a memecoin — a digital collectible under the SEC/CFTC joint
+PYRE is a memecoin — a digital collectible under the SEC/CFTC joint
 guidance of March 17, 2026. It is not a security, not an investment,
 and not a yield product. This page does not constitute financial
 advice. Burn responsibly, or at least loudly.

@@ -1,6 +1,6 @@
-// ─── BUY $PYRE ──────────────────────────────────────────────────────
+// ─── BUY PYRE ──────────────────────────────────────────────────────
 // Native swap UI on Jupiter's Swap V1 API. Input token is selectable
-// (SOL / USDC / USDT); output is fixed to $PYRE. Slippage and priority
+// (SOL / USDC / USDT); output is fixed to PYRE. Slippage and priority
 // fee level are user-configurable and persist via localStorage. The
 // flow:
 //
@@ -318,7 +318,7 @@ function buttonLabelForCurrentState() {
   }
   if (buyState.quoting) return 'Quoting…';
   if (!buyState.lastQuote) return 'No quote — try again';
-  return `Swap ${fmtAmount(amt, currentToken.isNative ? 6 : 2)} ${currentToken.symbol} for $PYRE`;
+  return `Swap ${fmtAmount(amt, currentToken.isNative ? 6 : 2)} ${currentToken.symbol} for PYRE`;
 }
 
 async function refreshWalletUI() {
@@ -493,7 +493,7 @@ async function submitBuy() {
   if (buyState.swapping) return;
 
   if (isPlaceholder()) {
-    setStatus('$PYRE has not launched yet.', 'error');
+    setStatus('PYRE has not launched yet.', 'error');
     return;
   }
 

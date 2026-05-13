@@ -1,5 +1,5 @@
 // Inscription Wall — chronological feed of memo-only inscriptions
-// (no $PYRE burned, just SOL fees + Memo Program payload).
+// (no PYRE burned, just SOL fees + Memo Program payload).
 //
 // Same badge style as the leaderboard but minus 🔥 amount and ❤️‍🔥 heat
 // (an inscription doesn't burn PYRE, so neither makes sense). Wallet,

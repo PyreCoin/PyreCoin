@@ -4,7 +4,7 @@
 //   ┌──────────────────────────────────────────────────────────────┐
 //   │  message text (or flavor quote for memo-less burns)          │
 //   │                                                              │
-//   │  🔥 1.2K $PYRE   ❤️‍🔥 4.7   ⏰ 2h ago   🌐 site   𝕏 @bob   👛 99j6…Pz8g │
+//   │  🔥 1.2K PYRE   ❤️‍🔥 4.7   ⏰ 2h ago   🌐 site   𝕏 @bob   👛 99j6…Pz8g │
 //   └──────────────────────────────────────────────────────────────┘
 //
 // Top of slot — the message. Bottom row — small badges, every entry
@@ -55,7 +55,7 @@ export function liveEntryCount(){
 // burn always renders the same quote across reloads — but the pool can
 // evolve over time without rewriting leaderboard.json.
 const FLAVOR_POOL = [
-  'some people just want to watch $PYRE burn 🔥',
+  'some people just want to watch PYRE burn 🔥',
   'silent flame. loud chain. 🔥',
   'no words. just fire. 🔥',
   'a wordless tribute 🪔',
@@ -126,11 +126,11 @@ function badgeRow(entry, now, variant = 'hero'){
   const burnBadge = entry.tx ? `
     <a class="badge badge-burn" href="https://solscan.io/tx/${tx}" target="_blank" rel="noopener noreferrer"
        title="Verify burn on Solscan ↗">
-      <span class="badge-icon">🔥</span><span class="badge-val">${escapeHtml(amount)}</span><span class="badge-unit">$PYRE</span>
+      <span class="badge-icon">🔥</span><span class="badge-val">${escapeHtml(amount)}</span><span class="badge-unit">PYRE</span>
     </a>` : '';
 
   const heatBadge = `
-    <span class="badge badge-heat" title="Live heat — how this slot is ranked on the leaderboard. Formula: ($PYRE burned in this tx) ÷ (hours since the burn + 2)^1.5. So a big burn that's brand-new outranks a bigger burn from days ago; everything cools toward zero over time. Burn more, or burn fresher, to climb.">
+    <span class="badge badge-heat" title="Live heat — how this slot is ranked on the leaderboard. Formula: (PYRE burned in this tx) ÷ (hours since the burn + 2)^1.5. So a big burn that's brand-new outranks a bigger burn from days ago; everything cools toward zero over time. Burn more, or burn fresher, to climb.">
       <span class="badge-icon">❤️‍🔥</span><span class="badge-val">${escapeHtml(heat)}</span>
     </span>`;
 

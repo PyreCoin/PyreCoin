@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-39';
+const V = '20260513-40';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -168,7 +168,7 @@ FIRE_SECTIONS.forEach(id => {
 //
 //   1. SOL cost per inscription: base fee + priority fee + 1-lamport
 //      beacon transfer = INSCRIPTION_FEE_LAMPORTS × SOL/USD.
-//   2. USD-to-take-#1: minBurnToTakeTop() (in $PYRE) × PYRE/USD.
+//   2. USD-to-take-#1: minBurnToTakeTop() (in PYRE) × PYRE/USD.
 //      Re-rendered as the leaderboard refreshes, so the number tracks
 //      the live heat. Inscription is free — the burn-to-#1 line is the
 //      optional, additive layer.
@@ -195,7 +195,7 @@ async function refreshPrices(){
 function renderCtaPrices(){
   const costEl = document.getElementById('cta-cost');
   if (costEl && _solUsd != null) {
-    // Total USD to write on chain = SOL network fee + 1 $PYRE service
+    // Total USD to write on chain = SOL network fee + 1 PYRE service
     // fee. PYRE fee is sub-cent so the displayed value is dominated by
     // the SOL fee, but include it for accuracy and so the CTA matches
     // what the bill in the form below itemizes. Falls back to SOL-only
@@ -207,9 +207,9 @@ function renderCtaPrices(){
   const topEl = document.getElementById('cta-top-spot');
   if (topEl && _pyreUsd != null && lb?.minBurnToTakeTop) {
     // Bare-minimum buy-and-burn cost to take #1 on the leaderboard.
-    // ONLY the swap+burn of the $PYRE amount needed to clear the
+    // ONLY the swap+burn of the PYRE amount needed to clear the
     // current top heat. No Solana network fee (gas), no service fee,
-    // no extra-$PYRE-to-wallet add-on — just the buy-and-burn.
+    // no extra-PYRE-to-wallet add-on — just the buy-and-burn.
     const pyreAmount = lb.minBurnToTakeTop(Date.now());
     topEl.textContent = fmtUsd(pyreAmount * _pyreUsd);
   }

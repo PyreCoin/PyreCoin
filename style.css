@@ -954,7 +954,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 
 /* Generic intro paragraph that sits between a section's <header>
-   and its body. Used by Write on Solana, Grab Some $PYRE, and By the
+   and its body. Used by Write on Solana, Grab Some PYRE, and By the
    Numbers so all three sections read with the same visual rhythm. */
 .section-intro{
   font-family:var(--sans);
@@ -1369,7 +1369,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
    The amount input has the same look as the other text inputs but
    with an absolute-positioned × button at the right edge to clear
    the value back to 0 (drops out of leaderboard mode, falls back to
-   inscription-only with just the 1 $PYRE service fee). */
+   inscription-only with just the 1 PYRE service fee). */
 .burn-amount-line{
   position:relative;
 }
@@ -1502,10 +1502,10 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 }
 
 /* ── EXTRA-PYRE-TO-WALLET TOGGLE ─────────────────────────────────
-   Optional "also buy $X of $PYRE for my wallet" line. Lives ABOVE
+   Optional "also buy $X of PYRE for my wallet" line. Lives ABOVE
    the bill (which itemizes fees) because it's a feature opt-in,
    not a charge. One clickable row: square checkbox + inline USD
-   input + helper "≈ N $PYRE" trailing. */
+   input + helper "≈ N PYRE" trailing. */
 .burn-extra{
   margin-top:18px;
   padding:11px 14px;
@@ -1701,7 +1701,7 @@ a.badge-x:hover .badge-x-icon{fill:var(--text);}
 @media(max-width:340px){
   .burn-bill-row{font-size:10.5px;}
   .burn-bill-label{
-    /* Labels can be long ("Service fee · 1 $PYRE buy + burn") — let
+    /* Labels can be long ("Service fee · 1 PYRE buy + burn") — let
        them wrap rather than push the cost column off-screen. */
     word-break:break-word;
   }
@@ -2740,7 +2740,7 @@ img.twemoji{
 }
 
 /* ── TOP CTA — first thing under the nav, explains what the service is.
-   Two equal-weight buttons (Inscribe / Burn $PYRE) both open the same
+   Two equal-weight buttons (Inscribe / Burn PYRE) both open the same
    unified modal in different modes. */
 .top-cta{
   position:relative;z-index:1;

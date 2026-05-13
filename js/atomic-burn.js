@@ -1,20 +1,20 @@
 // ─── ATOMIC SWAP + BURN ─────────────────────────────────────────────
-// One-signature flow that does (acquire $PYRE) + (burn it) + (inscribe
+// One-signature flow that does (acquire PYRE) + (burn it) + (inscribe
 // the memo) inside a single VersionedTransaction. The user pays in
 // whatever token they have (SOL / USDC / USDT) and never needs to
-// hold $PYRE first — Jupiter routes the swap, our burn instruction
+// hold PYRE first — Jupiter routes the swap, our burn instruction
 // destroys the output at the protocol layer, the memo lands the
 // inscription on the leaderboard.
 //
 // Flow:
-//   1. Jupiter ExactOut quote — "to receive exactly N $PYRE, how much
+//   1. Jupiter ExactOut quote — "to receive exactly N PYRE, how much
 //      <payMint> do I need to provide?"
 //   2. Jupiter /swap-instructions — returns the raw TransactionInstruction[]
 //      shape (computeBudget + setup + swap + cleanup + ALTs) instead
 //      of a pre-built transaction.
 //   3. We append our [BurnChecked + Memo + beacon-marker] instructions
 //      AFTER the swap and BEFORE the cleanup so the burn sees the
-//      freshly-swapped $PYRE.
+//      freshly-swapped PYRE.
 //   4. Resolve the Address Lookup Tables Jupiter references.
 //   5. Compile to a v0 message, wrap in VersionedTransaction, return.
 //
@@ -23,7 +23,7 @@
 //
 // Constraints + invariants:
 //   - swapMode='ExactOut' makes the OUTPUT amount fixed; the burn
-//     instruction can safely reference the exact requested N $PYRE.
+//     instruction can safely reference the exact requested N PYRE.
 //     Any input-side slippage is bounded by quote.otherAmountThreshold.
 //   - wrapAndUnwrapSol:true means Jupiter handles WSOL wrap/unwrap
 //     transparently when input is SOL.
@@ -186,8 +186,8 @@ async function fetchPrebuiltSwap(quoteResponse, userPublicKey) {
  * @param {import('../vendor/web3.mjs').Connection} args.conn — RPC connection
  * @param {PublicKey}  args.payer       — user's wallet pubkey
  * @param {string}     args.payMint     — base58 of the pay-with mint (SOL/USDC/USDT)
- * @param {number}     args.totalBurnAmt — $PYRE amount to burn (service fee + leaderboard)
- * @param {number}     [args.extraPyreAmt=0] — extra $PYRE to acquire on top of the burn
+ * @param {number}     args.totalBurnAmt — PYRE amount to burn (service fee + leaderboard)
+ * @param {number}     [args.extraPyreAmt=0] — extra PYRE to acquire on top of the burn
  *                                              and leave in the user's ATA (optional add-on).
  * @param {string}     args.memoText    — non-empty memo to attach as the Memo Program payload
  *
@@ -289,12 +289,12 @@ export async function buildAtomicBurnTx({ conn, payer, payMint, totalBurnAmt, ex
 // ─── 2-tx fallback builders ─────────────────────────────────────────
 // When the atomic single-tx form exceeds Solana's 1232-byte limit
 // (heavy Jupiter routes through illiquid pools, etc.), submitBurn
-// falls back to a sequenced 2-tx flow: first acquire the $PYRE, then
+// falls back to a sequenced 2-tx flow: first acquire the PYRE, then
 // burn + inscribe. Each tx fits comfortably under the limit because
 // the swap is on its own and our burn-only tx is tiny.
 //
 // Partial-fill behaviour: if the user signs tx1 and cancels tx2,
-// they keep the freshly-acquired $PYRE in their wallet. No refund
+// they keep the freshly-acquired PYRE in their wallet. No refund
 // path — they can burn it later via the direct-PYRE path or just
 // hold it. The caller is responsible for warning the user about the
 // 2-step ceremony before kicking it off.
@@ -317,7 +317,7 @@ export async function buildSwapOnlyTx({ payer, payMint, totalBurnAmt, extraPyreA
   const pyreDecimals = await getPyreDecimals();
   const acquireRawAmount = scaleToRaw(totalBurnAmt + extraPyreAmt, pyreDecimals);
 
-  // ExactOut quote so the user receives exactly the target $PYRE
+  // ExactOut quote so the user receives exactly the target PYRE
   // amount (within slippage on the INPUT side). The follow-up burn
   // tx burns only the burn portion; the extra stays in their ATA.
   const quote = await fetchExactOutQuote(payMint, acquireRawAmount.toString());
@@ -331,7 +331,7 @@ export async function buildSwapOnlyTx({ payer, payMint, totalBurnAmt, extraPyreA
 
 /**
  * Build a burn-only legacy Transaction: BurnChecked + Memo + 1-lamport
- * beacon. Burns the exact `totalBurnAmt` $PYRE the swap delivered.
+ * beacon. Burns the exact `totalBurnAmt` PYRE the swap delivered.
  * Stays a legacy Transaction (not v0) because it's small and the wallet
  * adapter handles both types — no need for ALTs at this size.
  *

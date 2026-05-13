@@ -12,10 +12,10 @@
 <meta http-equiv="Cache-Control" content="no-cache">
 <meta http-equiv="Pragma" content="no-cache">
 <title>PYRE — Write on Solana. Burn to be seen.</title>
-<meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn $PYRE to climb the leaderboard. No account, no login, no team.">
+<meta name="description" content="Inscribe anything to the Solana blockchain for pennies in SOL. Burn PYRE to climb the leaderboard. No account, no login, no team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=Noto+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260512-39">
+<link rel="stylesheet" href="style.css?v=20260513-40">
 <!-- Twemoji (jdecked fork — the actively-maintained continuation of
      Twitter's archived original). Parses Unicode emoji in rendered
      HTML and swaps them for consistent SVG glyphs from jsDelivr, so
@@ -128,7 +128,7 @@
     </div>
     <p class="wall-blurb">
       Anyone can inscribe a message on Solana for a fraction of a cent in SOL
-      plus a 1 $PYRE burn. No account, no login. The
+      plus a 1 PYRE burn. No account, no login. The
       chain keeps the receipt; Solscan, Solana Explorer, and other indexers
       mirror it forever. Last 50 inscriptions through pyrecoin.com:
     </p>
@@ -159,7 +159,7 @@
        Section intro frames the action; the form itself is the next thing
        you see. All four fields are optional but at least one of (msg,
        URL, X handle) is required. Every inscription burns at least the
-       1 $PYRE service fee (acquired and burned atomically in the same
+       1 PYRE service fee (acquired and burned atomically in the same
        tx via Jupiter if the user doesn't already hold any). Larger
        burns climb the heat-ranked leaderboard above; the ranking
        formula lives in its own #math section further down. -->
@@ -173,9 +173,9 @@
     <p class="section-intro">
       Fight censorship for less than it costs to buy a stick of gum.
       A fraction of a cent in SOL plus 1
-      $PYRE burned (service fee &mdash; atomic, single signature, works
-      even if you don't hold any $PYRE yet). The chain keeps the receipt;
-      every major Solana explorer mirrors it forever. Burn more $PYRE on
+      PYRE burned (service fee &mdash; atomic, single signature, works
+      even if you don't hold any PYRE yet). The chain keeps the receipt;
+      every major Solana explorer mirrors it forever. Burn more PYRE on
       top of the service fee to climb the heat-ranked leaderboard above.
     </p>
 
@@ -203,7 +203,7 @@
         <div class="burn-form-row burn-amount-row">
           <label for="burnAmount">
             <span>Burn</span>
-            <span class="label-meta">You have <span id="burnPyreBalance">&mdash;</span> $PYRE</span>
+            <span class="label-meta">You have <span id="burnPyreBalance">&mdash;</span> PYRE</span>
           </label>
           <div class="burn-amount-line">
             <input id="burnAmount" type="number" min="0" step="any" placeholder="0 — service fee only">
@@ -211,7 +211,7 @@
           </div>
           <div class="burn-pay-row">
             <span class="burn-pay-label">spend</span>
-            <button type="button" class="burn-pay-chip" id="burnPayToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="burnPayPicker" title="Pay with $PYRE balance, SOL, USDC, or USDT">
+            <button type="button" class="burn-pay-chip" id="burnPayToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="burnPayPicker" title="Pay with PYRE balance, SOL, USDC, or USDT">
               <span class="buy-token-chip-dot buy-token-chip-dot-sol" id="burnPayDot"></span>
               <span id="burnPayLabel">SOL</span>
               <svg class="buy-token-chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
@@ -219,7 +219,7 @@
             <div class="token-picker burn-pay-picker" id="burnPayPicker" hidden role="listbox" aria-label="Select pay-with token">
               <button type="button" role="option" data-pay="pyre">
                 <span class="buy-token-chip-dot buy-token-chip-dot-pyre"></span>
-                <span class="buy-token-picker-symbol">$PYRE</span>
+                <span class="buy-token-picker-symbol">PYRE</span>
                 <span class="buy-token-picker-name">from your balance</span>
               </button>
               <button type="button" role="option" data-pay="sol">
@@ -248,7 +248,7 @@
           <div class="burn-hint" id="burnHint"></div>
         </div>
 
-        <!-- Optional buy-on-top toggle. Defaults to $10 of $PYRE swapped
+        <!-- Optional buy-on-top toggle. Defaults to $10 of PYRE swapped
              (NOT burned) into the user's ATA alongside the burn — same
              atomic tx. Hidden when pay method is "pyre". Lives ABOVE
              the bill because it's an option (not a fee), so the bill
@@ -260,7 +260,7 @@
             <span class="burn-extra-text">
               Also buy
               <span class="burn-extra-input-wrap">$<input type="number" id="burnExtraUsd" class="burn-extra-input" value="10" min="0" step="1" inputmode="decimal" autocomplete="off"></span>
-              of $PYRE for my wallet
+              USD of PYRE
             </span>
             <span class="burn-extra-pyre" id="burnBillExtraPyre"></span>
           </label>
@@ -278,15 +278,15 @@
             <span class="burn-bill-cost" id="burnBillSolFee">~$0.003</span>
           </div>
           <div class="burn-bill-row" id="burnBillServiceRow">
-            <span class="burn-bill-label">Service fee · 1 $PYRE buy + burn</span>
+            <span class="burn-bill-label">Service fee · 1 PYRE buy + burn</span>
             <span class="burn-bill-cost" id="burnBillService">~$0.000003</span>
           </div>
           <div class="burn-bill-row" id="burnBillLeaderboardRow" hidden>
-            <span class="burn-bill-label">Leaderboard burn · <span id="burnBillBurnAmt">0</span> $PYRE</span>
+            <span class="burn-bill-label">Leaderboard burn · <span id="burnBillBurnAmt">0</span> PYRE</span>
             <span class="burn-bill-cost" id="burnBillLeaderboard">~$0</span>
           </div>
           <div class="burn-bill-row" id="burnBillExtraRow">
-            <span class="burn-bill-label">Buy $PYRE to wallet</span>
+            <span class="burn-bill-label">Buy PYRE to wallet</span>
             <span class="burn-bill-cost" id="burnBillExtra">~$10</span>
           </div>
           <div class="burn-bill-divider"></div>
@@ -305,7 +305,7 @@
     </div>
   </section>
 
-  <!-- GRAB SOME $PYRE — native swap form on Jupiter's Swap V1 API.
+  <!-- GRAB SOME PYRE — native swap form on Jupiter's Swap V1 API.
        Quote and swap go straight to lite-api.jup.ag (CORS-open, no
        key); sign happens in the user's wallet via the same Wallet
        Standard plumbing burn.js uses. Funds never touch pyrecoin.com —
@@ -315,7 +315,7 @@
   <div class="full-divider"></div>
   <section class="section buy-section" id="buy">
     <div class="section-header">
-      <div class="section-title">Grab Some $PYRE</div>
+      <div class="section-title">Grab Some PYRE</div>
       <div class="section-line"></div>
       <button type="button" class="buy-settings-btn" id="buySettingsToggle" aria-label="Swap settings" aria-expanded="false" aria-controls="buySettingsPanel" title="Slippage & priority fee">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -324,9 +324,9 @@
 
     <p class="section-intro">
       Inscribing is free. Boosting your post to the top of pyrecoin.com
-      is not &mdash; that takes $PYRE, burned. Bigger or fresher burns
+      is not &mdash; that takes PYRE, burned. Bigger or fresher burns
       climb higher on the leaderboard above. Swap SOL, USDC, or USDT
-      for $PYRE below; routed via <strong>Jupiter</strong>, Solana's
+      for PYRE below; routed via <strong>Jupiter</strong>, Solana's
       aggregator, for best execution across pump.fun, Raydium, Orca,
       and the rest of the DEX universe. Funds never touch pyrecoin.com.
     </p>
@@ -366,7 +366,7 @@
 
         <div class="burn-form-row buy-row buy-pay-row">
           <label for="buyAmount">
-            <span>You pay <span class="hint" title="Amount of the selected token to swap for $PYRE. Click 25 / 50 / 75 / MAX to size your input as a percentage of your balance (SOL keeps ~0.01 back for network + ATA fees; stablecoins use the full balance since fees come from SOL).">?</span></span>
+            <span>You pay <span class="hint" title="Amount of the selected token to swap for PYRE. Click 25 / 50 / 75 / MAX to size your input as a percentage of your balance (SOL keeps ~0.01 back for network + ATA fees; stablecoins use the full balance since fees come from SOL).">?</span></span>
             <span class="label-meta">Balance: <span id="buyBalance">&mdash;</span> <span id="buyBalanceSymbol">SOL</span></span>
           </label>
           <div class="buy-input-line">
@@ -413,12 +413,12 @@
 
         <div class="burn-form-row buy-row">
           <label>
-            <span>You get <span class="hint" title="Estimated $PYRE you'll receive at current liquidity, after slippage. Re-quoted automatically as you type and again at click-time to minimize stale-route risk.">?</span></span>
+            <span>You get <span class="hint" title="Estimated PYRE you'll receive at current liquidity, after slippage. Re-quoted automatically as you type and again at click-time to minimize stale-route risk.">?</span></span>
             <span class="label-meta" id="buyRouteSummary"></span>
           </label>
           <div class="buy-input-line buy-input-line-readout">
             <span class="buy-readout" id="buyOutAmount">&mdash;</span>
-            <span class="buy-token-chip"><span class="buy-token-chip-dot buy-token-chip-dot-pyre"></span>$PYRE</span>
+            <span class="buy-token-chip"><span class="buy-token-chip-dot buy-token-chip-dot-pyre"></span>PYRE</span>
           </div>
         </div>
 
@@ -457,7 +457,7 @@
       <div class="heat-math-formula">heat&nbsp;&nbsp;=&nbsp;&nbsp;amount&nbsp;÷&nbsp;(hours_since&nbsp;+&nbsp;2)<sup>1.5</sup></div>
       <div class="heat-math-examples">
         <div class="heat-math-row">
-          <span class="hm-burn">100K $PYRE burn</span>
+          <span class="hm-burn">100K PYRE burn</span>
           <span class="hm-when">at t = 0</span>
           <span class="hm-arrow">&rarr;</span>
           <span class="hm-heat">heat &asymp; 35,400</span>
@@ -484,7 +484,7 @@
        → mechanic explainer → live numbers. Eight stat cards (each with
        a sparkline) followed by four big charts (price candles, visitor
        bars, burn-volume bars, top countries). The advertiser-facing
-       framing — $PYRE burns are leaderboard ad slots, so the page
+       framing — PYRE burns are leaderboard ad slots, so the page
        leans into the audience + activity numbers a buyer would want.
        All sparklines and charts are pure inline SVG (see js/charts.js)
        — zero dependencies, ember-styled. -->
@@ -515,13 +515,13 @@
         <div class="stat-lbl">Genesis</div>
         <div class="stat-val">May 9, 2026</div>
         <div class="stat-change">03:43:59 UTC <span id="s-genesis-rel"></span></div>
-        <div class="stat-blurb">The exact second Solana accepted that $PYRE exists. Every token — burned, held, lost to a forgotten seed phrase, stranded in a wallet some guy never opened again — traces to this one transaction on <strong>pump.fun</strong>. No pre-mine. No team bag. No vesting cliff that unlocks suspiciously close to a rug. Don't trust us — the chain has the receipt.</div>
+        <div class="stat-blurb">The exact second Solana accepted that PYRE exists. Every token — burned, held, lost to a forgotten seed phrase, stranded in a wallet some guy never opened again — traces to this one transaction on <strong>pump.fun</strong>. No pre-mine. No team bag. No vesting cliff that unlocks suspiciously close to a rug. Don't trust us — the chain has the receipt.</div>
       </div>
 
       <div class="stat stat--static">
         <div class="stat-lbl">Initial Mint</div>
         <div class="stat-val">1,000,000,000</div>
-        <div class="stat-blurb">Every $PYRE that will ever exist, lined up on day one. Pump.fun picks 1B for every memecoin it launches — no negotiating, no founder bag. From here the number only goes down, one burn at a time. The <em>Circulating Supply</em> below is what hasn't gone up in smoke yet.</div>
+        <div class="stat-blurb">Every PYRE that will ever exist, lined up on day one. Pump.fun picks 1B for every memecoin it launches — no negotiating, no founder bag. From here the number only goes down, one burn at a time. The <em>Circulating Supply</em> below is what hasn't gone up in smoke yet.</div>
       </div>
 
       <!-- Cards below are deliberately ordered to set up the market-cap
@@ -531,7 +531,7 @@
       <div class="stat">
         <div class="stat-lbl">Circulating Supply</div>
         <div class="stat-val" id="s-supply">—</div>
-        <div class="stat-blurb">How many $PYRE tokens exist this very second. Started at exactly <code>1,000,000,000</code> because pump.fun, like every memecoin platform before it, refuses to mint a more dignified initial supply. The number only ever shrinks — every <code>BurnChecked</code> tx eats from it. Sparkline traces the descent.</div>
+        <div class="stat-blurb">How many PYRE tokens exist this very second. Started at exactly <code>1,000,000,000</code> because pump.fun, like every memecoin platform before it, refuses to mint a more dignified initial supply. The number only ever shrinks — every <code>BurnChecked</code> tx eats from it. Sparkline traces the descent.</div>
         <div class="stat-spark" id="sp-supply"></div>
       </div>
 
@@ -539,7 +539,7 @@
         <div class="stat-lbl">Price</div>
         <div class="stat-val" id="s-price">—</div>
         <div class="stat-change" id="s-price-change"></div>
-        <div class="stat-blurb">What one $PYRE costs in real United States dollars right now, per Jupiter's price oracle. Sub-cent prices render in scientific notation so the leading zeros don't eat the entire card. The line below is what twenty-four hours of degen attention looks like translated into a percentage.</div>
+        <div class="stat-blurb">What one PYRE costs in real United States dollars right now, per Jupiter's price oracle. Sub-cent prices render in scientific notation so the leading zeros don't eat the entire card. The line below is what twenty-four hours of degen attention looks like translated into a percentage.</div>
         <div class="stat-spark" id="sp-price"></div>
       </div>
 
@@ -551,7 +551,7 @@
       </div>
 
       <div class="stat">
-        <div class="stat-lbl">$PYRE Burned</div>
+        <div class="stat-lbl">PYRE Burned</div>
         <div class="stat-val" id="s-burned">—</div>
         <div class="stat-blurb">Total tokens that have been escorted off the chain. Read directly from on-chain supply (initial 1B − live <code>getTokenSupply</code>), so this number cannot be faked, inflated, or politely returned. Every figure here corresponds to a transaction sitting in a block somewhere; you can verify by burning one yourself.</div>
         <div class="stat-spark" id="sp-burned"></div>
@@ -567,14 +567,14 @@
       <div class="stat">
         <div class="stat-lbl">24h Burn Volume</div>
         <div class="stat-val" id="s-vol24">—</div>
-        <div class="stat-blurb">Total $PYRE incinerated in the last twenty-four hours, summed across every wallet. The clearest near-term measure of "is the leaderboard moving." Tomorrow's number replaces today's. Sparkline shows daily totals over the last ten days — every spike was someone choosing to be famous.</div>
+        <div class="stat-blurb">Total PYRE incinerated in the last twenty-four hours, summed across every wallet. The clearest near-term measure of "is the leaderboard moving." Tomorrow's number replaces today's. Sparkline shows daily totals over the last ten days — every spike was someone choosing to be famous.</div>
         <div class="stat-spark" id="sp-vol24"></div>
       </div>
 
       <div class="stat">
         <div class="stat-lbl">Avg Burn Size</div>
         <div class="stat-val" id="s-avgburn">—</div>
-        <div class="stat-blurb">Mean $PYRE per burn over the trailing ten days. Roughly: what a leaderboard slot costs when a typical degen decides today's the day. Small recent burns still outrank large day-old whales — see the heat math above; the universe corrects for size.</div>
+        <div class="stat-blurb">Mean PYRE per burn over the trailing ten days. Roughly: what a leaderboard slot costs when a typical degen decides today's the day. Small recent burns still outrank large day-old whales — see the heat math above; the universe corrects for size.</div>
         <div class="stat-spark" id="sp-avgburn"></div>
       </div>
 
@@ -636,9 +636,9 @@
             <button class="chart-range active" data-range="240">10d</button>
           </div>
         </div>
-        <div class="chart-panel-blurb">$PYRE burned per hour, summed from every Token-2022 BurnChecked transaction targeting the PYRE mint. Each bar is a one-hour bucket. Cross-reference with the visitors chart above — peaks in burn activity often track peaks in attention, and vice versa.</div>
+        <div class="chart-panel-blurb">PYRE burned per hour, summed from every Token-2022 BurnChecked transaction targeting the PYRE mint. Each bar is a one-hour bucket. Cross-reference with the visitors chart above — peaks in burn activity often track peaks in attention, and vice versa.</div>
         <div class="chart-panel-body" id="chart-burns"></div>
-        <div class="chart-panel-foot" id="chart-burns-foot">last 10 days · $PYRE burned per hour · derived from leaderboard.json</div>
+        <div class="chart-panel-foot" id="chart-burns-foot">last 10 days · PYRE burned per hour · derived from leaderboard.json</div>
       </div>
 
       <div class="chart-panel">
@@ -684,7 +684,7 @@
           <div class="dict-def"><div><i>n.</i> <em>(figurative)</em> Any structure — physical, financial, or otherwise — onto which one places things of value, knowing they will not return.
             <em class="usage">"The 401(k), the marriage, the dogcoin bag — each its own modest pyre."</em></div></div>
           <div class="dict-def"><div><i>n.</i> <em>(crypto, 2026−)</em> A leaderboard mechanic by which Solana memecoin holders convert tokens into permanent on-chain attention.
-            <em class="usage">"He threw forty thousand $PYRE on the pyre and ranked seventh by Tuesday."</em></div></div>
+            <em class="usage">"He threw forty thousand PYRE on the pyre and ranked seventh by Tuesday."</em></div></div>
         </div>
 
         <div class="dict-derived">
@@ -714,7 +714,7 @@
           </div>
           <div class="etym-step">
             <div class="etym-era">2026 CE</div>
-            <div class="etym-form"><b>$PYRE</b> <span class="gloss">SPL token, Solana mainnet; doublet of "we knew what we were doing and we did it anyway"</span></div>
+            <div class="etym-form"><b>PYRE</b> <span class="gloss">SPL token, Solana mainnet; doublet of "we knew what we were doing and we did it anyway"</span></div>
           </div>
         </div>
 
@@ -765,7 +765,7 @@
 
         <p>Your <strong>S&amp;P 500 fund</strong>, real return adjusted for the cost of staying alive in a coastal city, is a slow pyre with very tasteful carved-oak finishings. Your <strong>rent</strong> is a monthly pyre on which you place a third of your post-tax income and receive, in return, the right to keep your books somewhere. Your <strong>streaming subscriptions</strong> are seventeen tea-light pyres burning quietly in a side room you have not entered since 2023. Your <strong>"high-yield" savings account</strong> is a pyre someone built out of damp leaves and is charging you to look at.</p>
 
-        <p>$PYRE proposes only one modest reform: <strong>name the pyre.</strong> Make it explicit. Put it on the leaderboard. Get a clickable link out of it. The fire was always going to take it. At least this way the receipt is on-chain and someone, somewhere, has to scroll past your URL on the way to theirs.</p>
+        <p>PYRE proposes only one modest reform: <strong>name the pyre.</strong> Make it explicit. Put it on the leaderboard. Get a clickable link out of it. The fire was always going to take it. At least this way the receipt is on-chain and someone, somewhere, has to scroll past your URL on the way to theirs.</p>
 
         <p class="ling" style="text-align:center;font-size:13px;color:var(--text3);letter-spacing:1px;margin-top:18px;font-style:italic;">— πάντα ῥεῖ καὶ καίεται —<br><span style="font-size:11px;letter-spacing:0.5px;font-style:normal;">"all things flow, and burn"</span></p>
       </div>
@@ -812,10 +812,10 @@
     </p>
     <ul>
       <li><strong>The page is provided "AS IS"</strong>, with no warranty of any kind, express or implied — including merchantability, fitness for a particular purpose, or non-infringement. No guarantee of uptime, accuracy, availability, or that anything will work at all.</li>
-      <li><strong>Inscribing — or burning $PYRE — may not result in your message appearing on the page.</strong> Your transaction may fail to confirm. The indexer may miss it. The moderation filter may quarantine it. The page may not rebuild. The DNS may have evaporated. The pyre may be out.</li>
+      <li><strong>Inscribing — or burning PYRE — may not result in your message appearing on the page.</strong> Your transaction may fail to confirm. The indexer may miss it. The moderation filter may quarantine it. The page may not rebuild. The DNS may have evaporated. The pyre may be out.</li>
       <li><strong>If something breaks,</strong> you can holler at <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a> on X. We may or may not respond. We may or may not be busy lighting other things on fire. There is no support obligation, no SLA, no helpdesk, no escalation path, no "manager."</li>
-      <li><strong>$PYRE is a digital collectible.</strong> Not a security. Not an investment contract. Not a yield product. Not financial advice. Not a promise of anything. There is no team roadmap, no future-utility commitment, no guarantee of price, value, or relevance — past, present, or future.</li>
-      <li><strong>Liability is yours, exclusively.</strong> We are not liable for any direct, indirect, incidental, consequential, special, punitive, or "I burned a small fortune in $PYRE and nothing happened" damages. By burning, you accept this. By visiting the page, you accept this. By having heard about the page from a friend, you probably accept this.</li>
+      <li><strong>PYRE is a digital collectible.</strong> Not a security. Not an investment contract. Not a yield product. Not financial advice. Not a promise of anything. There is no team roadmap, no future-utility commitment, no guarantee of price, value, or relevance — past, present, or future.</li>
+      <li><strong>Liability is yours, exclusively.</strong> We are not liable for any direct, indirect, incidental, consequential, special, punitive, or "I burned a small fortune in PYRE and nothing happened" damages. By burning, you accept this. By visiting the page, you accept this. By having heard about the page from a friend, you probably accept this.</li>
       <li><strong>You are responsible for your wallet, your clicks, your choices, and your fire-starter habits.</strong> If you can't afford to burn it, don't burn it.</li>
     </ul>
     <p class="disclaimer-tldr">
@@ -845,7 +845,7 @@
       <li><strong>esbuild</strong> — one-time local bundler that takes <code>@solana/web3.js</code>, <code>@solana/spl-token</code>, and <code>@wallet-standard/app</code> straight from npm and writes single-file ESM bundles into <code>vendor/</code>. The browser then imports them from our own origin, not from any CDN — zero third-party network dependency at runtime, smaller blast radius if anyone in the supply chain ever has a bad day. See <code>vendor/README.md</code> for versions + SHA-384 audit hashes.</li>
       <li><strong>X (formerly Twitter)</strong> — hosts <a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a> and the <a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer">live community feed</a>. The blue checkmark is, regrettably, not free. We accept this as the cost of doing memecoin in this (still unfortunate) timeline.</li>
       <li><strong>pump.fun</strong> — minted the SPL token for a one-time fee best described as "a coffee." This is the closest thing the project has to a treasury event.</li>
-      <li><strong>Jupiter</strong> — Solana's aggregator. The "Buy $PYRE" button points at <a href="https://jup.ag" target="_blank" rel="noopener noreferrer">jup.ag</a>; the live price + market cap on this page come from their Price API. Free tier, CORS-friendly, no key required.</li>
+      <li><strong>Jupiter</strong> — Solana's aggregator. The "Buy PYRE" button points at <a href="https://jup.ag" target="_blank" rel="noopener noreferrer">jup.ag</a>; the live price + market cap on this page come from their Price API. Free tier, CORS-friendly, no key required.</li>
       <li><strong>Twemoji</strong> (the <a href="https://github.com/jdecked/twemoji" target="_blank" rel="noopener noreferrer">jdecked fork</a>) — every emoji on this page is rendered as a Twemoji SVG instead of the operating system's native one. Same 🔥 on macOS, Linux, Windows, Android. Twitter retired the original library in 2024; the fork is the actively-maintained continuation. CC-BY 4.0 for the graphics, MIT for the code. Loaded from jsDelivr with a pinned version and a Subresource Integrity hash — a CDN compromise can't ship a swapped script body.</li>
     </ul>
 
@@ -873,14 +873,14 @@
     <div class="cta-label">Ready to be seen?</div>
     <div class="cta-title">Throw It On The Pyre</div>
     <p class="cta-sub">
-      Write to the chain for pennies. Burn $PYRE to own the leaderboard. Get seen by every degen in this (unfortunate) timeline.<br>
+      Write to the chain for pennies. Burn PYRE to own the leaderboard. Get seen by every degen in this (unfortunate) timeline.<br>
       No subscription. No renewal. No vesting. No cliff. No one to email.<br>
       Just <em class="ling tone-ember">πυρά</em>.
     </p>
     <div class="btn-row">
       <a class="btn-primary" href="#write"><svg class="icon icon-stroked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Write on Solana</a>
-      <a class="btn-ghost" href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer"><svg class="icon" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg>$PYRE on X</a>
-      <a class="btn-primary" href="#buy"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Buy $PYRE</a>
+      <a class="btn-ghost" href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer"><svg class="icon" role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>X</title><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg>PYRE on X</a>
+      <a class="btn-primary" href="#buy"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Buy PYRE</a>
       <a class="btn-ghost" href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.4 3-.405 1.02.005 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>GitHub</a>
     </div>
 
@@ -900,7 +900,7 @@
         <div class="footer-col-title">The Project</div>
         <ul>
           <li><a href="#write">Write on Solana</a></li>
-          <li><a href="#buy">Grab some $PYRE</a></li>
+          <li><a href="#buy">Grab some PYRE</a></li>
           <li><a href="#metrics">By the numbers</a></li>
           <li><a href="#rules">Rules</a></li>
           <li><a href="#disclaimer">Disclaimer</a></li>
@@ -911,7 +911,7 @@
         <div class="footer-col-title">Community</div>
         <ul>
           <li><a href="https://x.com/PYREcoin" target="_blank" rel="noopener noreferrer">@PYREcoin</a></li>
-          <li><a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer">$PYRE on X</a></li>
+          <li><a href="https://x.com/search?q=%24PYRE&amp;src=typed_query&amp;f=live" target="_blank" rel="noopener noreferrer">PYRE on X</a></li>
           <li><a href="https://github.com/PyreCoin/PyreCoin" target="_blank" rel="noopener noreferrer">GitHub</a></li>
           <li><a href="https://t.me/pyrecoinchat" target="_blank" rel="noopener noreferrer">Telegram</a></li>
           <li><a href="https://bsky.app/profile/pyrecoin.com" target="_blank" rel="noopener noreferrer">Bluesky</a></li>
@@ -939,7 +939,7 @@
      its top-level modules with the same query string). GitHub Pages
      serves JS with max-age=600, so without this returning visitors
      see stale code for up to 10 min post-deploy. -->
-<script type="module" src="js/main.js?v=20260512-39"></script>
+<script type="module" src="js/main.js?v=20260513-40"></script>
 
 </body>
 </html>
