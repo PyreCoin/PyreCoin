@@ -20,7 +20,7 @@
 // never change. If you do change them, bump V and force-bust them
 // inside their importer too.
 
-const V = '20260512-36';
+const V = '20260512-37';
 
 // Bootstrap stub for submitBurn only — defined SYNCHRONOUSLY before any
 // await so an inline form-submit fired before burn.js finishes loading
@@ -195,7 +195,14 @@ async function refreshPrices(){
 function renderCtaPrices(){
   const costEl = document.getElementById('cta-cost');
   if (costEl && _solUsd != null) {
-    costEl.textContent = fmtUsd((INSCRIPTION_FEE_LAMPORTS / 1e9) * _solUsd);
+    // Total USD to write on chain = SOL network fee + 1 $PYRE service
+    // fee. PYRE fee is sub-cent so the displayed value is dominated by
+    // the SOL fee, but include it for accuracy and so the CTA matches
+    // what the bill in the form below itemizes. Falls back to SOL-only
+    // until the PYRE price loads — typically a sub-second gap.
+    const solFee = (INSCRIPTION_FEE_LAMPORTS / 1e9) * _solUsd;
+    const pyreFee = _pyreUsd != null ? _pyreUsd : 0;
+    costEl.textContent = fmtUsd(solFee + pyreFee);
   }
   const topEl = document.getElementById('cta-top-spot');
   if (topEl && _pyreUsd != null && lb?.minBurnToTakeTop) {
