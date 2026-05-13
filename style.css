@@ -672,6 +672,16 @@ nav.nav--hidden{
      chart inflates further on every click. */
   height:260px;
 }
+/* Countries panel is the only chart-panel-body that renders HTML rows
+   rather than an SVG (Twemoji flag emoji need img children, which SVG
+   <text> can't host — see js/charts.js). The SVG-feedback caveat above
+   doesn't apply; let the panel size to content so a 4-country list
+   doesn't leave 200px of black under the last bar. min-height keeps a
+   floor while data is loading. */
+#chart-countries{
+  height:auto;
+  min-height:80px;
+}
 .chart-panel-body svg{
   display:block;
   width:100%;
