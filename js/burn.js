@@ -354,8 +354,8 @@ function recalculateBill() {
   // Extra-PYRE-to-wallet — toggle now lives ABOVE the bill in its own
   // .burn-extra block; the bill carries only the cost line. Hide the
   // entire toggle (and the bill row) when payMethod=pyre.
-  const extraToggle = $('burnBillExtraRow');
-  const extraBillRow = $('burnBillExtraBillRow');
+  const extraToggle = $('burnExtraToggle');
+  const extraBillRow = $('burnBillExtraRow');
   const hideExtra = burnState.payMethod === 'pyre';
   if (extraToggle) {
     extraToggle.hidden = hideExtra;
