@@ -49,8 +49,17 @@
       "amount": 100000,
       "ts": "2026-05-24T17:20:56.000Z",
       "tx": "HnBPDDW6qYjPNErpRKzgPAVP5qrTAQqebe78CucZFqToY1fGahYBN6Wjndwwgx55wkg9b7M9q97SPxng8CJKCGQ"
+    },
+    {
+      "wallet": "7AKrUDifm1pepHPx4jEJExyVbwgv6jyU6JMbFReZXZQa",
+      "url": "",
+      "msg": "",
+      "x": "",
+      "amount": 100000,
+      "ts": "2026-06-19T05:43:11.000Z",
+      "tx": "4JH5QK7UbYjcteydeqJA74fAoBHaJmVjhbKvGMuU2ydVbttw4kuK3v79VPBcunRZS9eTJv4iW7234DvyL6pa58UX"
     }
   ],
-  "updated": "2026-06-19T05:41:09.746Z",
+  "updated": "2026-06-19T05:46:13.365Z",
   "updatedBy": "ingest-bot"
 }
